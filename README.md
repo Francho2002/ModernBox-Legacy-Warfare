@@ -99,3 +99,12 @@ el código contra las bibliotecas de la instalación local del juego.
 Los raíles pueden generarse automáticamente, aunque la colocación manual es
 más fiable. Utiliza el pincel mínimo para construir líneas horizontales o
 verticales continuas antes de invocar el tren.
+
+## Menú de unidades
+
+La invocación manual está separada en cuatro categorías: artillería, unidades
+terrestres, aviación y armada. Cada categoría conserva los poderes de aparición
+originales; Trainbox permanece en su propia pestaña.
+
+El panel heredado de planetas no se muestra mientras los sistemas espaciales
+están desactivados.

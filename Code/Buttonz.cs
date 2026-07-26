@@ -25,9 +25,14 @@ namespace ModernBox
 			PowersTab tab3 = getPowersTab("ModernBoxBombs");
 			PowersTab tab4 = getPowersTab("ModernBoxEras");
 			PowersTab tab5 = getPowersTab("ModernBoxItems");
+			PowersTab artilleryTab = getPowersTab("ModernBoxUnitsArtillery");
+			PowersTab groundTab = getPowersTab("ModernBoxUnitsGround");
+			PowersTab airTab = getPowersTab("ModernBoxUnitsAir");
+			PowersTab navalTab = getPowersTab("ModernBoxUnitsNaval");
             PowersTab otherTab = getPowersTab("other");
 
-			if (tab == null || tab2 == null || tab3 == null || tab4 == null || tab5 == null)
+			if (tab == null || tab2 == null || tab3 == null || tab4 == null || tab5 == null ||
+                artilleryTab == null || groundTab == null || airTab == null || navalTab == null)
             {
                 ModernBoxLogger.Error("[Buttonz] One or more ModernBox tabs are missing during Init().");
                 return;
@@ -68,6 +73,8 @@ namespace ModernBox
             StatManager.Instance.RegisterStatLabel(statText);
 
             // ── Panel background ──────────────────────────────────────────────────────────
+            if (Main.EnableSpaceSystems)
+            {
             GameObject panelObj = new GameObject("StatPanel3");
             panelObj.transform.SetParent(tab.transform);
             panelObj.transform.localPosition = new Vector3(386, -18, 0);
@@ -154,6 +161,7 @@ namespace ModernBox
             textRect3.anchorMax = new Vector2(0.5f, 0.5f);
 
             StatManager.Instance.RegisterStatLabel3(statText3);
+            }
 
             GameObject discordAdObject = new GameObject("DiscordAd");
             discordAdObject.transform.SetParent(tab.transform);
@@ -515,57 +523,8 @@ namespace ModernBox
             }
             }
 
-            // Keep the strategic submarines at the front of the menu.
-            // A HashSet also makes repeated tracker registration harmless.
-            string[] submarineIds =
-            {
-                "SalvoSubmarine_alliance", "SalvoSubmarine_harden",
-                "SalvoSubmarine_gaia", "SalvoSubmarine_horde",
-                "Submarine_alliance", "Submarine_harden",
-                "Submarine_gaia", "Submarine_horde"
-            };
-            var displayedUnitIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var menuUnits = new List<UnitTracker.TrackedUnit>();
-            foreach (string submarineId in submarineIds)
-            {
-                UnitTracker.TrackedUnit submarine = UnitTracker.Instance.units.Find(
-                    unit => unit != null && string.Equals(unit.id, submarineId, StringComparison.OrdinalIgnoreCase));
-                if (submarine != null && displayedUnitIds.Add(submarine.id))
-                    menuUnits.Add(submarine);
-            }
-            foreach (var unit in UnitTracker.Instance.units)
-            {
-                if (unit != null && displayedUnitIds.Add(unit.id))
-                    menuUnits.Add(unit);
-            }
-
-            int index = 0;
-            foreach (var unit in menuUnits)
-            {
-                if (!ModernCapPolicy.IsAllowedActor(unit.id))
-                {
-                    continue;
-                }
-                if (unit.sprite == null)
-                {
-                    ModernBoxLogger.Warning($"[M3] Skipping unit {unit.id} because sprite is null.");
-                    continue;
-                }
-                int posX = index / 2; 
-                int posY = index % 2;
-                GetUnitSpawnMetadata(unit.id, out string title, out string description);
-
-                new ButtonBuilder($"spawn_{unit.id}")
-                    .SetSprite(unit.sprite)
-                    .SetTitle(title)
-                    .SetDescription(description)
-                    .SetPosition(posX, posY)
-                    .SetType(ButtonType.GodPower)
-                    .SetTransform(tab2.transform)
-                    .Build();
-
-                index++;
-            }
+            BuildUnitCategoryHub(tab2);
+            BuildCategorizedUnitSpawners(artilleryTab, groundTab, airTab, navalTab);
 
             if (Main.EnableFantasySystems)
             {
@@ -574,6 +533,176 @@ namespace ModernBox
             SetupEras();
             SetupLines();
 		}
+
+        private enum UnitCategory
+        {
+            Artillery,
+            Ground,
+            Air,
+            Naval
+        }
+
+        private static void BuildUnitCategoryHub(PowersTab hubTab)
+        {
+            BuildUnitCategoryButton(hubTab, "modernbox_units_artillery", "Artillery", "Open artillery units.", "ModernBoxUnitsArtillery", 0, 0,
+                LoadUnitCategorySprite(new[] { "catapulta", "howitzer_Human", "MissileSystem_Human" }, "ui/icons/Industrial", "ui/Icons/TabText"));
+            BuildUnitCategoryButton(hubTab, "modernbox_units_ground", "Ground", "Open ground units.", "ModernBoxUnitsGround", 1, 0,
+                LoadUnitCategorySprite(new[] { "Tank_Human", "AbramTank" }, "ui/icons/Tank", "ui/icons/Industrial", "ui/Icons/TabText"));
+            BuildUnitCategoryButton(hubTab, "modernbox_units_air", "Air", "Open air units.", "ModernBoxUnitsAir", 0, 1,
+                LoadUnitCategorySprite(new[] { "FighterJet_Human", "F55FighterJet", "Heli_Human" }, "ui/icons/F55", "ui/icons/warhamma", "ui/Icons/TabText"));
+            BuildUnitCategoryButton(hubTab, "modernbox_units_naval", "Naval", "Open naval units.", "ModernBoxUnitsNaval", 1, 1,
+                LoadUnitCategorySprite(new[] { "Submarine_alliance", "CarrierVessel_alliance" }, "ui/icons/warhamma", "ui/icons/Industrial", "ui/Icons/TabText"));
+        }
+
+        private static void BuildUnitCategoryButton(PowersTab hubTab, string buttonId, string title, string description,
+            string targetTabId, int posX, int posY, Sprite sprite)
+        {
+            new ButtonBuilder(buttonId)
+                .SetSprite(sprite)
+                .SetTitle(title)
+                .SetDescription(description)
+                .SetPosition(posX, posY)
+                .SetType(ButtonType.Click)
+                .SetTransform(hubTab.transform)
+                .SetFunction(() => OpenUnitCategoryTab(targetTabId))
+                .Build();
+        }
+
+        private static void OpenUnitCategoryTab(string targetTabId)
+        {
+            TabBuilder.SwitchTab(targetTabId, "ModernBoxUnits");
+        }
+
+        private static Sprite LoadUnitCategorySprite(string[] unitIds, params string[] fallbackSpritePaths)
+        {
+            if (UnitTracker.Instance != null)
+            {
+                foreach (string unitId in unitIds)
+                {
+                    UnitTracker.TrackedUnit unit = UnitTracker.Instance.units.Find(
+                        trackedUnit => trackedUnit != null && string.Equals(trackedUnit.id, unitId, StringComparison.OrdinalIgnoreCase));
+                    if (unit?.sprite != null)
+                        return unit.sprite;
+                }
+            }
+            return LoadStableSprite(fallbackSpritePaths);
+        }
+
+        private static Sprite LoadStableSprite(params string[] spritePaths)
+        {
+            foreach (string spritePath in spritePaths)
+            {
+                Sprite sprite = Resources.Load<Sprite>(spritePath);
+                if (sprite != null)
+                    return sprite;
+            }
+            return null;
+        }
+
+        private static void BuildCategorizedUnitSpawners(PowersTab artilleryTab, PowersTab groundTab, PowersTab airTab, PowersTab navalTab)
+        {
+            var categorizedUnits = new Dictionary<UnitCategory, List<UnitTracker.TrackedUnit>>
+            {
+                { UnitCategory.Artillery, new List<UnitTracker.TrackedUnit>() },
+                { UnitCategory.Ground, new List<UnitTracker.TrackedUnit>() },
+                { UnitCategory.Air, new List<UnitTracker.TrackedUnit>() },
+                { UnitCategory.Naval, new List<UnitTracker.TrackedUnit>() }
+            };
+            var displayedUnitIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (UnitTracker.TrackedUnit unit in UnitTracker.Instance.units)
+            {
+                if (unit == null || string.IsNullOrEmpty(unit.id) || !displayedUnitIds.Add(unit.id) ||
+                    unit.id.StartsWith("trainbox_", StringComparison.OrdinalIgnoreCase) ||
+                    !ModernCapPolicy.IsAllowedActor(unit.id))
+                    continue;
+
+                categorizedUnits[GetUnitCategory(unit.id)].Add(unit);
+            }
+
+            BuildUnitCategoryBackButton(artilleryTab, "modernbox_units_artillery_back");
+            BuildUnitCategoryBackButton(groundTab, "modernbox_units_ground_back");
+            BuildUnitCategoryBackButton(airTab, "modernbox_units_air_back");
+            BuildUnitCategoryBackButton(navalTab, "modernbox_units_naval_back");
+
+            BuildUnitSpawnerGrid(artilleryTab, categorizedUnits[UnitCategory.Artillery], 1);
+            BuildUnitSpawnerGrid(groundTab, categorizedUnits[UnitCategory.Ground], 1);
+            BuildUnitSpawnerGrid(airTab, categorizedUnits[UnitCategory.Air], 1);
+            BuildUnitSpawnerGrid(navalTab, categorizedUnits[UnitCategory.Naval], 1);
+        }
+
+        private static void BuildUnitCategoryBackButton(PowersTab categoryTab, string buttonId)
+        {
+            new ButtonBuilder(buttonId)
+                .SetSprite(LoadStableSprite("ui/icons/Reset", "ui/icons/warhamma", "ui/Icons/TabText"))
+                .SetTitle("Back to unit categories")
+                .SetDescription("Return to the ModernBox Units category menu.")
+                .SetPosition(0, 0)
+                .SetType(ButtonType.Click)
+                .SetTransform(categoryTab.transform)
+                .SetFunction(() => TabBuilder.SwitchTab("ModernBoxUnits", "ModernBoxTab"))
+                .Build();
+        }
+
+        private static UnitCategory GetUnitCategory(string id)
+        {
+            if (IsNavalUnit(id))
+                return UnitCategory.Naval;
+            if (IsAirUnit(id))
+                return UnitCategory.Air;
+            if (ModernCapPolicy.IsArtillery(id))
+                return UnitCategory.Artillery;
+            return UnitCategory.Ground;
+        }
+
+        private static bool IsNavalUnit(string id)
+        {
+            return id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase)
+                || id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase)
+                || id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase)
+                || id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase)
+                || id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase)
+                || id.StartsWith("CargoShip_", StringComparison.OrdinalIgnoreCase)
+                || id.StartsWith("FishingBoat_", StringComparison.OrdinalIgnoreCase)
+                || id.StartsWith("Transporter_", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsAirUnit(string id)
+        {
+            return id.StartsWith("Heli_", StringComparison.OrdinalIgnoreCase)
+                || id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase)
+                || id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(id, "F55FighterJet", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(id, "americanbomberww", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(id, "biplane", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(id, "fighterww", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(id, "Zeppelin", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(id, "EliteZeppelin", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void BuildUnitSpawnerGrid(PowersTab targetTab, List<UnitTracker.TrackedUnit> units, int startPosition)
+        {
+            int position = startPosition;
+            for (int index = 0; index < units.Count; index++)
+            {
+                UnitTracker.TrackedUnit unit = units[index];
+                if (unit.sprite == null)
+                {
+                    ModernBoxLogger.Warning($"[M3] Skipping unit {unit.id} because sprite is null.");
+                    continue;
+                }
+
+                GetUnitSpawnMetadata(unit.id, out string title, out string description);
+                new ButtonBuilder($"spawn_{unit.id}")
+                    .SetSprite(unit.sprite)
+                    .SetTitle(title)
+                    .SetDescription(description)
+                    .SetPosition(position / 2, position % 2)
+                    .SetType(ButtonType.GodPower)
+                    .SetTransform(targetTab.transform)
+                    .Build();
+                position++;
+            }
+        }
 
         private static void GetUnitSpawnMetadata(string id, out string title, out string description)
         {

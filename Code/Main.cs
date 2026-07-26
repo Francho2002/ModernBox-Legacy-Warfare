@@ -285,6 +285,10 @@ namespace ModernBox{
         {
             EnsureTabBuilt("ModernBoxTab", "ModernBox", "Eras, politics, trains and conventional warfare.", 128, false, true, null, "ui/icons/tabIconModernWarfare");
             EnsureTabBuilt("ModernBoxUnits", "ModernBox Units", "A BUNCH of guys to spawn!", 200, true, false, "ModernBoxTab", "ui/icons/warhamma");
+            EnsureTabBuilt("ModernBoxUnitsArtillery", "Artillery", "Artillery units.", 200, true, false, "ModernBoxUnits", "ui/icons/MIRV");
+            EnsureTabBuilt("ModernBoxUnitsGround", "Ground", "Ground units.", 200, true, false, "ModernBoxUnits", "ui/icons/Industrial");
+            EnsureTabBuilt("ModernBoxUnitsAir", "Air", "Air units.", 200, true, false, "ModernBoxUnits", "ui/icons/F55");
+            EnsureTabBuilt("ModernBoxUnitsNaval", "Naval", "Naval units.", 200, true, false, "ModernBoxUnits", "ui/icons/warhamma");
             // Keep this legacy tab id for saved UI references, but reserve it for
             // the realistic nuclear-strategy controls rather than God Powers.
             EnsureTabBuilt("ModernBoxBombs", "ModernBox Nuclear", "Strategic nuclear warfare controls.", 200, true, false, "ModernBoxTab", "ui/Icons/MIRV_nuke");
