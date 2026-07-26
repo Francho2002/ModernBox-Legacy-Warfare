@@ -16,6 +16,7 @@ submarinos, misiles convencionales y armas nucleares.
 - Producción militar deliberadamente escasa y costosa.
 - Misiles independientes de la era visual.
 - Misiles visibles desde la vista máxima y persistentes hasta el impacto.
+- Las explosiones nucleares no transforman el terreno en bioma radiactivo.
 - Conocimiento prohibido desbloqueado automáticamente.
 - Trenes de la versión moderna de ModernBox.
 
@@ -27,6 +28,18 @@ ciudad pueden mantener hasta ocho embarcaciones en total.
 
 Los barcos creados manualmente desde el menú de aparición no están limitados
 por este sistema.
+
+### SSBN de salva nuclear
+
+Cada facción puede fabricar un submarino estratégico de salva, limitado a uno
+por puerto. Sólo entra en producción después de que ese puerto posea al menos
+una embarcación militar normal y tiene un coste de `14` madera, `12` piedra,
+`10` metal y `6` oro.
+
+Durante una guerra, con la opción de guerra nuclear activada, el SSBN consume
+`160` de oro para lanzar cuatro misiles nucleares alrededor de un mismo
+objetivo. La recarga de la salva es de `600` segundos. También conserva su
+ataque convencional.
 
 ## Instalación
 
@@ -45,4 +58,3 @@ el código contra las bibliotecas de la instalación local del juego.
 Los raíles pueden generarse automáticamente, aunque la colocación manual es
 más fiable. Utiliza el pincel mínimo para construir líneas horizontales o
 verticales continuas antes de invocar el tren.
-

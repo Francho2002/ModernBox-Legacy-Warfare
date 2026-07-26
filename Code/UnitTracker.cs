@@ -62,6 +62,11 @@ public class UnitTracker : MonoBehaviour
         {
             spriteId = "Destroyer_" + id.Substring(id.IndexOf('_') + 1);
         }
+        else if (id.StartsWith("SalvoSubmarine_", System.StringComparison.OrdinalIgnoreCase))
+        {
+            // SSBNs intentionally reuse the stable faction submarine sprites.
+            spriteId = "Submarine_" + id.Substring(id.IndexOf('_') + 1);
+        }
 
         string[] spriteNames = { "walk_0", "idle_0", "swim_0" };
         foreach (string name in spriteNames)

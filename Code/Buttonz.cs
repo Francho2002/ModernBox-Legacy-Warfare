@@ -515,10 +515,12 @@ namespace ModernBox
             }
             }
 
-            // Keep the four strategic naval units at the front of the menu.
+            // Keep the strategic submarines at the front of the menu.
             // A HashSet also makes repeated tracker registration harmless.
             string[] submarineIds =
             {
+                "SalvoSubmarine_alliance", "SalvoSubmarine_harden",
+                "SalvoSubmarine_gaia", "SalvoSubmarine_horde",
                 "Submarine_alliance", "Submarine_harden",
                 "Submarine_gaia", "Submarine_horde"
             };
@@ -573,6 +575,12 @@ namespace ModernBox
         private static void GetUnitSpawnMetadata(string id, out string title, out string description)
         {
             string faction = GetUnitFactionLabel(id);
+            if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "SSBN de salva nuclear - " + faction;
+                description = "Conserva misiles convencionales y lanza 4 misiles nucleares alrededor del mismo objetivo. Requiere Guerra nuclear, guerra activa y 160 de oro; recarga: 600 s.";
+                return;
+            }
             if (id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Submarino nuclear - " + faction;

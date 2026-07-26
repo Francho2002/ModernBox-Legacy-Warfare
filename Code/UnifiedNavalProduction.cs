@@ -11,12 +11,16 @@ namespace ModernBox
         {
             "cargo_alliance_boat", "fishing_alliance_boat", "transporter_alliance_boat",
             "destroyer_a_alliance_boat", "destroyer_b_alliance_boat", "carrier_alliance_boat", "submarine_alliance_boat",
+            "salvo_submarine_alliance_boat",
             "cargo_harden_boat", "fishing_harden_boat", "transporter_harden_boat",
             "destroyer_a_harden_boat", "destroyer_b_harden_boat", "carrier_harden_boat", "submarine_harden_boat",
+            "salvo_submarine_harden_boat",
             "cargo_gaia_boat", "fishing_gaia_boat", "transporter_gaia_boat",
             "destroyer_a_gaia_boat", "destroyer_b_gaia_boat", "carrier_gaia_boat", "submarine_gaia_boat",
+            "salvo_submarine_gaia_boat",
             "cargo_horde_boat", "fishing_horde_boat", "transporter_horde_boat",
-            "destroyer_a_horde_boat", "destroyer_b_horde_boat", "carrier_horde_boat", "submarine_horde_boat"
+            "destroyer_a_horde_boat", "destroyer_b_horde_boat", "carrier_horde_boat", "submarine_horde_boat",
+            "salvo_submarine_horde_boat"
         };
 
         private static readonly string[] CivilianBoatTypePrefixes =
@@ -25,6 +29,11 @@ namespace ModernBox
         };
 
         private static readonly string[] MilitaryBoatTypePrefixes =
+        {
+            "destroyer_a", "destroyer_b", "carrier", "submarine", "salvo_submarine"
+        };
+
+        private static readonly string[] NormalMilitaryBoatTypePrefixes =
         {
             "destroyer_a", "destroyer_b", "carrier", "submarine"
         };
@@ -109,6 +118,7 @@ namespace ModernBox
                 // Modern military craft comes first in the shared pool.
                 "aDestroyer_" + faction, "bDestroyer_" + faction,
                 "CarrierVessel_" + faction, "Submarine_" + faction,
+                "SalvoSubmarine_" + faction,
                 "CargoShip_" + faction, "FishingBoat_" + faction,
                 "Transporter_" + faction
             };
@@ -116,11 +126,14 @@ namespace ModernBox
             int total = CountDockBoats(dock, faction, CivilianBoatTypePrefixes) +
                 CountDockBoats(dock, faction, MilitaryBoatTypePrefixes);
             int military = CountDockBoats(dock, faction, MilitaryBoatTypePrefixes);
+            int normalMilitary = CountDockBoats(dock, faction, NormalMilitaryBoatTypePrefixes);
+            int salvoSubmarines = dock.countBoatTypes("salvo_submarine_" + faction + "_boat");
             if (total >= TotalBoatCapPerDock)
                 return new List<string>();
 
             return ids.Where(id => AssetManager.actor_library.get(id) != null)
                 .Where(id => !IsMilitary(id) || military < MilitaryBoatCapPerDock)
+                .Where(id => !IsSalvoSubmarine(id) || (normalMilitary > 0 && salvoSubmarines < 1))
                 .ToList();
         }
 
@@ -147,21 +160,34 @@ namespace ModernBox
 
             List<string> military = affordable.Where(IsMilitary).ToList();
             List<string> civilian = affordable.Where(id => !IsMilitary(id)).ToList();
+            List<string> salvoSubmarines = military.Where(IsSalvoSubmarine).ToList();
+            List<string> normalMilitary = military.Where(id => !IsSalvoSubmarine(id)).ToList();
             bool preferMilitary = Randy.randomChance(.65f);
-            List<string> selected = preferMilitary ? military : civilian;
-            if (selected.Count == 0)
-                selected = preferMilitary ? civilian : military;
-            // Nuclear warfare needs an actual launch platform. The first
-            // affordable military hull at each dock is therefore a submarine;
-            // the per-dock military cap still prevents naval spam.
             if (preferMilitary)
             {
-                string submarine = selected.FirstOrDefault(
+                // A SSBN is an exceptional strategic hull: it is eligible only
+                // after a conventional warship exists and wins this 25% roll.
+                if (salvoSubmarines.Count > 0 && Randy.randomChance(.25f))
+                    return salvoSubmarines[Randy.randomInt(0, salvoSubmarines.Count)];
+
+                // The normal submarine remains the default strategic hull.
+                string submarine = normalMilitary.FirstOrDefault(
                     id => id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(submarine))
                     return submarine;
+
+                if (normalMilitary.Count > 0)
+                    return normalMilitary[Randy.randomInt(0, normalMilitary.Count)];
+                if (civilian.Count > 0)
+                    return civilian[Randy.randomInt(0, civilian.Count)];
+                return null;
             }
-            return selected.Count == 0 ? null : selected[Randy.randomInt(0, selected.Count)];
+
+            if (civilian.Count > 0)
+                return civilian[Randy.randomInt(0, civilian.Count)];
+            if (normalMilitary.Count > 0)
+                return normalMilitary[Randy.randomInt(0, normalMilitary.Count)];
+            return null;
         }
 
         private static string GetFaction(City city)
@@ -179,10 +205,17 @@ namespace ModernBox
                 id.Contains("Submarine_") || id.Contains("brawler_"));
         }
 
+        private static bool IsSalvoSubmarine(string id)
+        {
+            return !string.IsNullOrEmpty(id) && id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static ConstructionCost GetCost(string id)
         {
             // Same ceiling as land heavy systems: scarce, yet viable without
             // changing a city's visual era.
+            // ConstructionCost slots are wood, stone, metal, gold in this mod.
+            if (IsSalvoSubmarine(id)) return new ConstructionCost(14, 12, 10, 6);
             if (IsMilitary(id)) return new ConstructionCost(6, 5, 4, 2);
             if (id.StartsWith("CargoShip_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(7, 5, 3, 2);
             return new ConstructionCost(4, 3, 1, 1);

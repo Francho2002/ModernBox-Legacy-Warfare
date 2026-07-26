@@ -380,6 +380,7 @@ namespace ModernBox
             // Preserve the stock atomic damage while removing only camera shake.
             var modernCapNuclearBlast = AssetManager.terraform.clone("modern_cap_nuclear_blast", "atomic_bomb");
             modernCapNuclearBlast.shake = false;
+            modernCapNuclearBlast.transform_to_wasteland = false;
             AssetManager.terraform.add(modernCapNuclearBlast);
 
             // ProjectileAsset has no draw_boat_mark equivalent.  A minimap-enabled
@@ -4691,6 +4692,19 @@ nuclearmissileDecision.action_check_launch = delegate(Actor pActor)
 };
 AssetManager.decisions_library.add(nuclearmissileDecision);
 
+DecisionAsset nuclearSalvoDecision = new DecisionAsset();
+nuclearSalvoDecision.id = "nuclearSalvoDecision";
+nuclearSalvoDecision.priority = NeuroLayer.Layer_1_Low;
+nuclearSalvoDecision.path_icon = "ui/icons/MIRV_nuke";
+nuclearSalvoDecision.cooldown = 600;
+nuclearSalvoDecision.unique = true;
+nuclearSalvoDecision.weight = 1f;
+nuclearSalvoDecision.action_check_launch = delegate(Actor pActor)
+{
+    return NuclearSalvoEffect(pActor, null);
+};
+AssetManager.decisions_library.add(nuclearSalvoDecision);
+
 
 DecisionAsset AntiBossNukeDecision = new DecisionAsset();
 AntiBossNukeDecision.id = "AntiBossNukeDecision";
@@ -8035,6 +8049,10 @@ Submarine_harden.inspect_avatar_offset_y = 6f;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////UNIT REGISTRATION//////////////////////////////////////////////////////
+CreateSalvoSubmarine("alliance", "missileArtilleryDecision");
+CreateSalvoSubmarine("harden", "HARDENmissileArtilleryDecision");
+CreateSalvoSubmarine("gaia", "GAIAmissileArtilleryDecision");
+CreateSalvoSubmarine("horde", "HORDEmissileArtilleryDecision");
 ApplyAirVehicleDecisionProfiles();
 string[] unitNames = new string[]
 {
@@ -8059,10 +8077,10 @@ string[] unitNames = new string[]
     "Heli_Ork", "Bomber_Ork", "FighterJet_Ork", "Gunship", "Heli_Dwarf", "Bomber_Dwarf",
     "FighterJet_Dwarf", "Heli_Gaia", "Bomber_Gaia", "FighterJet_Gaia", "bigfaerydragon",
     "Bomber_Demon", "xenoUFObomber", "HumanTitan", "MA9000", "crusaderdreadnaught",
-    "Submarine_alliance", "CarrierVessel_alliance", "aDestroyer_alliance", "bDestroyer_alliance", "CargoShip_alliance", "FishingBoat_alliance", "Transporter_alliance",
-    "Submarine_harden", "CarrierVessel_harden", "aDestroyer_harden", "bDestroyer_harden", "CargoShip_harden", "FishingBoat_harden", "Transporter_harden",
-    "Submarine_gaia", "CarrierVessel_gaia", "aDestroyer_gaia", "bDestroyer_gaia", "CargoShip_gaia", "FishingBoat_gaia", "Transporter_gaia",
-    "Submarine_horde", "CarrierVessel_horde", "aDestroyer_horde", "bDestroyer_horde", "CargoShip_horde", "FishingBoat_horde", "Transporter_horde"
+    "Submarine_alliance", "SalvoSubmarine_alliance", "CarrierVessel_alliance", "aDestroyer_alliance", "bDestroyer_alliance", "CargoShip_alliance", "FishingBoat_alliance", "Transporter_alliance",
+    "Submarine_harden", "SalvoSubmarine_harden", "CarrierVessel_harden", "aDestroyer_harden", "bDestroyer_harden", "CargoShip_harden", "FishingBoat_harden", "Transporter_harden",
+    "Submarine_gaia", "SalvoSubmarine_gaia", "CarrierVessel_gaia", "aDestroyer_gaia", "bDestroyer_gaia", "CargoShip_gaia", "FishingBoat_gaia", "Transporter_gaia",
+    "Submarine_horde", "SalvoSubmarine_horde", "CarrierVessel_horde", "aDestroyer_horde", "bDestroyer_horde", "CargoShip_horde", "FishingBoat_horde", "Transporter_horde"
 };
 
 foreach (string unitName in unitNames)
@@ -8084,6 +8102,29 @@ foreach (string unitName in unitNames)
 
 
         }	
+
+		private static void CreateSalvoSubmarine(string faction, string conventionalDecisionId)
+		{
+			string baseId = "Submarine_" + faction;
+			string salvoId = "SalvoSubmarine_" + faction;
+			ActorAsset salvoSubmarine = AssetManager.actor_library.clone(salvoId, baseId);
+			if (salvoSubmarine == null)
+				return;
+
+			salvoSubmarine.id = salvoId;
+			salvoSubmarine.boat_type = "salvo_submarine_" + faction + "_boat";
+			salvoSubmarine.name_locale = "SSBN Nuclear Salvo Submarine";
+			salvoSubmarine.cost = new ConstructionCost(14, 12, 10, 6);
+			// Do not inherit the single-warhead nuclear decisions from Submarine_*.
+			// The SSBN keeps its conventional attack, navigation and its own salvo.
+			salvoSubmarine.decision_ids = new List<string>();
+			salvoSubmarine.addDecision(conventionalDecisionId);
+			salvoSubmarine.addDecision("nuclearSalvoDecision");
+			salvoSubmarine.addDecision("random_swim");
+			salvoSubmarine.addTrait("NavalUnit");
+			AssetManager.actor_library.add(salvoSubmarine);
+			Localization.addLocalization(salvoSubmarine.name_locale, salvoSubmarine.name_locale);
+		}
 
 
 
@@ -9930,6 +9971,86 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
                     }
                 }
             }
+        }
+    }
+    return false;
+}
+
+public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = null)
+{
+    if (!nukesEnabled || pTarget == null || !pTarget.isActor())
+        return false;
+
+    Actor caster = pTarget.a;
+    if (!caster.isAlive() || caster.kingdom == null || !caster.kingdom.hasEnemies())
+        return false;
+
+    City ownerCity = caster.city;
+    if (ownerCity == null || ownerCity.amount_gold < 160)
+        return false;
+
+    using (var enemies = caster.kingdom.getEnemiesKingdoms())
+    {
+        foreach (var enemyKingdom in enemies)
+        {
+            if (!enemyKingdom.hasKing() || enemyKingdom.cities.Count == 0)
+                continue;
+
+            City targetCity = enemyKingdom.cities.GetRandom();
+            if (targetCity == null)
+                continue;
+
+            float roll = UnityEngine.Random.value;
+            Vector2? attackPos = null;
+            if (roll < 0.33f && targetCity.buildings.Count > 0)
+            {
+                Building building = targetCity.buildings.GetRandom();
+                if (building != null && building.current_tile != null)
+                    attackPos = building.current_tile.pos;
+            }
+            else if (roll < 0.66f && targetCity.hasLeader() && targetCity.leader.isAlive())
+            {
+                attackPos = targetCity.leader.current_position;
+            }
+            else if (enemyKingdom.king != null && enemyKingdom.king.isAlive())
+            {
+                attackPos = enemyKingdom.king.current_position;
+            }
+
+            if (attackPos == null)
+            {
+                WorldTile targetTile = targetCity.getTile();
+                if (targetTile != null)
+                    attackPos = targetTile.pos;
+            }
+            if (attackPos == null)
+                continue;
+
+            ownerCity.takeResource("gold", 160);
+            Vector2[] offsets =
+            {
+                new Vector2(-4f, -4f), new Vector2(4f, -4f),
+                new Vector2(-4f, 4f), new Vector2(4f, 4f)
+            };
+            Vector3 selfPos = caster.current_position;
+            float primaryDistance = Vector2.Distance(selfPos, attackPos.Value);
+            Vector3 salvoAnimationVector = Toolbox.getNewPoint(
+                selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, primaryDistance);
+            for (int i = 0; i < offsets.Length; i++)
+            {
+                Vector2 salvoTarget = attackPos.Value + offsets[i];
+                float distance = Vector2.Distance(selfPos, salvoTarget);
+                Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, salvoTarget.x, salvoTarget.y, distance);
+                Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, salvoTarget.x, salvoTarget.y, caster.stats["size"]);
+                startProjectile.y += 0.5f;
+                World.world.projectiles.spawn(caster, null, "NUKER", startProjectile, attackVector);
+                StatManager.Instance.SpawnUnit();
+            }
+
+            if (balls)
+                addNews("this wont work");
+            caster.punchTargetAnimation(salvoAnimationVector, true, false, 45f);
+            return true;
         }
     }
     return false;

@@ -42,6 +42,7 @@ namespace ModernBox
                 || actorId.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase)
                 || actorId.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase)
                 || actorId.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase)
+                || actorId.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase)
                 || IsConventionalExact(actorId);
         }
 
@@ -95,7 +96,8 @@ namespace ModernBox
                 && !actorId.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase)
                 && !actorId.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase)
                 && !actorId.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase)
-                && !actorId.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase);
+                && !actorId.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase)
+                && !actorId.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase);
         }
 
         internal static bool CanSelectCandidate(City city, string actorId, string eraKey)

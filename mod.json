@@ -1,8 +1,8 @@
 {
     "name": "ModernBox",
     "author": "Tuxxego",
-    "version": "5.6.7",
+    "version": "5.6.8",
     "targetGameBuild": 719,
-    "description": "Legacy-style warfare with persistent missiles and four automatic ships per dock.",
+    "description": "Legacy warfare with per-dock fleets, nuclear salvo submarines and no nuclear wasteland biome.",
     "iconPath": "Icon.jpg"
 }
