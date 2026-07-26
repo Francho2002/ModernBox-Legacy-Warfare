@@ -381,11 +381,13 @@ namespace ModernBox
             var modernCapNuclearBlast = AssetManager.terraform.clone("modern_cap_nuclear_blast", "atomic_bomb");
             modernCapNuclearBlast.shake = false;
             modernCapNuclearBlast.transform_to_wasteland = false;
+            modernCapNuclearBlast.explode_tile = false;
             AssetManager.terraform.add(modernCapNuclearBlast);
 
             var modernCapCzarBlast = AssetManager.terraform.clone("modern_cap_czar_blast", "czar_bomba");
             modernCapCzarBlast.shake = false;
             modernCapCzarBlast.transform_to_wasteland = false;
+            modernCapCzarBlast.explode_tile = false;
             // Czar's stock action refers to its static asset, which would restore wasteland.
             modernCapCzarBlast.bomb_action = null;
             AssetManager.terraform.add(modernCapCzarBlast);

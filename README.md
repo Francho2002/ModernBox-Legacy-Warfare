@@ -16,7 +16,8 @@ submarinos, misiles convencionales y armas nucleares.
 - Producción militar deliberadamente escasa y costosa.
 - Misiles independientes de la era visual.
 - Misiles visibles desde la vista máxima y persistentes hasta el impacto.
-- Las explosiones nucleares no transforman el terreno en bioma radiactivo.
+- Las explosiones nucleares militares destruyen unidades y edificios e incendian,
+  pero no craterizan ni eliminan terreno, ni lo transforman en bioma radiactivo.
 - Conocimiento prohibido desbloqueado automáticamente.
 - Trenes de la versión moderna de ModernBox.
 
