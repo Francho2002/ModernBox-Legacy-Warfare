@@ -108,3 +108,8 @@ originales; Trainbox permanece en su propia pestaña.
 
 El panel heredado de planetas no se muestra mientras los sistemas espaciales
 están desactivados.
+
+La interfaz activa de ModernBox, los controles de Trainbox y las descripciones
+de las unidades están localizados al español. Los identificadores internos de
+poderes y entidades se conservan para mantener la compatibilidad con partidas y
+configuraciones existentes.

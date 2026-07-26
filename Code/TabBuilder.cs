@@ -73,7 +73,7 @@ namespace ModernBox
             }
                 Localization.AddOrSet(buttonID, name);
                 Localization.AddOrSet($"{buttonID} Description", description);
-                Localization.AddOrSet("Tuxxego_mod_creator",  "Mhm. Yes, this mod was made by Tuxxego.");
+                Localization.AddOrSet("Tuxxego_mod_creator", "Sí. El mod original fue creado por Tuxxego.");
                 Localization.AddOrSet(tabID, name);
             GameObject newTabButton = GameObject.Instantiate(otherTabButton);
             newTabButton.transform.SetParent(otherTabButton.transform.parent);

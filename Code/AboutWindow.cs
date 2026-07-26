@@ -35,7 +35,7 @@ namespace ModernBox
 			          string gold = "#FFD700";
 					  string Dgold = "#ffae00";
 					  var description =
-			@"<color='" + gold + @"'>Welcome to ModernBox 3</color>
+			@"<color='" + gold + @"'>Bienvenido a ModernBox 3</color>
 			";
 					  var name = window.transform.Find("Background").Find("Name").gameObject;
 					  var nameText = name.GetComponent<Text>();
@@ -57,8 +57,8 @@ namespace ModernBox
     
         new ButtonBuilder("opencredits")
             .SetSprite(Resources.Load<Sprite>("ui/icon"))
-            .SetTitle("Credits")
-            .SetDescription("View the people that worked on this mod.")
+            .SetTitle("Créditos")
+            .SetDescription("Consulta a las personas que trabajaron en este mod.")
             .SetPosition(1, 2)
             .SetType(ButtonType.Click)
             .SetTransform(content.transform)
@@ -67,8 +67,8 @@ namespace ModernBox
 
         new ButtonBuilder("openmodernboxtab")
             .SetSprite(Resources.Load<Sprite>("ui/Icons/tabIconModernWarfare"))
-            .SetTitle("Open ModernBox Tab")
-            .SetDescription("Jump straight to the main ModernBox tab.")
+            .SetTitle("Abrir pestaña de ModernBox")
+            .SetDescription("Ve directamente a la pestaña principal de ModernBox.")
             .SetPosition(2, 2)
             .SetType(ButtonType.Click)
             .SetTransform(content.transform)

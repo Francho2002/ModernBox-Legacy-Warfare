@@ -270,11 +270,11 @@ namespace ModernBox {
       Unitpotential.action_special_effect =
           new WorldAction(UnitpotentialEffect);
       AssetManager.traits.add(Unitpotential);
-      LM.AddToCurrentLocale("trait_Unitpotential", "Vehicle/War Unit");
+      LM.AddToCurrentLocale("trait_Unitpotential", "Unidad de vehículo/guerra");
       LM.AddToCurrentLocale("trait_Unitpotential_info",
-                            "Enables lots of fun :3");
+                            "Habilita unidades de vehículos y guerra.");
       LM.AddToCurrentLocale("trait_Unitpotential_info_2",
-                            "helicopter helicopter");
+                            "Unidades terrestres, aéreas y navales.");
 
       ActorTrait NavalUnit = new ActorTrait();
       NavalUnit.id = "NavalUnit";
@@ -286,10 +286,10 @@ namespace ModernBox {
       NavalUnit.can_be_given = false;
       NavalUnit.unlocked_with_achievement = false;
       AssetManager.traits.add(NavalUnit);
-      LM.AddToCurrentLocale("trait_NavalUnit", "Naval Unit");
-      LM.AddToCurrentLocale("trait_NavalUnit_info", "Enables lots of fun :3");
+      LM.AddToCurrentLocale("trait_NavalUnit", "Unidad naval");
+      LM.AddToCurrentLocale("trait_NavalUnit_info", "Habilita unidades navales.");
       LM.AddToCurrentLocale("trait_NavalUnit_info_2",
-                            "Big boats, big cannons, and lots of fun :D");
+                            "Grandes barcos, grandes cañones y muchas posibilidades.");
 
       ActorTrait Gay = new ActorTrait();
       Gay.id = "Gay";

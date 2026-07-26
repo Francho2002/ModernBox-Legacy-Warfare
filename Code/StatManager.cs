@@ -20,8 +20,8 @@ public class StatManager : MonoBehaviour
     public string currentPlanet;
     public string currentPlanetType;
     public int currentVehicles;
-    public string currentEra = "none";
-    public string currentEraDescription = "There is no description for this era as this isn't an era! Spawn some units to make a kingdom and this should turn into Medieval.";
+    public string currentEra = "ninguna";
+    public string currentEraDescription = "Todavía no hay una apariencia de era activa. Invoca unidades o crea un reino para inicializarla.";
 
     private Text statLabel;
     private Text statLabel2;
@@ -244,33 +244,33 @@ public class StatManager : MonoBehaviour
             if (!typedBombs && bombsDropped > 0 && !isTyping)
             {
                 typedBombs = true;
-                StartCoroutine(TypeLine($"<b>Bombs Dropped:</b> {bombsDropped}"));
+                StartCoroutine(TypeLine($"<b>Bombas lanzadas:</b> {bombsDropped}"));
             }
 
             if (!typedVehicles && currentVehicles > 0 && !isTyping)
             {
                 typedVehicles = true;
-                StartCoroutine(TypeLine($"<b>Current Vehicles:</b> {currentVehicles}"));
+                StartCoroutine(TypeLine($"<b>Vehículos actuales:</b> {currentVehicles}"));
             }
 
             if (!typedAI && unitsSpawned > 0 && !isTyping)
             {
                 typedAI = true;
-                StartCoroutine(TypeLine($"<b>AI Nukes Dropped:</b> {unitsSpawned}"));
+                StartCoroutine(TypeLine($"<b>Bombas nucleares de IA lanzadas:</b> {unitsSpawned}"));
             }
 
             if (!typedZombies && zomboos > 0 && !isTyping)
             {
                 typedZombies = true;
-                StartCoroutine(TypeLine($"<b>Zombies:</b> {zomboos}"));
+                StartCoroutine(TypeLine($"<b>Zombis:</b> {zomboos}"));
             }
         }
 
         if (shouldRefreshLabels && statLabel2 != null)
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"<b>Current Era:</b> {currentEra}");
-            sb.AppendLine($"<b>Current Era Description:</b> {currentEraDescription}");
+            sb.AppendLine($"<b>Era actual:</b> {GetLocalizedEraName(currentEra)}");
+            sb.AppendLine($"<b>Descripción de la era actual:</b> {currentEraDescription}");
             statLabel2.text = sb.ToString();
         }
 
@@ -539,25 +539,48 @@ public class StatManager : MonoBehaviour
 
         if (ModernBoxPrefs.Balance == BalanceMode.Carnage)
         {
-            sb.AppendLine("<color=red><b>CARNAGE</b></color>");
+            sb.AppendLine("<color=red><b>CARNICERÍA</b></color>");
         }
 
-        sb.AppendLine($"<b>Time Playing:</b> {FormatTime(timePlayed)}");
-        sb.AppendLine($"<b>Current Era:</b> {currentEra}");
-        sb.AppendLine($"<b>Version: 5.01</b>");
+        sb.AppendLine($"<b>Tiempo de juego:</b> {FormatTime(timePlayed)}");
+        sb.AppendLine($"<b>Era actual:</b> {GetLocalizedEraName(currentEra)}");
+        sb.AppendLine($"<b>Versión: 5.6.15</b>");
 
         if (typedBombs)
-            sb.AppendLine($"<b>Bombs Dropped:</b> {bombsDropped}");
+            sb.AppendLine($"<b>Bombas lanzadas:</b> {bombsDropped}");
 
         if (typedVehicles)
-            sb.AppendLine($"<b>Current Vehicles:</b> {currentVehicles}");
+            sb.AppendLine($"<b>Vehículos actuales:</b> {currentVehicles}");
 
         if (typedAI)
-            sb.AppendLine($"<b>AI Nukes Dropped:</b> {unitsSpawned}");
+            sb.AppendLine($"<b>Bombas nucleares de IA lanzadas:</b> {unitsSpawned}");
 
         if (typedZombies)
-            sb.AppendLine($"<b>Zombies:</b> {zomboos}");
+            sb.AppendLine($"<b>Zombis:</b> {zomboos}");
 
         return sb.ToString().TrimEnd();
+    }
+
+    private static string GetLocalizedEraName(string eraName)
+    {
+        if (string.IsNullOrWhiteSpace(eraName))
+            return "Ninguna";
+
+        switch (eraName.Trim().ToLowerInvariant())
+        {
+            case "none":
+            case "ninguna":
+                return "Ninguna";
+            case "medieval":
+                return "Medieval";
+            case "renaissance":
+                return "Renacimiento";
+            case "modern":
+                return "Moderna";
+            case "hyperfuture":
+                return "Hiperfuturo";
+            default:
+                return eraName;
+        }
     }
 }

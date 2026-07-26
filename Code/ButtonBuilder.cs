@@ -194,8 +194,34 @@ public class ButtonBuilder
         }
         else
         {
-			LM.AddToCurrentLocale(id, title);
-            LM.AddToCurrentLocale(id + "_description", description);
+            if (type == ButtonType.GodPower)
+            {
+                GodPower power = AssetManager.powers.get(id);
+                if (power != null)
+                {
+                    string titleKey = power.getLocaleID();
+                    string descriptionKey = power.getDescriptionID();
+                    LM.AddToCurrentLocale(titleKey, title ?? id);
+                    LM.AddToCurrentLocale(descriptionKey, description ?? title ?? id);
+
+                    if (!string.IsNullOrEmpty(power.actor_asset_id))
+                    {
+                        var actorAsset = AssetManager.actor_library.get(power.actor_asset_id);
+                        if (actorAsset != null)
+                            actorAsset.name_locale = titleKey;
+                    }
+                }
+                else
+                {
+                    LM.AddToCurrentLocale(id, title);
+                    LM.AddToCurrentLocale(id + "_description", description);
+                }
+            }
+            else
+            {
+                LM.AddToCurrentLocale(id, title);
+                LM.AddToCurrentLocale(id + "_description", description);
+            }
             LM.ApplyLocale(true);
             switch (type)
             {

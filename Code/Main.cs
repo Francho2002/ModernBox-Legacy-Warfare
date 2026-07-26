@@ -283,17 +283,17 @@ namespace ModernBox{
 
         private static void BuildModernBoxTabsIfMissing()
         {
-            EnsureTabBuilt("ModernBoxTab", "ModernBox", "Eras, politics, trains and conventional warfare.", 128, false, true, null, "ui/icons/tabIconModernWarfare");
-            EnsureTabBuilt("ModernBoxUnits", "ModernBox Units", "A BUNCH of guys to spawn!", 200, true, false, "ModernBoxTab", "ui/icons/warhamma");
-            EnsureTabBuilt("ModernBoxUnitsArtillery", "Artillery", "Artillery units.", 200, true, false, "ModernBoxUnits", "ui/icons/MIRV");
-            EnsureTabBuilt("ModernBoxUnitsGround", "Ground", "Ground units.", 200, true, false, "ModernBoxUnits", "ui/icons/Industrial");
-            EnsureTabBuilt("ModernBoxUnitsAir", "Air", "Air units.", 200, true, false, "ModernBoxUnits", "ui/icons/F55");
-            EnsureTabBuilt("ModernBoxUnitsNaval", "Naval", "Naval units.", 200, true, false, "ModernBoxUnits", "ui/icons/warhamma");
+            EnsureTabBuilt("ModernBoxTab", "ModernBox", "Eras, política, trenes y guerra convencional.", 128, false, true, null, "ui/icons/tabIconModernWarfare");
+            EnsureTabBuilt("ModernBoxUnits", "Unidades de ModernBox", "Unidades disponibles para invocar.", 200, true, false, "ModernBoxTab", "ui/icons/warhamma");
+            EnsureTabBuilt("ModernBoxUnitsArtillery", "Artillería", "Unidades de artillería.", 200, true, false, "ModernBoxUnits", "ui/icons/MIRV");
+            EnsureTabBuilt("ModernBoxUnitsGround", "Tierra", "Unidades terrestres.", 200, true, false, "ModernBoxUnits", "ui/icons/Industrial");
+            EnsureTabBuilt("ModernBoxUnitsAir", "Aire", "Unidades aéreas.", 200, true, false, "ModernBoxUnits", "ui/icons/F55");
+            EnsureTabBuilt("ModernBoxUnitsNaval", "Naval", "Unidades navales.", 200, true, false, "ModernBoxUnits", "ui/icons/warhamma");
             // Keep this legacy tab id for saved UI references, but reserve it for
             // the realistic nuclear-strategy controls rather than God Powers.
-            EnsureTabBuilt("ModernBoxBombs", "ModernBox Nuclear", "Strategic nuclear warfare controls.", 200, true, false, "ModernBoxTab", "ui/Icons/MIRV_nuke");
-            EnsureTabBuilt("ModernBoxEras", "ModernBox Eras", "Manual appearance controls and persistent Forbidden Knowledge.", 200, true, false, "ModernBoxTab", "ui/icons/Industrial");
-            EnsureTabBuilt("ModernBoxItems", "ModernBox Items", "Toggle specific item types.", 200, true, false, "ModernBoxTab", "ui/icons/firearm");
+            EnsureTabBuilt("ModernBoxBombs", "ModernBox Nuclear", "Controles estratégicos de guerra nuclear.", 200, true, false, "ModernBoxTab", "ui/Icons/MIRV_nuke");
+            EnsureTabBuilt("ModernBoxEras", "Eras de ModernBox", "Controles manuales de apariencia y conocimiento prohibido persistente.", 200, true, false, "ModernBoxTab", "ui/icons/Industrial");
+            EnsureTabBuilt("ModernBoxItems", "Objetos de ModernBox", "Activa o desactiva tipos de objetos específicos.", 200, true, false, "ModernBoxTab", "ui/icons/firearm");
         }
 
         private static void EnsureTabBuilt(string tabId, string tabName, string tabDescription, int positionX, bool isAfrican, bool toolbarVisible, string returnTabId, string iconPath)

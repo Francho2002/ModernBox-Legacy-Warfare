@@ -11,6 +11,7 @@ using ReflectionUtility;
 using TuxModLoader.Reflection;
 using System.Reflection;
 using System;
+using System.Text;
 
 namespace ModernBox
 {
@@ -63,7 +64,7 @@ namespace ModernBox
             statText.fontSize = 9;
             statText.color = new Color(1f, 0.95f, 0.8f); 
             statText.supportRichText = true;
-            statText.text = "Loading stats...";
+            statText.text = "Cargando estadísticas...";
 
             RectTransform textRect = statLabelObject.GetComponent<RectTransform>();
             textRect.sizeDelta = new Vector2(200, 100);
@@ -189,8 +190,8 @@ namespace ModernBox
 
             new ButtonBuilder("credits")
             .SetSprite(Resources.Load<Sprite>("ui/icons/iconabout"))
-            .SetTitle("About ModernBox")
-            .SetDescription("All the people behind ModernBox and more!")
+            .SetTitle("Acerca de ModernBox")
+            .SetDescription("Conoce a las personas detrás de ModernBox y más.")
             .SetPosition(0, 0)
             .SetType(ButtonType.Click)
             .SetFunction(openAboutWindow)
@@ -200,8 +201,8 @@ namespace ModernBox
 
         new ButtonBuilder("resettodefaults")
             .SetSprite(Resources.Load<Sprite>("ui/icons/Reset"))
-            .SetTitle("Reset to defaults")
-            .SetDescription("Resets ALL saved settings to their default values.")
+            .SetTitle("Restablecer valores predeterminados")
+            .SetDescription("Restablece TODOS los ajustes guardados a sus valores predeterminados.")
             .SetPosition(1, 0)
             .SetType(ButtonType.Click)
             .SetFunction(Main.resetToDefaults)
@@ -211,7 +212,7 @@ namespace ModernBox
         new ButtonBuilder("infinitebox")
             .SetSprite(Resources.Load<Sprite>("ui/icons/insd"))
             .SetTitle("InfiniteBox")
-            .SetDescription("Learn about my next project!")
+            .SetDescription("Conoce mi próximo proyecto.")
             .SetPosition(2, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
@@ -220,8 +221,8 @@ namespace ModernBox
 
         new ButtonBuilder("resetbawls")
             .SetSprite(Resources.Load<Sprite>("ui/icons/tabIconModernWarfare"))
-            .SetTitle("Resetup the mod")
-            .SetDescription("WARNING: SAVE YOUR GAME BEFORE PRESSING THIS BUTTON!")
+            .SetTitle("Reconfigurar el mod")
+            .SetDescription("ADVERTENCIA: GUARDA LA PARTIDA ANTES DE PULSAR ESTE BOTÓN.")
             .SetPosition(4, 1)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
@@ -230,8 +231,8 @@ namespace ModernBox
 
         new ButtonBuilder("m3achievements")
             .SetSprite(Resources.Load<Sprite>("ui/icons/trophy"))
-            .SetTitle("Achievements")
-            .SetDescription("COMING SOON")
+            .SetTitle("Logros")
+            .SetDescription("PRÓXIMAMENTE")
             .SetPosition(0, 1)
             .SetType(ButtonType.Click)
             .SetFunction(openAchievmentsWindow)
@@ -241,8 +242,8 @@ namespace ModernBox
 
         new ButtonBuilder("modernbox_tab_units")
             .SetSprite(Resources.Load<Sprite>("ui/icons/warhamma"))
-            .SetTitle("ModernBox Units")
-            .SetDescription("Open the Units tab.")
+            .SetTitle("Unidades de ModernBox")
+            .SetDescription("Abre la pestaña de unidades.")
             .SetPosition(16, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
@@ -252,7 +253,7 @@ namespace ModernBox
         new ButtonBuilder("modernbox_tab_bombs")
             .SetSprite(Resources.Load<Sprite>("ui/Icons/MIRV_nuke"))
             .SetTitle("ModernBox Nuclear")
-            .SetDescription("Open strategic nuclear warfare controls.")
+            .SetDescription("Abre los controles estratégicos de guerra nuclear.")
             .SetPosition(16, 1)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
@@ -261,7 +262,7 @@ namespace ModernBox
 
         new ButtonBuilder("modernbox_tab_eras")
             .SetSprite(Resources.Load<Sprite>("ui/icons/Industrial"))
-            .SetTitle("ModernBox Eras")
+            .SetTitle("Eras de ModernBox")
             .SetDescription("Apariencia manual y conocimiento prohibido.")
             .SetPosition(17, 0)
             .SetType(ButtonType.Click)
@@ -271,8 +272,8 @@ namespace ModernBox
 
         new ButtonBuilder("modernbox_tab_items")
             .SetSprite(Resources.Load<Sprite>("ui/icons/firearm"))
-            .SetTitle("ModernBox Items")
-            .SetDescription("Open the Items tab.")
+            .SetTitle("Objetos de ModernBox")
+            .SetDescription("Abre la pestaña de objetos.")
             .SetPosition(18, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
@@ -282,7 +283,7 @@ namespace ModernBox
         new ButtonBuilder("modernbox_tab_trainbox")
             .SetSprite(Resources.Load<Sprite>("ui/icons/Industrial"))
             .SetTitle("Trainbox")
-            .SetDescription("Open the Trainbox tab.")
+            .SetDescription("Abre la pestaña de Trainbox.")
             .SetPosition(19, 1)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
@@ -291,18 +292,18 @@ namespace ModernBox
 
             if (otherTab != null)
             {
-                EnsureOtherTabButton("modernbox_launcher", "ui/icons/tabIconModernWarfare", "ModernBox", "Open the main ModernBox hub.", 0, 0, otherTab.transform, openModernBoxHub);
-                EnsureOtherTabButton("modernbox_other_units", "ui/icons/warhamma", "MB Units", "Open the Units tab.", 1, 0, otherTab.transform, () => openModernBoxSubTab("ModernBoxUnits"));
-                EnsureOtherTabButton("modernbox_other_bombs", "ui/Icons/MIRV_nuke", "MB Nuclear", "Open strategic nuclear warfare controls.", 2, 0, otherTab.transform, () => openModernBoxSubTab("ModernBoxBombs"));
-                EnsureOtherTabButton("modernbox_other_trainbox", "ui/icons/Industrial", "Trainbox", "Open the Trainbox tab.", 3, 0, otherTab.transform, openTrainboxTab);
+                EnsureOtherTabButton("modernbox_launcher", "ui/icons/tabIconModernWarfare", "ModernBox", "Abre el centro principal de ModernBox.", 0, 0, otherTab.transform, openModernBoxHub);
+                EnsureOtherTabButton("modernbox_other_units", "ui/icons/warhamma", "Unidades MB", "Abre la pestaña de unidades.", 1, 0, otherTab.transform, () => openModernBoxSubTab("ModernBoxUnits"));
+                EnsureOtherTabButton("modernbox_other_bombs", "ui/Icons/MIRV_nuke", "MB Nuclear", "Abre los controles estratégicos de guerra nuclear.", 2, 0, otherTab.transform, () => openModernBoxSubTab("ModernBoxBombs"));
+                EnsureOtherTabButton("modernbox_other_trainbox", "ui/icons/Industrial", "Trainbox", "Abre la pestaña de Trainbox.", 3, 0, otherTab.transform, openTrainboxTab);
                 EnsureOtherTabButton("modernbox_other_eras", "ui/icons/Industrial", "MB Eras", "Apariencia manual y conocimiento prohibido.", 0, 1, otherTab.transform, () => openModernBoxSubTab("ModernBoxEras"));
-                EnsureOtherTabButton("modernbox_other_items", "ui/icons/firearm", "MB Items", "Open the Items tab.", 2, 1, otherTab.transform, () => openModernBoxSubTab("ModernBoxItems"));
+                EnsureOtherTabButton("modernbox_other_items", "ui/icons/firearm", "Objetos MB", "Abre la pestaña de objetos.", 2, 1, otherTab.transform, () => openModernBoxSubTab("ModernBoxItems"));
             }
 
             new ButtonBuilder("nukes_toggle")
                 .SetSprite(Resources.Load<Sprite>("ui/Icons/MIRV_nuke"))
-                .SetTitle("Toggle Nuclear Warfare")
-                .SetDescription("Kingdoms can nuke each other.")
+                .SetTitle("Permitir guerra nuclear")
+                .SetDescription("Activa o desactiva el uso de armas nucleares entre reinos.")
                 .SetPosition(11, 0) 
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab3.transform)
@@ -317,7 +318,7 @@ namespace ModernBox
             new ButtonBuilder("pizza")
                 .SetSprite(Resources.Load<Sprite>("ui/Icons/Pizza"))
                 .SetTitle("Pizza")
-                .SetDescription("Go ahead, take a slice.")
+                .SetDescription("Adelante, toma una porción.")
                 .SetPosition(4, 0) 
                 .SetType(ButtonType.Click)
                 .SetTransform(tab.transform)
@@ -326,8 +327,8 @@ namespace ModernBox
 
             new ButtonBuilder("vehicle_toggle")
                 .SetSprite(Resources.Load<Sprite>("actors/Heli_Human/new_helicopter1"))
-                .SetTitle("Toggle Vehicles")
-                .SetDescription("Toggles the ability for kingdoms to produce vehicles.")
+                .SetTitle("Permitir vehículos")
+                .SetDescription("Activa o desactiva la producción de vehículos de los reinos.")
                 .SetPosition(18, 1) 
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab5.transform)
@@ -341,8 +342,8 @@ namespace ModernBox
 
             new ButtonBuilder("nuketexttoggle")
                 .SetSprite(Resources.Load<Sprite>("ui/icons/Nuke"))
-                .SetTitle("Toggle Nuclear Notifications")
-                .SetDescription("These will alert you when a nation is nuked.")
+                .SetTitle("Avisos nucleares")
+                .SetDescription("Activa o desactiva los avisos cuando una nación recibe un ataque nuclear.")
                 .SetPosition(12, 0)
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab5.transform)
@@ -356,8 +357,8 @@ namespace ModernBox
 
             new ButtonBuilder("gun_toggle")
                 .SetSprite(Resources.Load<Sprite>("weapons/AK"))
-                .SetTitle("Toggle Guns")
-                .SetDescription("Toggles gun production.")
+                .SetTitle("Permitir armas de fuego")
+                .SetDescription("Activa o desactiva la producción de armas de fuego.")
                 .SetPosition(19, 0) 
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab5.transform)
@@ -371,8 +372,8 @@ namespace ModernBox
 
             new ButtonBuilder("mirv_toggle")
                 .SetSprite(Resources.Load<Sprite>("ui/icons/items/icon_STRONGMIRV"))
-                .SetTitle("Toggle MIRVs")
-                .SetDescription("Toggles MIRV production.")
+                .SetTitle("Permitir MIRV")
+                .SetDescription("Activa o desactiva la producción de MIRV.")
                 .SetPosition(20, 1)
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab5.transform)
@@ -386,8 +387,8 @@ namespace ModernBox
 
             new ButtonBuilder("drugs_toggle")
                 .SetSprite(Resources.Load<Sprite>("ui/icons/items/icon_morphine"))
-                .SetTitle("Toggle Drugs")
-                .SetDescription("Toggle the ability for people to make & do drugs.")
+                .SetTitle("Permitir drogas")
+                .SetDescription("Activa o desactiva la fabricación y el consumo de drogas.")
                 .SetPosition(20, 0)
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab5.transform)
@@ -401,8 +402,8 @@ namespace ModernBox
 
             new ButtonBuilder("mgltoggle")
                 .SetSprite(Resources.Load<Sprite>("ui/icons/XenoInfectionIcon"))
-                .SetTitle("Toggle Chemical Weapons")
-                .SetDescription("Toggles DA production.")
+                .SetTitle("Permitir armas químicas")
+                .SetDescription("Activa o desactiva la producción de armas químicas.")
                 .SetPosition(21, 0)
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab5.transform)
@@ -544,13 +545,13 @@ namespace ModernBox
 
         private static void BuildUnitCategoryHub(PowersTab hubTab)
         {
-            BuildUnitCategoryButton(hubTab, "modernbox_units_artillery", "Artillery", "Open artillery units.", "ModernBoxUnitsArtillery", 0, 0,
+            BuildUnitCategoryButton(hubTab, "modernbox_units_artillery", "Artillería", "Abre las unidades de artillería.", "ModernBoxUnitsArtillery", 0, 0,
                 LoadUnitCategorySprite(new[] { "catapulta", "howitzer_Human", "MissileSystem_Human" }, "ui/icons/Industrial", "ui/Icons/TabText"));
-            BuildUnitCategoryButton(hubTab, "modernbox_units_ground", "Ground", "Open ground units.", "ModernBoxUnitsGround", 1, 0,
+            BuildUnitCategoryButton(hubTab, "modernbox_units_ground", "Tierra", "Abre las unidades terrestres.", "ModernBoxUnitsGround", 1, 0,
                 LoadUnitCategorySprite(new[] { "Tank_Human", "AbramTank" }, "ui/icons/Tank", "ui/icons/Industrial", "ui/Icons/TabText"));
-            BuildUnitCategoryButton(hubTab, "modernbox_units_air", "Air", "Open air units.", "ModernBoxUnitsAir", 0, 1,
+            BuildUnitCategoryButton(hubTab, "modernbox_units_air", "Aire", "Abre las unidades aéreas.", "ModernBoxUnitsAir", 0, 1,
                 LoadUnitCategorySprite(new[] { "FighterJet_Human", "F55FighterJet", "Heli_Human" }, "ui/icons/F55", "ui/icons/warhamma", "ui/Icons/TabText"));
-            BuildUnitCategoryButton(hubTab, "modernbox_units_naval", "Naval", "Open naval units.", "ModernBoxUnitsNaval", 1, 1,
+            BuildUnitCategoryButton(hubTab, "modernbox_units_naval", "Naval", "Abre las unidades navales.", "ModernBoxUnitsNaval", 1, 1,
                 LoadUnitCategorySprite(new[] { "Submarine_alliance", "CarrierVessel_alliance" }, "ui/icons/warhamma", "ui/icons/Industrial", "ui/Icons/TabText"));
         }
 
@@ -634,8 +635,8 @@ namespace ModernBox
         {
             new ButtonBuilder(buttonId)
                 .SetSprite(LoadStableSprite("ui/icons/Reset", "ui/icons/warhamma", "ui/Icons/TabText"))
-                .SetTitle("Back to unit categories")
-                .SetDescription("Return to the ModernBox Units category menu.")
+                .SetTitle("Volver a categorías de unidades")
+                .SetDescription("Regresa al menú de categorías de Unidades de ModernBox.")
                 .SetPosition(0, 0)
                 .SetType(ButtonType.Click)
                 .SetTransform(categoryTab.transform)
@@ -710,43 +711,100 @@ namespace ModernBox
             if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "SSBN de salva nuclear - " + faction;
-                description = "SSBN de ultimo recurso. Conserva misiles convencionales; su salva de hasta 4 Bombas del Zar solo se autoriza cuando el reino conserva 1 o 2 ciudades y sufre una derrota extrema. Requiere Guerra nuclear y 160 de oro; recarga: 600 s. No genera wasteland.";
+                description = "SSBN de último recurso. Conserva misiles convencionales; su salva de hasta 4 Bombas del Zar solo se autoriza cuando el reino conserva 1 o 2 ciudades y sufre una derrota extrema. Requiere Guerra nuclear y 160 de oro; recarga: 600 s. No genera terreno baldío.";
                 return;
             }
             if (id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Submarino nuclear - " + faction;
-                description = "Misiles convencionales de largo alcance y misil nuclear estrategico. El nuclear requiere Guerra nuclear activada, una guerra, 50 de oro y 300 s de recarga.";
+                description = "Misiles convencionales de largo alcance y misil nuclear estratégico. El nuclear requiere Guerra nuclear activada, una guerra, 50 de oro y 300 s de recarga.";
                 return;
             }
             if (id.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Lanzamisiles convencional - " + faction;
-                description = "Artilleria de misiles explosivos de largo alcance. No puede lanzar armas nucleares.";
+                description = "Artillería de misiles explosivos de largo alcance. No puede lanzar armas nucleares.";
+                return;
+            }
+            if (id.StartsWith("howitzer_", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "Obús de campaña - " + faction;
+                description = "Artillería terrestre de largo alcance.";
+                return;
+            }
+            if (id.IndexOf("catapulta", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                title = "Catapulta" + (faction == "Sin facción" ? string.Empty : " - " + faction);
+                description = "Artillería medieval de asedio.";
+                return;
+            }
+            if (id.EndsWith("cannon", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "Cañón de campaña" + (faction == "Sin facción" ? string.Empty : " - " + faction);
+                description = "Pieza de artillería convencional.";
+                return;
+            }
+            if (id.StartsWith("Tank_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("AbramTank", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("wheeledtank_", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "Tanque - " + faction;
+                description = "Vehículo blindado terrestre.";
+                return;
+            }
+            if (id.StartsWith("modernhumvee_", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "Vehículo ligero - " + faction;
+                description = "Vehículo terrestre de despliegue rápido.";
+                return;
+            }
+            if (id.StartsWith("supporttruck_", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(id, "wwsupporttruck", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "Camión de apoyo" + (faction == "Sin facción" ? string.Empty : " - " + faction);
+                description = "Vehículo logístico de apoyo terrestre.";
+                return;
+            }
+            if (string.Equals(id, "batteringram", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "Ariete";
+                description = "Vehículo medieval para derribar fortificaciones.";
+                return;
+            }
+            if (string.Equals(id, "humancavalry", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "Caballería - Humanos";
+                description = "Unidad montada de combate convencional.";
+                return;
+            }
+            if (id.StartsWith("Heli_", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "Helicóptero - " + faction;
+                description = "Aeronave de combate de ala rotatoria.";
                 return;
             }
             if (id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Destructor A - " + faction;
-                description = "Rafaga doble de cohetes guiados convencionales de corto alcance. No puede lanzar armas nucleares.";
+                description = "Ráfaga doble de cohetes guiados convencionales de corto alcance. No puede lanzar armas nucleares.";
                 return;
             }
             if (id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Destructor B - " + faction;
-                description = "Rafaga doble de cohetes guiados convencionales de corto alcance. No puede lanzar armas nucleares.";
+                description = "Ráfaga doble de cohetes guiados convencionales de corto alcance. No puede lanzar armas nucleares.";
                 return;
             }
             if (id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Portaaviones - " + faction;
-                description = "Realiza ataques aereos con bombas convencionales. No puede lanzar armas nucleares.";
+                description = "Realiza ataques aéreos con bombas convencionales. No puede lanzar armas nucleares.";
                 return;
             }
             if (id.StartsWith("CargoShip_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Buque de carga - " + faction;
-                description = "Buque logistico con cañon defensivo. No emplea misiles.";
+                description = "Buque logístico con cañón defensivo. No emplea misiles.";
                 return;
             }
             if (id.StartsWith("FishingBoat_", StringComparison.OrdinalIgnoreCase))
@@ -758,14 +816,14 @@ namespace ModernBox
             if (id.StartsWith("Transporter_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Transporte naval - " + faction;
-                description = "Transporte naval con cañon defensivo. No emplea misiles.";
+                description = "Transporte naval con cañón defensivo. No emplea misiles.";
                 return;
             }
             if (id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(id, "F55FighterJet", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Caza de combate - " + faction;
-                description = "Dispara una rafaga doble de cohetes convencionales. No emplea armas nucleares.";
+                description = "Dispara una ráfaga doble de cohetes convencionales. No emplea armas nucleares.";
                 return;
             }
             if (id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase))
@@ -774,18 +832,78 @@ namespace ModernBox
                 description = "Ataca con bombas explosivas convencionales y regresa a recargar. No emplea misiles nucleares.";
                 return;
             }
+            if (string.Equals(id, "biplane", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "Biplano";
+                description = "Aeronave militar convencional de tecnología temprana.";
+                return;
+            }
+            if (string.Equals(id, "fighterww", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "Caza de hélice";
+                description = "Caza convencional de tecnología temprana.";
+                return;
+            }
+            if (string.Equals(id, "americanbomberww", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "Bombardero de hélice";
+                description = "Bombardero convencional de tecnología temprana.";
+                return;
+            }
+            if (string.Equals(id, "Zeppelin", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(id, "EliteZeppelin", StringComparison.OrdinalIgnoreCase))
+            {
+                title = string.Equals(id, "EliteZeppelin", StringComparison.OrdinalIgnoreCase) ? "Zepelín de élite" : "Zepelín";
+                description = "Aeronave militar convencional de gran tamaño.";
+                return;
+            }
 
-            title = "Invocar: " + id;
-            description = "Invoca la unidad " + id + ".";
+            string unitName = FormatUnitName(id);
+            title = "Invocar: " + unitName + (faction == "Sin facción" ? string.Empty : " - " + faction);
+            description = "Invoca la unidad " + unitName.ToLowerInvariant() + ".";
         }
 
         private static string GetUnitFactionLabel(string id)
         {
             if (id.EndsWith("_alliance", StringComparison.OrdinalIgnoreCase)) return "Alianza";
-            if (id.EndsWith("_harden", StringComparison.OrdinalIgnoreCase)) return "Harden";
-            if (id.EndsWith("_gaia", StringComparison.OrdinalIgnoreCase)) return "Gaia";
             if (id.EndsWith("_horde", StringComparison.OrdinalIgnoreCase)) return "Horda";
-            return "General";
+            if (id.EndsWith("_human", StringComparison.OrdinalIgnoreCase)) return "Humanos";
+            if (id.EndsWith("_ork", StringComparison.OrdinalIgnoreCase)) return "Orcos";
+            if (id.EndsWith("_dwarf", StringComparison.OrdinalIgnoreCase) || id.EndsWith("_harden", StringComparison.OrdinalIgnoreCase)) return "Enanos";
+            if (id.EndsWith("_elf", StringComparison.OrdinalIgnoreCase) || id.EndsWith("_gaia", StringComparison.OrdinalIgnoreCase)) return "Elfos";
+            if (id.StartsWith("human", StringComparison.OrdinalIgnoreCase)) return "Humanos";
+            if (id.StartsWith("orc", StringComparison.OrdinalIgnoreCase)) return "Orcos";
+            if (id.StartsWith("dwarf", StringComparison.OrdinalIgnoreCase)) return "Enanos";
+            if (id.StartsWith("elf", StringComparison.OrdinalIgnoreCase)) return "Elfos";
+            return "Sin facción";
+        }
+
+        private static string FormatUnitName(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return "Unidad";
+
+            var formatted = new StringBuilder();
+            char previous = '\0';
+            foreach (char character in id)
+            {
+                if (character == '_' || character == '-')
+                {
+                    if (formatted.Length > 0 && formatted[formatted.Length - 1] != ' ')
+                        formatted.Append(' ');
+                    previous = character;
+                    continue;
+                }
+
+                if (char.IsUpper(character) && previous != '\0' && previous != '_' && previous != '-' && !char.IsUpper(previous) && formatted[formatted.Length - 1] != ' ')
+                    formatted.Append(' ');
+
+                formatted.Append(character);
+                previous = character;
+            }
+
+            string result = formatted.ToString().Trim();
+            return result.Length == 0 ? "Unidad" : char.ToUpperInvariant(result[0]) + result.Substring(1);
         }
 
         private void SetupLines()
@@ -1029,7 +1147,7 @@ namespace ModernBox
             new ButtonBuilder("era_mediaval_set")
             .SetSprite(Resources.Load<Sprite>("ui/icons/landTradeDecision"))
             .SetTitle("Apariencia medieval")
-            .SetDescription("Convierte manualmente la apariencia de las ciudades a Medieval. No bloquea armamento.")
+            .SetDescription("Convierte manualmente la apariencia de las ciudades a la era medieval. No bloquea armamento.")
             .SetPosition(2, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab4.transform)
@@ -1039,7 +1157,7 @@ namespace ModernBox
             new ButtonBuilder("era_renaissance_set")
             .SetSprite(Resources.Load<Sprite>("ui/icons/Renaissance"))
             .SetTitle("Apariencia renacentista")
-            .SetDescription("Convierte manualmente la apariencia de las ciudades a Renacimiento. No bloquea armamento.")
+            .SetDescription("Convierte manualmente la apariencia de las ciudades a la era renacentista. No bloquea armamento.")
             .SetPosition(3, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab4.transform)
@@ -1049,7 +1167,7 @@ namespace ModernBox
             new ButtonBuilder("era_modern_set")
             .SetSprite(Resources.Load<Sprite>("ui/icons/Tank"))
             .SetTitle("Apariencia moderna")
-            .SetDescription("Convierte manualmente la apariencia de las ciudades a Moderno. No bloquea armamento.")
+            .SetDescription("Convierte manualmente la apariencia de las ciudades a la era moderna. No bloquea armamento.")
             .SetPosition(4, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab4.transform)
@@ -1058,7 +1176,7 @@ namespace ModernBox
 
             new ButtonBuilder("auto_forbidden_knowledge_toggle")
             .SetSprite(Resources.Load<Sprite>("ui/icons/cursed"))
-            .SetTitle("Conocimiento prohibido automatico")
+            .SetTitle("Conocimiento prohibido automático")
             .SetDescription("Mantiene activa la ley de conocimiento prohibido y evita repetir el ritual.")
             .SetPosition(5, 0)
             .SetType(ButtonType.Toggle)

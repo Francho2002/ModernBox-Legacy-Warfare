@@ -35,7 +35,7 @@ namespace ModernBox
 			          string gold = "#FFD700";
 					  string Dgold = "#ffae00";
 					  var description =
-			@"<color='" + gold + @"'>For the full list go to GameBanana.</color>
+			@"<color='" + gold + @"'>Para la lista completa, visita GameBanana.</color>
 			";
 					  var name = window.transform.Find("Background").Find("Name").gameObject;
 					  var nameText = name.GetComponent<Text>();
@@ -58,7 +58,7 @@ namespace ModernBox
         new ButtonBuilder("tux")
             .SetSprite(Resources.Load<Sprite>("ui/icons/authors/sss"))
             .SetTitle("Tuxxego")
-            .SetDescription("Creator and main developer")
+            .SetDescription("Creador y desarrollador principal")
             .SetPosition(0, 1)
             .SetType(ButtonType.Click)
             .SetTransform(content.transform)
@@ -67,7 +67,7 @@ namespace ModernBox
         new ButtonBuilder("dank")
             .SetSprite(Resources.Load<Sprite>("ui/icons/authors/Dank"))
             .SetTitle("Dank")
-            .SetDescription("Just Dank")
+            .SetDescription("Simplemente Dank")
             .SetPosition(1, 1)
             .SetType(ButtonType.Click)
             .SetTransform(content.transform)
@@ -76,7 +76,7 @@ namespace ModernBox
         new ButtonBuilder("morfos")
             .SetSprite(Resources.Load<Sprite>("ui/icons/authors/morfos"))
             .SetTitle("MORFOS")
-            .SetDescription("Code/Sprites/Caretaker")
+            .SetDescription("Código, sprites y mantenimiento")
             .SetPosition(2, 1)
             .SetType(ButtonType.Click)
             .SetTransform(content.transform)
@@ -85,7 +85,7 @@ namespace ModernBox
         new ButtonBuilder("sherman")
             .SetSprite(Resources.Load<Sprite>("ui/icons/authors/sherman"))
             .SetTitle("Full Auto Sherman")
-            .SetDescription("Main sprite creator")
+            .SetDescription("Creador principal de sprites")
             .SetPosition(3, 1)
             .SetType(ButtonType.Click)
             .SetTransform(content.transform)
@@ -94,7 +94,7 @@ namespace ModernBox
         new ButtonBuilder("schrott")
             .SetSprite(Resources.Load<Sprite>("ui/icons/authors/schrott"))
             .SetTitle("MrSchrott")
-            .SetDescription("Various code stuff")
+            .SetDescription("Varios aportes de código")
             .SetPosition(4, 1)
             .SetType(ButtonType.Click)
             .SetTransform(content.transform)
@@ -103,7 +103,7 @@ namespace ModernBox
         new ButtonBuilder("bluenight")
             .SetSprite(Resources.Load<Sprite>("ui/icons/authors/bluenight"))
             .SetTitle("BlueNight")
-            .SetDescription("Various code & sprite stuff")
+            .SetDescription("Varios aportes de código y sprites")
             .SetPosition(1, 2)
             .SetType(ButtonType.Click)
             .SetTransform(content.transform)
@@ -112,7 +112,7 @@ namespace ModernBox
         new ButtonBuilder("ariel")
             .SetSprite(Resources.Load<Sprite>("ui/icons/authors/ariel"))
             .SetTitle("Arielp2")
-            .SetDescription("Various sprite stuff")
+            .SetDescription("Varios aportes de sprites")
             .SetPosition(2, 2)
             .SetType(ButtonType.Click)
             .SetTransform(content.transform)
@@ -121,7 +121,7 @@ namespace ModernBox
         new ButtonBuilder("trike")
             .SetSprite(Resources.Load<Sprite>("ui/icons/authors/trike"))
             .SetTitle("Trike")
-            .SetDescription("Various sprite stuff")
+            .SetDescription("Varios aportes de sprites")
             .SetPosition(3, 2)
             .SetType(ButtonType.Click)
             .SetTransform(content.transform)

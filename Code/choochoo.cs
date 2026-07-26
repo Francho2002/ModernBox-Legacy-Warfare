@@ -4235,13 +4235,13 @@ namespace Trainbox {
 
             if (_tab == null) {
                 Localization.AddOrSet(Main.TabId, "Trainbox");
-                Localization.AddOrSet($"{Main.TabId}_info", "Paint rail lines and spawn trains.");
+                Localization.AddOrSet($"{Main.TabId}_info", "Pinta vías férreas e invoca trenes.");
 
                 try {
                     new global::ModernBox.TabBuilder()
                         .SetTabID(Main.TabId)
                         .SetName("Trainbox")
-                        .SetDescription("Paint rail lines and spawn trains.")
+                        .SetDescription("Pinta vías férreas e invoca trenes.")
                         .SetPosition(200)
                         .isAfrican(true)
                         .SetToolbarButtonVisible(false)
@@ -4260,11 +4260,11 @@ namespace Trainbox {
 
             if (_tab == null) {
             Localization.AddOrSet(Main.TabId, "Trainbox");
-            Localization.AddOrSet($"{Main.TabId}_info", "Paint rail lines and spawn trains.");
+            Localization.AddOrSet($"{Main.TabId}_info", "Pinta vías férreas e invoca trenes.");
             _tab = TabManager.CreateTab(
                 Main.TabId,
                 "Trainbox",
-                "Paint rail lines and spawn trains.",
+                "Pinta vías férreas e invoca trenes.",
                 TrainVisuals.TrainIcon
             );
             }
@@ -4330,6 +4330,21 @@ namespace Trainbox {
 
             if (_tab != null) {
                 EnsureTabButtons();
+            }
+        }
+
+        private static void RegisterVisiblePowerLocalization(GodPower power, string title, string description) {
+            if (power == null) {
+                return;
+            }
+
+            string titleKey = power.getLocaleID();
+            string descriptionKey = power.getDescriptionID();
+            if (!string.IsNullOrWhiteSpace(titleKey)) {
+                Localization.AddOrSet(titleKey, title);
+            }
+            if (!string.IsNullOrWhiteSpace(descriptionKey)) {
+                Localization.AddOrSet(descriptionKey, description);
             }
         }
 
@@ -4405,10 +4420,11 @@ namespace Trainbox {
             });
 
             AssetManager.powers.add(power);
-            Localization.AddOrSet(Main.TrackPowerId, "Track Brush");
-            Localization.AddOrSet($"{Main.TrackPowerId}_info", "Paint rail track tiles on land or across water.");
+            RegisterVisiblePowerLocalization(power, "Pincel de vías", "Pinta vías férreas en tierra o sobre el agua.");
+            Localization.AddOrSet(Main.TrackPowerId, "Pincel de vías");
+            Localization.AddOrSet($"{Main.TrackPowerId}_info", "Pinta vías férreas en tierra o sobre el agua.");
 
-            QueueTabButton(Main.TrackPowerId, TrainVisuals.TrainIcon, "Track Brush", "Paint train tracks and bridges.");
+            QueueTabButton(Main.TrackPowerId, TrainVisuals.TrainIcon, "Pincel de vías", "Pinta vías férreas y puentes.");
         }
 
         private static void RegisterRoadBrush() {
@@ -4456,10 +4472,11 @@ namespace Trainbox {
             });
 
             AssetManager.powers.add(power);
-            Localization.AddOrSet(Main.RoadPowerId, "Road Brush");
-            Localization.AddOrSet($"{Main.RoadPowerId}_info", "Paint roads.");
+            RegisterVisiblePowerLocalization(power, "Pincel de carreteras", "Pinta carreteras.");
+            Localization.AddOrSet(Main.RoadPowerId, "Pincel de carreteras");
+            Localization.AddOrSet($"{Main.RoadPowerId}_info", "Pinta carreteras.");
 
-            QueueTabButton(Main.RoadPowerId, TrainVisuals.ModernRoadSprite ?? TrainVisuals.TrainIcon, "Road Brush", "Paint roads.");
+            QueueTabButton(Main.RoadPowerId, TrainVisuals.ModernRoadSprite ?? TrainVisuals.TrainIcon, "Pincel de carreteras", "Pinta carreteras.");
         }
 
         private static void RegisterCarEffectBrush() {
@@ -4478,10 +4495,11 @@ namespace Trainbox {
             };
 
             AssetManager.powers.add(power);
-            Localization.AddOrSet(Main.CarEffectPowerId, "Car Effect");
-            Localization.AddOrSet($"{Main.CarEffectPowerId}_info", "Spawn a car.");
+            RegisterVisiblePowerLocalization(power, "Coche", "Invoca un coche.");
+            Localization.AddOrSet(Main.CarEffectPowerId, "Coche");
+            Localization.AddOrSet($"{Main.CarEffectPowerId}_info", "Invoca un coche.");
 
-            QueueTabButton(Main.CarEffectPowerId, TrainVisuals.TinyCarRightSprite ?? TrainVisuals.ModernRoadSprite ?? TrainVisuals.TrainIcon, "Car.", "Spawn a car.");
+            QueueTabButton(Main.CarEffectPowerId, TrainVisuals.TinyCarRightSprite ?? TrainVisuals.ModernRoadSprite ?? TrainVisuals.TrainIcon, "Coche", "Invoca un coche.");
         }
 
         private static void RegisterStopBrush() {
@@ -4530,10 +4548,11 @@ namespace Trainbox {
             });
 
             AssetManager.powers.add(power);
-            Localization.AddOrSet(Main.StopPowerId, "Stop Brush");
-            Localization.AddOrSet($"{Main.StopPowerId}_info", "Kinda useless since trains already stop.");
+            RegisterVisiblePowerLocalization(power, "Pincel de parada", "Pinta paradas de estación.");
+            Localization.AddOrSet(Main.StopPowerId, "Pincel de parada");
+            Localization.AddOrSet($"{Main.StopPowerId}_info", "Pinta paradas de estación.");
 
-            QueueTabButton(Main.StopPowerId, TrainVisuals.TrainIcon, "Stop Brush", "Paint station stops.");
+            QueueTabButton(Main.StopPowerId, TrainVisuals.TrainIcon, "Pincel de parada", "Pinta paradas de estación.");
         }
 
         private static void RegisterSpawnTrainPower() {
@@ -4552,12 +4571,13 @@ namespace Trainbox {
             };
 
             AssetManager.powers.add(power);
-            Localization.AddOrSet(Main.SpawnPowerId, "Spawn Train");
-            Localization.AddOrSet($"{Main.SpawnPowerId}_info", "Spawn a train.");
-            Localization.AddOrSet("spawn_train", "Spawn Train");
-            Localization.AddOrSet("spawn_train_description", "Spawn a train.");
+            RegisterVisiblePowerLocalization(power, "Invocar tren", "Invoca un tren.");
+            Localization.AddOrSet(Main.SpawnPowerId, "Invocar tren");
+            Localization.AddOrSet($"{Main.SpawnPowerId}_info", "Invoca un tren.");
+            Localization.AddOrSet("spawn_train", "Invocar tren");
+            Localization.AddOrSet("spawn_train_description", "Invoca un tren.");
 
-            QueueTabButton(Main.SpawnPowerId, TrainVisuals.TrainIcon, "Spawn Train", "Spawn a train.");
+            QueueTabButton(Main.SpawnPowerId, TrainVisuals.TrainIcon, "Invocar tren", "Invoca un tren.");
         }
 
         private static void RegisterRemoveTrainPower() {
@@ -4576,12 +4596,13 @@ namespace Trainbox {
             };
 
             AssetManager.powers.add(power);
-            Localization.AddOrSet(Main.RemovePowerId, "Remove Train");
-            Localization.AddOrSet($"{Main.RemovePowerId}_info", "Remove the train.");
-            Localization.AddOrSet("remove_train", "Remove Train");
-            Localization.AddOrSet("remove_train_description", "Remove the train.");
+            RegisterVisiblePowerLocalization(power, "Eliminar tren", "Elimina el tren.");
+            Localization.AddOrSet(Main.RemovePowerId, "Eliminar tren");
+            Localization.AddOrSet($"{Main.RemovePowerId}_info", "Elimina el tren.");
+            Localization.AddOrSet("remove_train", "Eliminar tren");
+            Localization.AddOrSet("remove_train_description", "Elimina el tren.");
 
-            QueueTabButton(Main.RemovePowerId, TrainVisuals.TrainIcon, "Remove Train", "Remove a train from a rail tile.");
+            QueueTabButton(Main.RemovePowerId, TrainVisuals.TrainIcon, "Eliminar tren", "Elimina un tren de una vía férrea.");
         }
 
         private static void RegisterAutoRailsPower() {
@@ -4600,10 +4621,11 @@ namespace Trainbox {
             };
 
             AssetManager.powers.add(power);
-            Localization.AddOrSet(Main.AutoRailsPowerId, "Auto Rails");
-            Localization.AddOrSet($"{Main.AutoRailsPowerId}_info", "Toggle whether cities build transport.");
+            RegisterVisiblePowerLocalization(power, "Vías automáticas", "Activa o desactiva el transporte ferroviario automático.");
+            Localization.AddOrSet(Main.AutoRailsPowerId, "Vías automáticas");
+            Localization.AddOrSet($"{Main.AutoRailsPowerId}_info", "Activa o desactiva el transporte ferroviario automático.");
 
-            QueueTabButton(Main.AutoRailsPowerId, TrainVisuals.TrainIcon, "Auto Rails", "Toggle transport.");
+            QueueTabButton(Main.AutoRailsPowerId, TrainVisuals.TrainIcon, "Vías automáticas", "Activa o desactiva el transporte ferroviario automático.");
         }
 
         private static void RegisterModernRoadsPower() {
@@ -4622,33 +4644,34 @@ namespace Trainbox {
             };
 
             AssetManager.powers.add(power);
-            Localization.AddOrSet(Main.ModernRoadsPowerId, "Modern Roads");
-            Localization.AddOrSet($"{Main.ModernRoadsPowerId}_info", "Toggle roads and cars.");
+            RegisterVisiblePowerLocalization(power, "Carreteras modernas", "Activa o desactiva las carreteras modernas de Trainbox.");
+            Localization.AddOrSet(Main.ModernRoadsPowerId, "Carreteras modernas");
+            Localization.AddOrSet($"{Main.ModernRoadsPowerId}_info", "Activa o desactiva las carreteras modernas de Trainbox.");
 
-            QueueTabButton(Main.ModernRoadsPowerId, TrainVisuals.ModernRoadSprite ?? TrainVisuals.TrainIcon, "Modern Roads", "Toggle Trainbox modern roads on or off.");
+            QueueTabButton(Main.ModernRoadsPowerId, TrainVisuals.ModernRoadSprite ?? TrainVisuals.TrainIcon, "Carreteras modernas", "Activa o desactiva las carreteras modernas de Trainbox.");
         }
 
         private static void PaintTrackAtTile(WorldTile tile = null, string dropId = null) {
             if (!RailTileRegistry.PaintTrack(tile)) {
-                ShowTip("Tracks can only be painted on land or water tiles!");
+                ShowTip("Las vías solo pueden pintarse sobre tierra o agua.");
             }
         }
 
         private static void PaintStopAtTile(WorldTile tile = null, string dropId = null) {
             if (!RailTileRegistry.PaintStop(tile)) {
-                ShowTip("Stops must be painted on walkable land tiles!");
+                ShowTip("Las paradas deben pintarse en terreno transitable.");
             }
         }
 
         private static void PaintRoadAtTile(WorldTile tile = null, string dropId = null) {
             if (!RoadTrafficSystem.PaintRoad(tile)) {
-                ShowTip("Roads can only be painted on walkable ground that is not already rail!");
+                ShowTip("Las carreteras solo pueden pintarse en terreno transitable que no tenga ya vías.");
             }
         }
 
         private static bool SpawnCarEffectAtTile(WorldTile tile, string powerId) {
             if (!RoadTrafficSystem.SpawnManualTrafficAtTile(tile)) {
-                ShowTip("Paint or find nearby roads first, then place the road car on them!");
+                ShowTip("Primero pinta o encuentra carreteras cercanas; luego coloca el coche sobre ellas.");
                 return false;
             }
 
@@ -4657,31 +4680,31 @@ namespace Trainbox {
 
         private static bool SpawnTrainAtTile(WorldTile tile, string powerId) {
             if (!RailTileRegistry.IsRailTile(tile)) {
-                ShowTip("Paint tracks first, then spawn the train on that rail!");
+                ShowTip("Primero pinta vías; después invoca el tren sobre una de ellas.");
                 return false;
             }
 
             if (TaxiTrainLogic.FindTrainOnTile(tile) != null) {
-                ShowTip("There is already a train on that tile!");
+                ShowTip("Ya hay un tren en esa casilla.");
                 return false;
             }
 
             Kingdom kingdom = RailTileRegistry.ResolveTrackKingdom(tile);
             if (kingdom == null) {
-                ShowTip("Spawn the train near a kingdom so it has an owner!");
+                ShowTip("Invoca el tren cerca de un reino para que tenga propietario.");
                 return false;
             }
 
             string assetId = TrainAssets.EnsureTrainAsset(kingdom);
             if (string.IsNullOrWhiteSpace(assetId)) {
-                ShowTip("The train asset could not be created for that kingdom!");
+                ShowTip("No se pudo crear el recurso de tren para ese reino.");
                 return false;
             }
 
             Subspecies subspecies = kingdom.getMainSubspecies();
             Actor actor = World.world.units.createNewUnit(assetId, tile, true, 0.5f, subspecies);
             if (actor == null) {
-                ShowTip("WorldBox refused to spawn the train there!");
+                ShowTip("WorldBox no pudo invocar el tren ahí.");
                 return false;
             }
 
@@ -4694,36 +4717,36 @@ namespace Trainbox {
             TaxiTrainLogic.SafeSetStatsDirty(actor);
             actor.restoreHealthPercent(1f);
             TaxiTrainLogic.InitializeTrain(actor);
-            ShowTip($"A train now serves {kingdom.name}.");
+            ShowTip($"Un tren ahora presta servicio a {kingdom.name}.");
             return true;
         }
 
         private static bool RemoveTrainAtTile(WorldTile tile, string powerId) {
             Actor train = TaxiTrainLogic.FindTrainOnTile(tile);
             if (train == null) {
-                ShowTip("No train was found on that tile.");
+                ShowTip("No se encontró ningún tren en esa casilla.");
                 return false;
             }
 
             TaxiTrainLogic.RemoveTrain(train);
             train.dieSimpleNone();
-            ShowTip("The train has been removed.");
+            ShowTip("El tren se eliminó.");
             return true;
         }
 
         private static bool ToggleAutoRails(WorldTile tile, string powerId) {
             bool enabled = RailAutoBuilder.ToggleAutoCityRails();
             ShowTip(enabled
-                ? "rails enabled. Cities can build and use railways again."
-                : "rails disabled. Manual rail painting still works.");
+                ? "Vías automáticas activadas. Las ciudades pueden construir y usar ferrocarriles de nuevo."
+                : "Vías automáticas desactivadas. Aún puedes pintar vías manualmente.");
             return true;
         }
 
         private static bool ToggleModernRoads(WorldTile tile, string powerId) {
             bool enabled = RoadTrafficSystem.ToggleModernRoads();
             ShowTip(enabled
-                ? "modern roads enabled. Existing roads were repainted as paved roads."
-                : "modern roads disabled. Existing roads were repainted as vanilla roads.");
+                ? "Carreteras modernas activadas. Las carreteras existentes se repintaron como pavimentadas."
+                : "Carreteras modernas desactivadas. Las carreteras existentes recuperaron su aspecto original.");
             return true;
         }
 
@@ -4888,27 +4911,27 @@ namespace Trainbox {
         internal static bool TryGetPowerDescription(string powerId, out string description) {
             switch (powerId) {
                 case Main.TrackPowerId:
-                    description = "Paint rail track tiles on land or across water.";
+                    description = "Pinta vías férreas en tierra o sobre el agua.";
                     return true;
                 case Main.RoadPowerId:
-                    description = "Paint modern roads.";
+                    description = "Pinta carreteras modernas.";
                     return true;
                 case Main.CarEffectPowerId:
-                    description = "Spawn a car.";
+                    description = "Invoca un coche.";
                     return true;
                 case Main.StopPowerId:
-                    description = "Paint walkable train stations where passengers board and leave.";
+                    description = "Pinta paradas transitables donde los pasajeros suben y bajan.";
                     return true;
                 case Main.SpawnPowerId:
-                    description = "Spawn a train for the nearest kingdom on a painted rail tile.";
+                    description = "Invoca un tren para el reino más cercano sobre una vía pintada.";
                     return true;
                 case Main.RemovePowerId:
-                    description = "Remove the train on the clicked rail tile.";
+                    description = "Elimina el tren situado en la vía seleccionada.";
                     return true;
                 case Main.AutoRailsPowerId:
                     description = RailAutoBuilder.AutoCityRailsEnabled
-                        ? "Cities will automatically build and use railways.."
-                        : "Cities will not auto-build railways.";
+                        ? "Las ciudades construirán y usarán ferrocarriles automáticamente."
+                        : "Las ciudades no construirán ferrocarriles automáticamente.";
                     return true;
                 default:
                     description = null;
