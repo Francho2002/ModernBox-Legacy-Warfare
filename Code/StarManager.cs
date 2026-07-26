@@ -184,6 +184,11 @@ public class StarManager : MonoBehaviour
 
     private void Start()
     {
+		if (!Main.EnableSpaceSystems)
+		{
+			return;
+		}
+
 		localizationManager = FindObjectOfType<LocalizationManager>();
         activeGalaxyFilePath = Path.Combine(Application.persistentDataPath, "activeGalaxy.txt");
         LoadActiveGalaxy();

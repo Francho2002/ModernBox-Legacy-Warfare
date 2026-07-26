@@ -39,6 +39,15 @@ estadisticas, pero sus ataques usan los proyectiles convencionales compartidos:
 sin municion elemental ni fantastica en canones, vehiculos, aviacion, destructores,
 lanzamisiles y submarinos.
 
+## Espacio, planetas y galaxias desactivados
+
+`EnableSpaceSystems` esta fijado en `false`. Los assets, clases y datos legacy
+de espacio se conservan para compatibilidad, pero no se crean gestores de
+planetas o espacio, no se muestran ventanas ni controles de galaxias y no se
+generan planetas. Tampoco se ejecuta la limpieza de datos ModernBox ni la
+persistencia/autoguardado espacial, por lo que la compuerta no borra ni escribe
+datos espaciales existentes.
+
 ## Flotas
 
 Cada puerto puede mantener cuatro embarcaciones automáticas, con un máximo de

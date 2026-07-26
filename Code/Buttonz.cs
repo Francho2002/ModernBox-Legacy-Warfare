@@ -945,6 +945,11 @@ namespace ModernBox
 
         private void SetupSpace()
         {
+          if (!Main.EnableSpaceSystems)
+          {
+            return;
+          }
+
           PowersTab tab = getPowersTab("ModernBoxSpace");
 
             new ButtonBuilder("galaxy")
@@ -1003,6 +1008,10 @@ namespace ModernBox
             .Build();
         }
         private static void openStarMap() {
+			if (!Main.EnableSpaceSystems) {
+				return;
+			}
+
 			SpaceManager.EnableSpace();
          	Debug.Log("SpaceBox: openStarMap has been called but the star map ain't actually fucking showing up. (ofc it isn't)");
 		  }
@@ -1015,6 +1024,9 @@ namespace ModernBox
 			 Windows.ShowWindow("AboutWindow");
              }
 		  private static void openCustomGalaxies() {
+			if (!Main.EnableSpaceSystems) {
+				return;
+			}
 
 			 Windows.ShowWindow("CustomGalaxiesWindow");
 		  }

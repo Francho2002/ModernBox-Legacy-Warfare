@@ -92,6 +92,11 @@ namespace ModernBox
 
         public static void init()
         {
+            if (!Main.EnableSpaceSystems)
+            {
+                return;
+            }
+
             PowersTab tab = getPowersTab("ModernBox");
             window = Windows.CreateNewWindow("CustomGalaxiesWindow", "ModernBox");
             var scrollView = GameObject.Find($"/Canvas Container Main/Canvas - Windows/windows/{window.name}/Background/Scroll View");

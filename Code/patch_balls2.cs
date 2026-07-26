@@ -11,6 +11,8 @@ namespace ModernBox
     {
         public static void Prefix()
         {
+            if (!Main.EnableSpaceSystems) return;
+
             if (PlanetManager.instance == null) return;
 
             string planetName = PlanetManager.instance.GetCurrentPlanet();

@@ -14,10 +14,14 @@ namespace ModernBox
         public static bool gameBegun = false;
         public static bool allowed;
 
-        public static void turnOnPersistence() => allowed = true;
+        public static void turnOnPersistence() => allowed = Main.EnableSpaceSystems;
         public static void turnOffPersistence() => allowed = false;
 
         public static void togglePersistence() {
+        if (!Main.EnableSpaceSystems) {
+            allowed = false;
+            return;
+        }
         Main.modifyBoolOption("PersistenceOption",
                                 PowerButtons.GetToggleValue("beginningtoggle"));
         if (PowerButtons.GetToggleValue("beginningtoggle")) {
@@ -29,6 +33,12 @@ namespace ModernBox
 
         public static void Postfix()
         {
+            if (!Main.EnableSpaceSystems)
+            {
+                allowed = false;
+                return;
+            }
+
             if (!allowed) return;
 
             if (PlayerPrefs.GetInt("DoneBefore", 0) == 0)

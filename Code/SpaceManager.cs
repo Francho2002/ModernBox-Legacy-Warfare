@@ -25,6 +25,11 @@ namespace ModernBox
 
         public static SpaceManager EnsureInstance()
         {
+            if (!Main.EnableSpaceSystems)
+            {
+                return null;
+            }
+
             if (instance != null)
             {
                 return instance;
@@ -36,6 +41,16 @@ namespace ModernBox
 
         private void Awake()
         {
+                if (!Main.EnableSpaceSystems)
+                {
+                    if (instance == this)
+                    {
+                        instance = null;
+                    }
+                    Destroy(gameObject);
+                    return;
+                }
+
                 if (instance != null && instance != this)
                 {
                     Destroy(gameObject);
@@ -64,6 +79,11 @@ namespace ModernBox
 
         private void InitializeSpaceSupportIfNeeded()
         {
+            if (!Main.EnableSpaceSystems)
+            {
+                return;
+            }
+
             if (supportInitialized)
             {
                 return;
@@ -77,6 +97,11 @@ namespace ModernBox
 
         public static void CleanUpModernBoxData()
         {
+            if (!Main.EnableSpaceSystems)
+            {
+                return;
+            }
+
             string persistentDataPath = Application.persistentDataPath;
             string spaceBoxPath = Path.Combine(persistentDataPath, "ModernBox");
 			otherfilePath = Path.Combine(Application.persistentDataPath, "vals2.txt");
@@ -152,6 +177,11 @@ namespace ModernBox
 		
         public static void DeleteBomb()
         {
+            if (!Main.EnableSpaceSystems)
+            {
+                return;
+            }
+
             string persistentDataPath = Application.persistentDataPath;
             string spaceBoxPath = Path.Combine(persistentDataPath, "ModernBox");
 
@@ -228,6 +258,11 @@ namespace ModernBox
 
         public static void EnableSpace()
         {
+            if (!Main.EnableSpaceSystems)
+            {
+                return;
+            }
+
             SpaceManager manager = EnsureInstance();
             if (manager == null || isSpaceEnabled)
             {
@@ -336,6 +371,11 @@ public static void DisableSpace()
 
 public static void GeneratePlanet(string planetName, string planetType, string planetSize, bool hasFauna)
 {
+    if (!Main.EnableSpaceSystems)
+    {
+        return;
+    }
+
     Debug.Log($"Generating planet: {planetName}");
 
     SaveManager SaveManager = FindObjectOfType<SaveManager>();

@@ -18,6 +18,16 @@ namespace ModernBox
 
         private void Awake()
         {
+            if (!Main.EnableSpaceSystems)
+            {
+                if (instance == this)
+                {
+                    instance = null;
+                }
+                Destroy(gameObject);
+                return;
+            }
+
             if (instance == null)
             {
                 instance = this;
@@ -40,6 +50,11 @@ namespace ModernBox
 
         private void Start()
         {
+            if (!Main.EnableSpaceSystems)
+            {
+                return;
+            }
+
             if (string.IsNullOrEmpty(currentPlanetName))
             {
                 StartCoroutine(WaitForPlanetName());

@@ -80,6 +80,9 @@ namespace ModernBox{
         // Compatibility gate: fantasy assets/classes remain loadable for saves, but
         // no ModernBox fantasy systems, God Powers, monsters, or zombies are active.
         internal const bool EnableFantasySystems = false;
+        // Space assets and legacy save data remain untouched, but all space/planet
+        // entry points are disabled for this grounded ModernBox configuration.
+        internal const bool EnableSpaceSystems = false;
         private const string PreferredModernBoxFolderName = "M5TrainsUpdateBeta";
         private bool modernBoxUiInitialized;
 
@@ -148,12 +151,15 @@ namespace ModernBox{
                 CreditsWindow.init();
                 ModernBoxLogger.Log("[MX] CreditsWindow loaded!");
 
-                ModernBoxLogger.Log("[MX] Loading SpaceWindow...");
-                SpaceWindow.init();
-                ModernBoxLogger.Log("[MX] SpaceWindow loaded!");
-                ModernBoxLogger.Log("[MX] Loading CustomGalaxiesWindow...");
-                CustomGalaxiesWindow.init();
-                ModernBoxLogger.Log("[MX] CustomGalaxiesWindow loaded!");
+                if (EnableSpaceSystems)
+                {
+                    ModernBoxLogger.Log("[MX] Loading SpaceWindow...");
+                    SpaceWindow.init();
+                    ModernBoxLogger.Log("[MX] SpaceWindow loaded!");
+                    ModernBoxLogger.Log("[MX] Loading CustomGalaxiesWindow...");
+                    CustomGalaxiesWindow.init();
+                    ModernBoxLogger.Log("[MX] CustomGalaxiesWindow loaded!");
+                }
 
                               ModernBoxLogger.Log("[MX] Loading AchievementsWindow...");
                  AchievementsWindow.init();
@@ -371,8 +377,11 @@ namespace ModernBox{
                         img.sprite = newSprite;
                     }
                 }
-                GameObject planetManagerObject = new GameObject("PlanetManager");
-                planetManagerObject.AddComponent<PlanetManager>();
+                if (EnableSpaceSystems)
+                {
+                    GameObject planetManagerObject = new GameObject("PlanetManager");
+                    planetManagerObject.AddComponent<PlanetManager>();
+                }
 
                 if (DateTime.UtcNow >= cutoffUtc)
                 {

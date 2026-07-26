@@ -25,7 +25,10 @@ namespace ModernBox
 
 		public void Awake()
 		{
-
+			if (!Main.EnableSpaceSystems)
+			{
+				return;
+			}
 		}
 
 		public static bool setMapSize_Prefix(ref int pWidth, ref int pHeight)
@@ -69,6 +72,10 @@ namespace ModernBox
 
         public static void ChoosePlanetBiomes(string type, bool hasFauna)
         {
+			if (!Main.EnableSpaceSystems)
+			{
+				return;
+			}
 
 
 

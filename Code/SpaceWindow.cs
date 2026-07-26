@@ -30,6 +30,11 @@ namespace ModernBox
 	  }
         public static void init()
         {
+				if (!Main.EnableSpaceSystems)
+				{
+					return;
+				}
+
 			    PowersTab tab = getPowersTab("ModernBox");
           window = Windows.CreateNewWindow("SpaceWindow", "ModernBox");
           var scrollView = GameObject.Find($"/Canvas Container Main/Canvas - Windows/windows/{window.name}/Background/Scroll View");
@@ -68,6 +73,10 @@ namespace ModernBox
         }
 
 		    private static void openStarMap() {
+			if (!Main.EnableSpaceSystems)
+			{
+				return;
+			}
 
 			SpaceManager.EnableSpace();
          	Debug.Log("SpaceBox: openStarMap has been called but the star map ain't actually fucking showing up. (ofc it isn't)");
@@ -75,6 +84,10 @@ namespace ModernBox
 		}
 
 		  private static void openCustomGalaxies() {
+			if (!Main.EnableSpaceSystems)
+			{
+				return;
+			}
 
 			 Windows.ShowWindow("CustomGalaxiesWindow");
 		  }
