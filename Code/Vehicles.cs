@@ -383,6 +383,13 @@ namespace ModernBox
             modernCapNuclearBlast.transform_to_wasteland = false;
             AssetManager.terraform.add(modernCapNuclearBlast);
 
+            var modernCapCzarBlast = AssetManager.terraform.clone("modern_cap_czar_blast", "czar_bomba");
+            modernCapCzarBlast.shake = false;
+            modernCapCzarBlast.transform_to_wasteland = false;
+            // Czar's stock action refers to its static asset, which would restore wasteland.
+            modernCapCzarBlast.bomb_action = null;
+            AssetManager.terraform.add(modernCapCzarBlast);
+
             // ProjectileAsset has no draw_boat_mark equivalent.  A minimap-enabled
             // effect is the supported marker path for a projectile in flight.
             EffectAsset modernCapMissileTrail = new EffectAsset();
@@ -1391,6 +1398,32 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
           NUKER.can_be_blocked = false;
 		  NUKER.world_actions = (AttackAction)Delegate.Combine(NUKER.world_actions, new AttackAction(ActionLibrary.burnTile));
           AssetManager.projectiles.add(NUKER);
+
+            ProjectileAsset SSBN_CZAR_WARHEAD = new ProjectileAsset();
+            SSBN_CZAR_WARHEAD.id = "SSBN_CZAR_WARHEAD";
+            SSBN_CZAR_WARHEAD.speed = 120f;
+            SSBN_CZAR_WARHEAD.texture = "NUKER";
+            SSBN_CZAR_WARHEAD.look_at_target = true;
+            SSBN_CZAR_WARHEAD.texture_shadow = "shadows/projectiles/shadow_ball";
+            SSBN_CZAR_WARHEAD.terraform_option = "modern_cap_czar_blast";
+            SSBN_CZAR_WARHEAD.terraform_range = 70;
+            SSBN_CZAR_WARHEAD.draw_light_area = true;
+            SSBN_CZAR_WARHEAD.sound_launch = "event:/SFX/WEAPONS/WeaponFireballStart";
+            // The huge explosion effect already plays WorldBox's native impact sound.
+            // Leaving a projectile sound here would play it twice.
+            SSBN_CZAR_WARHEAD.sound_impact = null;
+            SSBN_CZAR_WARHEAD.end_effect = "fx_explosion_huge";
+            SSBN_CZAR_WARHEAD.end_effect_scale = 1.5f;
+            SSBN_CZAR_WARHEAD.trail_effect_enabled = true;
+            SSBN_CZAR_WARHEAD.trail_effect_id = "modern_cap_missile_trail";
+            SSBN_CZAR_WARHEAD.trail_effect_scale = 0.30f;
+            SSBN_CZAR_WARHEAD.trail_effect_timer = 0.1f;
+            SSBN_CZAR_WARHEAD.scale_start = 0.8f;
+            SSBN_CZAR_WARHEAD.scale_target = 0.8f;
+            SSBN_CZAR_WARHEAD.can_be_left_on_ground = false;
+            SSBN_CZAR_WARHEAD.can_be_blocked = false;
+            SSBN_CZAR_WARHEAD.world_actions = (AttackAction)Delegate.Combine(SSBN_CZAR_WARHEAD.world_actions, new AttackAction(ActionLibrary.burnTile));
+            AssetManager.projectiles.add(SSBN_CZAR_WARHEAD);
 
 
 
@@ -9982,7 +10015,12 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
         return false;
 
     Actor caster = pTarget.a;
-    if (!caster.isAlive() || caster.kingdom == null || !caster.kingdom.hasEnemies())
+    if (caster.asset == null || string.IsNullOrEmpty(caster.asset.id) ||
+        !caster.asset.id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
+        return false;
+
+    if (!caster.isAlive() || caster.kingdom == null || !caster.kingdom.hasEnemies() ||
+        !IsKingdomInNuclearLastResort(caster.kingdom))
         return false;
 
     City ownerCity = caster.city;
@@ -10086,7 +10124,7 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, salvoTarget.x, salvoTarget.y, distance);
         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, salvoTarget.x, salvoTarget.y, caster.stats["size"]);
         startProjectile.y += 0.5f;
-        World.world.projectiles.spawn(caster, null, "NUKER", startProjectile, attackVector);
+        World.world.projectiles.spawn(caster, null, "SSBN_CZAR_WARHEAD", startProjectile, attackVector);
         StatManager.Instance.SpawnUnit();
     }
 
@@ -10125,6 +10163,74 @@ private static bool TryAddNuclearSalvoTarget(List<Vector2> targets, Vector2 cand
     }
     targets.Add(candidate);
     return true;
+}
+
+private static bool IsKingdomInNuclearLastResort(Kingdom kingdom)
+{
+    if (kingdom == null || !kingdom.hasEnemies() || !kingdom.hasKing() || kingdom.king == null || !kingdom.king.isAlive())
+        return false;
+
+    int ownCityCount = 0;
+    bool cityBeingCaptured = false;
+    bool cityInDanger = false;
+    foreach (City city in kingdom.cities)
+    {
+        if (city == null || !city.isAlive())
+            continue;
+
+        ownCityCount++;
+        if (city.being_captured_by != null && kingdom.isEnemy(city.being_captured_by))
+            cityBeingCaptured = true;
+        if (city.danger_zones != null && city.danger_zones.Count > 0)
+            cityInDanger = true;
+    }
+
+    if (ownCityCount < 1 || ownCityCount > 2)
+        return false;
+
+    int ownPopulation = kingdom.getPopulationPeople();
+    int ownWarriors = kingdom.countTotalWarriors();
+    int enemyCities = 0;
+    int enemyPopulation = 0;
+    int enemyWarriors = 0;
+    using (var enemies = kingdom.getEnemiesKingdoms())
+    {
+        foreach (Kingdom enemyKingdom in enemies)
+        {
+            if (enemyKingdom == null)
+                continue;
+
+            enemyPopulation += enemyKingdom.getPopulationPeople();
+            enemyWarriors += enemyKingdom.countTotalWarriors();
+            foreach (City enemyCity in enemyKingdom.cities)
+            {
+                if (enemyCity != null && enemyCity.isAlive())
+                    enemyCities++;
+            }
+        }
+    }
+
+    if (ownCityCount == 1)
+    {
+        if (cityBeingCaptured)
+            return true;
+        if (!cityInDanger)
+            return false;
+
+        int extremeThreatSignals = 0;
+        if (enemyCities >= 3)
+            extremeThreatSignals++;
+        if (enemyPopulation >= Math.Max(80, ownPopulation * 3))
+            extremeThreatSignals++;
+        if (enemyWarriors >= Math.Max(8, ownWarriors * 3))
+            extremeThreatSignals++;
+        return extremeThreatSignals >= 2;
+    }
+
+    return cityBeingCaptured &&
+        enemyCities >= 4 &&
+        enemyPopulation >= Math.Max(150, ownPopulation * 3) &&
+        enemyWarriors >= Math.Max(12, ownWarriors * 2);
 }
 
         public static void addNews(string news)

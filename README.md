@@ -37,10 +37,21 @@ una embarcación militar normal y tiene un coste de `14` madera, `12` piedra,
 `10` metal y `6` oro.
 
 Durante una guerra, con la opción de guerra nuclear activada, el SSBN consume
-`160` de oro para lanzar hasta cuatro misiles nucleares contra blancos
-estratégicos distintos. Prioriza una ciudad por misil y sólo usa posiciones de
-reserva separadas cuando no existen suficientes blancos reales. La recarga de
-la salva es de `600` segundos. También conserva su ataque convencional.
+`160` de oro para lanzar hasta cuatro Bombas del Zar sin convertir el terreno
+en wasteland. Prioriza una ciudad por misil y sólo usa posiciones de reserva
+separadas cuando no existen suficientes blancos reales. La recarga de la salva
+es de `600` segundos. También conserva su ataque convencional.
+
+El disparo queda reservado para el último recurso y exige rey vivo:
+
+- Con una ciudad viva: la ciudad debe estar siendo capturada por un enemigo, o
+  estar en peligro y cumplir al menos dos señales: enemigos con `>=3` ciudades,
+  población enemiga de al menos `max(80, 3x población propia)` o guerreros
+  enemigos de al menos `max(8, 3x guerreros propios)`.
+- Con dos ciudades vivas: al menos una debe estar siendo capturada y los
+  enemigos deben reunir `>=4` ciudades, `max(150, 3x población propia)` y
+  `max(12, 2x guerreros propios)`.
+- Con más de dos ciudades, la salva nunca se autoriza.
 
 ## Instalación
 
