@@ -19,6 +19,19 @@ namespace ModernBox
             "destroyer_a_horde_boat", "destroyer_b_horde_boat", "carrier_horde_boat", "submarine_horde_boat"
         };
 
+        private static readonly string[] CivilianBoatTypePrefixes =
+        {
+            "cargo", "fishing", "transporter"
+        };
+
+        private static readonly string[] MilitaryBoatTypePrefixes =
+        {
+            "destroyer_a", "destroyer_b", "carrier", "submarine"
+        };
+
+        private const int TotalBoatCapPerDock = 4;
+        private const int MilitaryBoatCapPerDock = 2;
+
         internal static void EnableAllDocks()
         {
             foreach (BuildingAsset asset in AssetManager.buildings.list)
@@ -46,7 +59,7 @@ namespace ModernBox
                 return false;
             }
 
-            string id = SelectAffordableId(city);
+            string id = SelectAffordableId(dock, city);
             if (string.IsNullOrEmpty(id))
                 return false;
 
@@ -69,13 +82,11 @@ namespace ModernBox
         {
             if (!ShouldReplace(dockAsset, city))
                 return null;
-            string id = SelectAffordableId(city);
-            if (string.IsNullOrEmpty(id))
-                return null;
-            ActorAsset asset = AssetManager.actor_library.get(id);
-            if (asset != null)
-                asset.cost = GetCost(id);
-            return asset;
+
+            // This callback has no Docks instance, so it cannot establish the
+            // owner of the quota. Production is intentionally owned by TryBuild,
+            // which receives the actual component and binds the new boat to it.
+            return null;
         }
 
         internal static bool ShouldReplace(BuildingAsset asset, City city)
@@ -90,7 +101,7 @@ namespace ModernBox
                 ShouldReplace(dock.building.asset, city);
         }
 
-        private static List<string> GetPool(City city)
+        private static List<string> GetPool(Docks dock, City city)
         {
             string faction = GetFaction(city);
             string[] ids =
@@ -102,29 +113,33 @@ namespace ModernBox
                 "Transporter_" + faction
             };
 
-            const int totalCap = 4;
-            const int militaryCap = 2;
-            int total = 0;
-            int military = 0;
-            foreach (Actor unit in city.units)
-            {
-                if (unit == null || !unit.isAlive())
-                    continue;
-                string id = unit.asset?.id;
-                if (IsBoat(id)) total++;
-                if (IsMilitary(id)) military++;
-            }
-            if (total >= totalCap)
+            int total = CountDockBoats(dock, faction, CivilianBoatTypePrefixes) +
+                CountDockBoats(dock, faction, MilitaryBoatTypePrefixes);
+            int military = CountDockBoats(dock, faction, MilitaryBoatTypePrefixes);
+            if (total >= TotalBoatCapPerDock)
                 return new List<string>();
 
             return ids.Where(id => AssetManager.actor_library.get(id) != null)
-                .Where(id => !IsMilitary(id) || military < militaryCap)
+                .Where(id => !IsMilitary(id) || military < MilitaryBoatCapPerDock)
                 .ToList();
         }
 
-        private static string SelectAffordableId(City city)
+        private static int CountDockBoats(Docks dock, string faction, IEnumerable<string> typePrefixes)
         {
-            List<string> affordable = GetPool(city)
+            if (dock == null || string.IsNullOrEmpty(faction))
+                return 0;
+
+            int total = 0;
+            foreach (string prefix in typePrefixes)
+            {
+                total += dock.countBoatTypes(prefix + "_" + faction + "_boat");
+            }
+            return total;
+        }
+
+        private static string SelectAffordableId(Docks dock, City city)
+        {
+            List<string> affordable = GetPool(dock, city)
                 .Where(id => city.hasEnoughResourcesFor(GetCost(id)))
                 .ToList();
             if (affordable.Count == 0)
@@ -137,8 +152,8 @@ namespace ModernBox
             if (selected.Count == 0)
                 selected = preferMilitary ? civilian : military;
             // Nuclear warfare needs an actual launch platform. The first
-            // affordable military hull in each city is therefore a submarine;
-            // the per-city military cap still prevents naval spam.
+            // affordable military hull at each dock is therefore a submarine;
+            // the per-dock military cap still prevents naval spam.
             if (preferMilitary)
             {
                 string submarine = selected.FirstOrDefault(
@@ -156,13 +171,6 @@ namespace ModernBox
             if (leader == "elf" || leader.Contains("druid") || leader.Contains("fairy")) return "gaia";
             if (leader == "orc" || leader.Contains("necromancer") || leader.Contains("wolf")) return "horde";
             return "alliance";
-        }
-
-        private static bool IsBoat(string id)
-        {
-            return !string.IsNullOrEmpty(id) && (id.Contains("Ship_") || id.Contains("FishingBoat_") || id.Contains("Destroyer_") ||
-                id.Contains("Vessel_") || id.Contains("Submarine_") || id.Contains("brawler_") ||
-                id.Contains("Transporter_"));
         }
 
         private static bool IsMilitary(string id)
