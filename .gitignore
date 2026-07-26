@@ -1,0 +1,15 @@
+# Local build artifacts
+ModernBox.dll
+Validation/
+
+# WorldBox assemblies are supplied by the local game installation
+Assemblies/*.dll
+
+# Editor and operating-system files
+.vs/
+.vscode/
+*.user
+*.suo
+Thumbs.db
+Desktop.ini
+
