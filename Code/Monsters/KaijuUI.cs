@@ -19,6 +19,11 @@ namespace ModernBox
 
 		public void init()
 		{
+			if (!Main.EnableFantasySystems)
+			{
+				return;
+			}
+
 			PowersTab tab = KaijugetPowersTab("Tab_kaiju");
       if (tab == null)
       {

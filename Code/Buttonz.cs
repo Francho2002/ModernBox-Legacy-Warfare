@@ -27,7 +27,7 @@ namespace ModernBox
 			PowersTab tab5 = getPowersTab("ModernBoxItems");
             PowersTab otherTab = getPowersTab("other");
 
-            if (tab == null || tab2 == null || tab3 == null || tab4 == null || tab5 == null)
+			if (tab == null || tab2 == null || tab3 == null || tab4 == null || tab5 == null)
             {
                 ModernBoxLogger.Error("[Buttonz] One or more ModernBox tabs are missing during Init().");
                 return;
@@ -242,9 +242,9 @@ namespace ModernBox
             .Build();
 
         new ButtonBuilder("modernbox_tab_bombs")
-            .SetSprite(Resources.Load<Sprite>("ui/icons/Overload"))
-            .SetTitle("ModernBox Bombs")
-            .SetDescription("Open the Bombs tab.")
+            .SetSprite(Resources.Load<Sprite>("ui/Icons/MIRV_nuke"))
+            .SetTitle("ModernBox Nuclear")
+            .SetDescription("Open strategic nuclear warfare controls.")
             .SetPosition(16, 1)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
@@ -285,7 +285,7 @@ namespace ModernBox
             {
                 EnsureOtherTabButton("modernbox_launcher", "ui/icons/tabIconModernWarfare", "ModernBox", "Open the main ModernBox hub.", 0, 0, otherTab.transform, openModernBoxHub);
                 EnsureOtherTabButton("modernbox_other_units", "ui/icons/warhamma", "MB Units", "Open the Units tab.", 1, 0, otherTab.transform, () => openModernBoxSubTab("ModernBoxUnits"));
-                EnsureOtherTabButton("modernbox_other_bombs", "ui/icons/Overload", "MB Bombs", "Open the Bombs tab.", 2, 0, otherTab.transform, () => openModernBoxSubTab("ModernBoxBombs"));
+                EnsureOtherTabButton("modernbox_other_bombs", "ui/Icons/MIRV_nuke", "MB Nuclear", "Open strategic nuclear warfare controls.", 2, 0, otherTab.transform, () => openModernBoxSubTab("ModernBoxBombs"));
                 EnsureOtherTabButton("modernbox_other_trainbox", "ui/icons/Industrial", "Trainbox", "Open the Trainbox tab.", 3, 0, otherTab.transform, openTrainboxTab);
                 EnsureOtherTabButton("modernbox_other_eras", "ui/icons/Industrial", "MB Eras", "Apariencia manual y conocimiento prohibido.", 0, 1, otherTab.transform, () => openModernBoxSubTab("ModernBoxEras"));
                 EnsureOtherTabButton("modernbox_other_items", "ui/icons/firearm", "MB Items", "Open the Items tab.", 2, 1, otherTab.transform, () => openModernBoxSubTab("ModernBoxItems"));
@@ -567,7 +567,10 @@ namespace ModernBox
                 index++;
             }
 
-            SetupBombs();
+            if (Main.EnableFantasySystems)
+            {
+                SetupBombs();
+            }
             SetupEras();
             SetupLines();
 		}

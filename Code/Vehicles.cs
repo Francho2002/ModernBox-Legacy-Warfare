@@ -8082,10 +8082,11 @@ Submarine_harden.inspect_avatar_offset_y = 6f;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////UNIT REGISTRATION//////////////////////////////////////////////////////
+NormalizeRealisticCombatEffects();
 CreateSalvoSubmarine("alliance", "missileArtilleryDecision");
-CreateSalvoSubmarine("harden", "HARDENmissileArtilleryDecision");
-CreateSalvoSubmarine("gaia", "GAIAmissileArtilleryDecision");
-CreateSalvoSubmarine("horde", "HORDEmissileArtilleryDecision");
+CreateSalvoSubmarine("harden", "missileArtilleryDecision");
+CreateSalvoSubmarine("gaia", "missileArtilleryDecision");
+CreateSalvoSubmarine("horde", "missileArtilleryDecision");
 ApplyAirVehicleDecisionProfiles();
 string[] unitNames = new string[]
 {
@@ -8135,6 +8136,57 @@ foreach (string unitName in unitNames)
 
 
         }	
+
+		private static void NormalizeRealisticCombatEffects()
+		{
+			// Faction sprites and all actor statistics remain untouched. Only the
+			// shared attack assets are normalized to non-elemental counterparts.
+			SetDefaultAttack("orccannon", "boat_cannonball");
+			SetDefaultAttack("dwarfcannon", "boat_cannonball");
+			SetDefaultAttack("elfcannon", "boat_cannonball");
+
+			string[] factions = { "Human", "Ork", "Dwarf", "Gaia" };
+			foreach (string faction in factions)
+			{
+				string navalFaction = faction == "Human" ? "alliance" :
+					faction == "Ork" ? "horde" :
+					faction == "Dwarf" ? "harden" : "gaia";
+				SetDefaultAttack("modernhumvee_" + faction, "mountedmachinegun");
+				SetDefaultAttack("Heli_" + faction, "mountedmachinegun");
+				SetDefaultAttack("howitzer_" + faction, "artilleryattack");
+				SetDefaultAttack("Tank_" + faction, "tankpew");
+				SetDefaultAttack("wheeledtank_" + faction, "tankpew");
+				SetDefaultAttack("Bomber_" + faction, "BomberAttack");
+				SetDefaultAttack("FighterJet_" + faction, "fighterattack");
+				SetDefaultAttack("aDestroyer_" + navalFaction, "fighterattack");
+				SetDefaultAttack("bDestroyer_" + navalFaction, "fighterattack");
+				NormalizeMissilePlatform("MissileSystem_" + faction);
+				NormalizeMissilePlatform("Submarine_" + navalFaction);
+			}
+		}
+
+		private static void SetDefaultAttack(string actorId, string attackId)
+		{
+			ActorAsset actorAsset = AssetManager.actor_library.get(actorId);
+			if (actorAsset != null)
+				actorAsset.default_attack = attackId;
+		}
+
+		private static void NormalizeMissilePlatform(string actorId)
+		{
+			ActorAsset actorAsset = AssetManager.actor_library.get(actorId);
+			if (actorAsset == null)
+				return;
+
+			actorAsset.default_attack = "MissileSystemmissile";
+			if (actorAsset.decision_ids == null)
+				actorAsset.decision_ids = new List<string>();
+			actorAsset.decision_ids.Remove("HORDEmissileArtilleryDecision");
+			actorAsset.decision_ids.Remove("HARDENmissileArtilleryDecision");
+			actorAsset.decision_ids.Remove("GAIAmissileArtilleryDecision");
+			if (!actorAsset.decision_ids.Contains("missileArtilleryDecision"))
+				actorAsset.addDecision("missileArtilleryDecision");
+		}
 
 		private static void CreateSalvoSubmarine(string faction, string conventionalDecisionId)
 		{

@@ -77,6 +77,9 @@ namespace ModernBox{
         public static PizzaManager PizzaManager;
         private const bool EnableStartupAssetPreload = false;
         private const bool EnableRuntimeUiEffects = false;
+        // Compatibility gate: fantasy assets/classes remain loadable for saves, but
+        // no ModernBox fantasy systems, God Powers, monsters, or zombies are active.
+        internal const bool EnableFantasySystems = false;
         private const string PreferredModernBoxFolderName = "M5TrainsUpdateBeta";
         private bool modernBoxUiInitialized;
 
@@ -126,9 +129,12 @@ namespace ModernBox{
                 PizzaManager = gameObject.AddComponent<PizzaManager>();
                 ModernBoxLogger.Log("SpaceBoxModernBox: Pls no lag!");
 
-                ModernBoxLogger.Log("[MX] Initializing Bombs...");
-                Bombs.Init();
-                ModernBoxLogger.Log("[MX] Bombs loaded!");
+                if (EnableFantasySystems)
+                {
+                    ModernBoxLogger.Log("[MX] Initializing Bombs...");
+                    Bombs.Init();
+                    ModernBoxLogger.Log("[MX] Bombs loaded!");
+                }
 
                 ModernBoxLogger.Log("[MX] Loading AboutWindow...");
                 AboutWindow.init();
@@ -153,12 +159,15 @@ namespace ModernBox{
                  AchievementsWindow.init();
                  ModernBoxLogger.Log("[MX] AchievementsWindow loaded!");
                                  Vehicles.init();
-                ModernBoxLogger.Log("[MX] Initializing Zombies...");
-                Zombies.create_Zombies();
-                ModernBoxLogger.Log("[MX] Zombies loaded!");
+                if (EnableFantasySystems)
+                {
+                    ModernBoxLogger.Log("[MX] Initializing Zombies...");
+                    Zombies.create_Zombies();
+                    ModernBoxLogger.Log("[MX] Zombies loaded!");
 
-                BombEffects.Init();
-                ModernBoxLogger.Log("[MX] Bomb effects initialized!");
+                    BombEffects.Init();
+                    ModernBoxLogger.Log("[MX] Bomb effects initialized!");
+                }
 
                 ModernBoxLogger.Log("[MX] Buildings initialized");
 
@@ -270,7 +279,9 @@ namespace ModernBox{
         {
             EnsureTabBuilt("ModernBoxTab", "ModernBox", "Eras, politics, trains and conventional warfare.", 128, false, true, null, "ui/icons/tabIconModernWarfare");
             EnsureTabBuilt("ModernBoxUnits", "ModernBox Units", "A BUNCH of guys to spawn!", 200, true, false, "ModernBoxTab", "ui/icons/warhamma");
-            EnsureTabBuilt("ModernBoxBombs", "ModernBox Bombs", "A BUNCH of weapons made by foreign terrorists to spawn!", 200, true, false, "ModernBoxTab", "ui/icons/Overload");
+            // Keep this legacy tab id for saved UI references, but reserve it for
+            // the realistic nuclear-strategy controls rather than God Powers.
+            EnsureTabBuilt("ModernBoxBombs", "ModernBox Nuclear", "Strategic nuclear warfare controls.", 200, true, false, "ModernBoxTab", "ui/Icons/MIRV_nuke");
             EnsureTabBuilt("ModernBoxEras", "ModernBox Eras", "Manual appearance controls and persistent Forbidden Knowledge.", 200, true, false, "ModernBoxTab", "ui/icons/Industrial");
             EnsureTabBuilt("ModernBoxItems", "ModernBox Items", "Toggle specific item types.", 200, true, false, "ModernBoxTab", "ui/icons/firearm");
         }

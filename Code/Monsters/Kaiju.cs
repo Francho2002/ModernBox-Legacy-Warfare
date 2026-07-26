@@ -49,6 +49,12 @@ namespace ModernBox
         private static bool _kaijuInitialized;
 
         public static void init(){
+          if (!Main.EnableFantasySystems)
+          {
+              ModernBoxLogger.Log("[Kaiju] Disabled by EnableFantasySystems.");
+              return;
+          }
+
           if (_kaijuInitialized || _kaijuInitQueued)
           {
               return;
@@ -123,6 +129,10 @@ namespace ModernBox
         }
 
           public static void create_Kaijus(){
+    if (!Main.EnableFantasySystems)
+    {
+        return;
+    }
 
 
 

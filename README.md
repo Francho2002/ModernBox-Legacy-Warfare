@@ -20,6 +20,25 @@ submarinos, misiles convencionales y armas nucleares.
 - Conocimiento prohibido desbloqueado automáticamente.
 - Trenes de la versión moderna de ModernBox.
 
+## Sistemas fantasticos desactivados
+
+`EnableFantasySystems` esta fijado en `false`. ModernBox conserva sus clases y
+assets fantasticos para que las partidas guardadas puedan cargarse, pero no
+inicializa las bombas de God Powers, sus efectos, zombis ni kaijus. El filtro
+de unidades tambien mantiene monstruos y vehiculos fantasticos fuera de los
+menus y de la produccion. La pestana heredada de bombas se conserva como
+controles nucleares estrategicos para no ocultar `nukes_toggle`.
+
+Las ideologias Dynastic, Martial, Peoplewoven, Mercantile y Chaosvolt siguen
+registradas solo para compatibilidad: no se heredan, no se pueden conceder, no
+tienen efecto especial y su propagacion Harmony queda cortada. Las culturas y
+traits nativos, junto con Unitpotential y NavalUnit, siguen operativos.
+
+Las unidades militares realistas conservan sus sprites de faccion y sus
+estadisticas, pero sus ataques usan los proyectiles convencionales compartidos:
+sin municion elemental ni fantastica en canones, vehiculos, aviacion, destructores,
+lanzamisiles y submarinos.
+
 ## Flotas
 
 Cada puerto puede mantener cuatro embarcaciones automáticas, con un máximo de

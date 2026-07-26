@@ -20,9 +20,25 @@ namespace ModernBox
             "xenoUFObomber", "davincitank", "balloonunit"
         };
 
+        // Explicit archive/monster entries complement the allowlist below. They
+        // keep save-compatible actor assets out of spawn menus and production.
+        private static readonly HashSet<string> FantasyActors = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Gojira", "MegaGojira", "Longlegder", "Rodanix", "Invaderax", "PanKong",
+            "Skullcrawler", "crabzilord", "Ramiel", "Gaghiel", "Sachiel", "Zeruel",
+            "mechacrabzilla", "Anguirus", "Bagan", "Battra", "BigBiolante", "QueenMuto",
+            "Crystalac", "Desghidorah", "Destoroyah", "Gamera", "GiantSquid", "GiganOld",
+            "GoodGodzilla", "Hedorah", "Iris", "KiryuMech", "Kong", "Legion", "LpgKaiju",
+            "MechaGhidorah", "Megalon", "OldMechagodzilla", "Shimo", "SkerBuffalo",
+            "FemaleMuto", "MaleMuto", "SpaceGodzilla", "SporeMantis", "SuperMechagodzilla"
+        };
+
         internal static bool IsAllowedActor(string actorId)
         {
             if (string.IsNullOrEmpty(actorId) || ExcludedActors.Contains(actorId))
+                return false;
+
+            if (!Main.EnableFantasySystems && FantasyActors.Contains(actorId))
                 return false;
 
             return actorId.StartsWith("trainbox_", StringComparison.OrdinalIgnoreCase)

@@ -150,9 +150,11 @@ namespace ModernBox {
       Dynastic.needs_to_be_explored = false;
       Dynastic.rarity = Rarity.R0_Normal;
       Dynastic.path_icon = "ui/icons/Dynastic";
-      Dynastic.rate_inherit = 5;
+      Dynastic.rate_inherit = Main.EnableFantasySystems ? 5 : 0;
       Dynastic.group_id = "Ideology";
-      Dynastic.action_special_effect = new WorldAction(VehicleSummonEffect);
+      Dynastic.is_mutation_box_allowed = false;
+      Dynastic.can_be_given = Main.EnableFantasySystems;
+      Dynastic.action_special_effect = Main.EnableFantasySystems ? new WorldAction(VehicleSummonEffect) : null;
       Dynastic.unlocked_with_achievement = false;
       Dynastic.addOpposite("Martial");
       Dynastic.addOpposite("Mercantile");
@@ -169,10 +171,12 @@ namespace ModernBox {
       Martial.needs_to_be_explored = false;
       Martial.rarity = Rarity.R0_Normal;
       Martial.path_icon = "ui/icons/Martial";
-      Martial.rate_inherit = 5;
+      Martial.rate_inherit = Main.EnableFantasySystems ? 5 : 0;
       Martial.group_id = "Ideology";
       Martial.unlocked_with_achievement = false;
-      Martial.action_special_effect = new WorldAction(VehicleSummonEffect);
+      Martial.is_mutation_box_allowed = false;
+      Martial.can_be_given = Main.EnableFantasySystems;
+      Martial.action_special_effect = Main.EnableFantasySystems ? new WorldAction(VehicleSummonEffect) : null;
       Martial.addOpposite("Dynastic");
       Martial.addOpposite("Mercantile");
       Martial.addOpposite("Peoplewoven");
@@ -189,10 +193,12 @@ namespace ModernBox {
       Peoplewoven.needs_to_be_explored = false;
       Peoplewoven.rarity = Rarity.R0_Normal;
       Peoplewoven.path_icon = "ui/icons/Peoplewoven";
-      Peoplewoven.rate_inherit = 5;
+      Peoplewoven.rate_inherit = Main.EnableFantasySystems ? 5 : 0;
       Peoplewoven.group_id = "Ideology";
       Peoplewoven.unlocked_with_achievement = false;
-      Peoplewoven.action_special_effect = new WorldAction(VehicleSummonEffect);
+      Peoplewoven.is_mutation_box_allowed = false;
+      Peoplewoven.can_be_given = Main.EnableFantasySystems;
+      Peoplewoven.action_special_effect = Main.EnableFantasySystems ? new WorldAction(VehicleSummonEffect) : null;
       Peoplewoven.addOpposite("Martial");
       Peoplewoven.addOpposite("Mercantile");
       Peoplewoven.addOpposite("Chaosvolt");
@@ -208,10 +214,12 @@ namespace ModernBox {
       Mercantile.needs_to_be_explored = false;
       Mercantile.rarity = Rarity.R0_Normal;
       Mercantile.path_icon = "ui/icons/Mercantile";
-      Mercantile.rate_inherit = 5;
+      Mercantile.rate_inherit = Main.EnableFantasySystems ? 5 : 0;
       Mercantile.group_id = "Ideology";
       Mercantile.unlocked_with_achievement = false;
-      Mercantile.action_special_effect = new WorldAction(VehicleSummonEffect);
+      Mercantile.is_mutation_box_allowed = false;
+      Mercantile.can_be_given = Main.EnableFantasySystems;
+      Mercantile.action_special_effect = Main.EnableFantasySystems ? new WorldAction(VehicleSummonEffect) : null;
       Mercantile.addOpposite("Dynastic");
       Mercantile.addOpposite("Chaosvolt");
       Mercantile.addOpposite("Peoplewoven");
@@ -229,10 +237,12 @@ namespace ModernBox {
       Chaosvolt.needs_to_be_explored = false;
       Chaosvolt.rarity = Rarity.R0_Normal;
       Chaosvolt.path_icon = "ui/icons/Chaosvolt";
-      Chaosvolt.rate_inherit = 5;
+      Chaosvolt.rate_inherit = Main.EnableFantasySystems ? 5 : 0;
       Chaosvolt.group_id = "Ideology";
       Chaosvolt.unlocked_with_achievement = false;
-      Chaosvolt.action_special_effect = new WorldAction(VehicleSummonEffect);
+      Chaosvolt.is_mutation_box_allowed = false;
+      Chaosvolt.can_be_given = Main.EnableFantasySystems;
+      Chaosvolt.action_special_effect = Main.EnableFantasySystems ? new WorldAction(VehicleSummonEffect) : null;
       Chaosvolt.addOpposite("Martial");
       Chaosvolt.addOpposite("Mercantile");
       Chaosvolt.addOpposite("Peoplewoven");
@@ -1232,6 +1242,9 @@ namespace ModernBox {
     [HarmonyPatch(typeof(KingdomBehCheckKing), "execute")]
     public static class KingdomBehCheckKing_IdeologyPatch {
       static void Postfix(Kingdom pKingdom) {
+        if (!Main.EnableFantasySystems)
+          return;
+
         if (pKingdom == null || !pKingdom.hasKing())
           return;
 

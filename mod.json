@@ -1,7 +1,7 @@
 {
     "name": "ModernBox",
     "author": "Tuxxego",
-    "version": "5.6.10",
+    "version": "5.6.11",
     "targetGameBuild": 719,
     "description": "Legacy warfare with per-dock fleets, nuclear salvo submarines and no nuclear wasteland biome.",
     "iconPath": "Icon.jpg"

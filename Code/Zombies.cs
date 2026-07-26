@@ -35,6 +35,11 @@ namespace ModernBox
         }
 
           public static void create_Zombies(){
+            if (!Main.EnableFantasySystems)
+            {
+              ModernBoxLogger.Log("[MX] ModernBox zombies disabled by EnableFantasySystems.");
+              return;
+            }
 
             ActorTrait zombie_spawner = new ActorTrait();
             zombie_spawner.id = "zombie_spawner";
