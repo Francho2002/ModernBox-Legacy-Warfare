@@ -37,9 +37,10 @@ una embarcación militar normal y tiene un coste de `14` madera, `12` piedra,
 `10` metal y `6` oro.
 
 Durante una guerra, con la opción de guerra nuclear activada, el SSBN consume
-`160` de oro para lanzar cuatro misiles nucleares alrededor de un mismo
-objetivo. La recarga de la salva es de `600` segundos. También conserva su
-ataque convencional.
+`160` de oro para lanzar hasta cuatro misiles nucleares contra blancos
+estratégicos distintos. Prioriza una ciudad por misil y sólo usa posiciones de
+reserva separadas cuando no existen suficientes blancos reales. La recarga de
+la salva es de `600` segundos. También conserva su ataque convencional.
 
 ## Instalación
 

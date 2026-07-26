@@ -578,7 +578,7 @@ namespace ModernBox
             if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "SSBN de salva nuclear - " + faction;
-                description = "Conserva misiles convencionales y lanza 4 misiles nucleares alrededor del mismo objetivo. Requiere Guerra nuclear, guerra activa y 160 de oro; recarga: 600 s.";
+                description = "Conserva misiles convencionales y lanza hasta 4 misiles nucleares contra blancos estrategicos distintos. Requiere Guerra nuclear, guerra activa y 160 de oro; recarga: 600 s.";
                 return;
             }
             if (id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase))
