@@ -8094,6 +8094,7 @@ CreateSalvoSubmarine("harden", "missileArtilleryDecision");
 CreateSalvoSubmarine("gaia", "missileArtilleryDecision");
 CreateSalvoSubmarine("horde", "missileArtilleryDecision");
 NavalRoles.Initialize();
+NavalOverviewRegistration.EnsureRegistered();
 ApplyAirVehicleDecisionProfiles();
 string[] unitNames = new string[]
 {
