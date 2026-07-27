@@ -788,7 +788,7 @@ namespace ModernBox
             Save(kingdom);
         }
 
-        internal static int PageCount { get { return Math.Max(1, Civilizations().Count); } }
+        internal static int PageCount { get { return Civilizations().Count; } }
         internal static string BuildReport(int page)
         {
             List<Kingdom> kingdoms = Civilizations();

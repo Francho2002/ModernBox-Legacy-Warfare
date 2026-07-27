@@ -19,6 +19,10 @@ namespace ModernBox
         private const string WindowId = "MilitaryStatusWindow";
         private const float WindowWidth = 560f;
         private const float WindowHeight = 510f;
+        // The scroll template fills almost all of a stock WorldBox window. A
+        // dedicated footer keeps the report from ever drawing behind controls.
+        private const float FooterHeight = 36f;
+        private const float FooterBottomInset = 44f;
         // A city report has substantial production detail. Keeping one city on a
         // page prevents Unity's Text mesh from exceeding its vertex limit while
         // still making every city available through the page controls.
@@ -30,6 +34,8 @@ namespace ModernBox
         private static GameObject content;
         private static Text reportText;
         private static Text pageLabel;
+        private static RectTransform viewportRect;
+        private static ScrollRect reportScroll;
         private static Button previousPageButton;
         private static Button nextPageButton;
         private static int currentPage;
@@ -61,7 +67,7 @@ namespace ModernBox
             try
             {
                 if (window == null)
-                    window = Windows.CreateNewWindow(WindowId, "ModernBox");
+                    window = Windows.CreateNewWindow(WindowId, "Estado militar");
                 if (window == null)
                 {
                     ModernBoxLogger.Warning("[MX.Intel] No se pudo crear la ventana de estado militar.");
@@ -78,21 +84,18 @@ namespace ModernBox
                     return;
                 }
 
-                RectTransform windowRect = window.GetComponent<RectTransform>();
-                if (windowRect != null)
-                    windowRect.sizeDelta = new Vector2(WindowWidth, WindowHeight);
-
                 GameObject scrollObject = scrollTransform.gameObject;
                 scrollObject.SetActive(true);
-                RectTransform viewportRect = viewport.GetComponent<RectTransform>();
-                if (viewportRect != null)
-                    viewportRect.sizeDelta = new Vector2(0f, 17f);
+                ConfigureWindowGeometry(background, scrollTransform, viewport, contentTransform);
 
                 content = contentTransform.gameObject;
                 ConfigureTitle(background);
                 CreateReportText(contentTransform);
-                CreatePageControls(background);
-                CreateRefreshButton(background);
+                Transform footer = CreateFooter(background);
+                CreatePageLabel(footer);
+                previousPageButton = CreateControlButton(footer, "MilitaryStatusPrevious", "Anterior", 78f, PreviousPage);
+                nextPageButton = CreateControlButton(footer, "MilitaryStatusNext", "Siguiente", 78f, NextPage);
+                CreateRefreshButton(footer);
                 initialized = true;
                 Refresh();
             }
@@ -127,23 +130,25 @@ namespace ModernBox
                     Escape(ex.Message);
                 pageCount = 0;
                 UpdatePageControls();
+                if (pageLabel != null)
+                    pageLabel.text = "Error del informe";
                 ResizeContent();
-                ModernBoxLogger.Error("[MX.Intel] Error al actualizar estado militar: " + ex.Message);
+                ModernBoxLogger.Error("[MX.Intel] Error al actualizar estado militar: " + ex);
             }
         }
 
         private static void ConfigureTitle(Transform background)
         {
-            GameObject nameObject = background.Find("Name")?.gameObject;
-            Text nameText = nameObject?.GetComponent<Text>();
-            if (nameText == null)
+            Text titleText = background.Find("Title")?.GetComponent<Text>() ??
+                background.Find("Name")?.GetComponent<Text>();
+            if (titleText == null)
                 return;
 
-            nameText.text = "Estado militar";
-            nameText.color = new Color(0.94f, 0.84f, 0.55f, 1f);
-            nameText.fontSize = 15;
-            nameText.alignment = TextAnchor.MiddleCenter;
-            nameText.supportRichText = true;
+            titleText.text = "Estado militar";
+            titleText.color = new Color(0.94f, 0.84f, 0.55f, 1f);
+            titleText.fontSize = 15;
+            titleText.alignment = TextAnchor.MiddleCenter;
+            titleText.supportRichText = true;
         }
 
         private static void CreateReportText(Transform contentTransform)
@@ -158,6 +163,7 @@ namespace ModernBox
             reportText.alignment = TextAnchor.UpperLeft;
             reportText.color = new Color(0.95f, 0.95f, 0.90f, 1f);
             reportText.supportRichText = true;
+            reportText.raycastTarget = false;
             reportText.horizontalOverflow = HorizontalWrapMode.Wrap;
             reportText.verticalOverflow = VerticalWrapMode.Overflow;
 
@@ -166,7 +172,7 @@ namespace ModernBox
             reportRect.anchorMax = new Vector2(1f, 1f);
             reportRect.pivot = new Vector2(0.5f, 1f);
             reportRect.anchoredPosition = new Vector2(9f, -8f);
-            reportRect.sizeDelta = new Vector2(-18f, 500f);
+            reportRect.sizeDelta = new Vector2(-18f, 360f);
         }
 
         private static void CreateRefreshButton(Transform background)
@@ -185,11 +191,10 @@ namespace ModernBox
             button.onClick.AddListener(Refresh);
 
             RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
-            buttonRect.anchorMin = new Vector2(1f, 0f);
-            buttonRect.anchorMax = new Vector2(1f, 0f);
-            buttonRect.pivot = new Vector2(1f, 0f);
-            buttonRect.anchoredPosition = new Vector2(-18f, 11f);
             buttonRect.sizeDelta = new Vector2(94f, 25f);
+            LayoutElement layout = buttonObject.AddComponent<LayoutElement>();
+            layout.minWidth = layout.preferredWidth = 94f;
+            layout.minHeight = layout.preferredHeight = 25f;
 
             GameObject labelObject = new GameObject("Label");
             labelObject.transform.SetParent(buttonObject.transform, false);
@@ -207,11 +212,8 @@ namespace ModernBox
             labelRect.offsetMax = Vector2.zero;
         }
 
-        private static void CreatePageControls(Transform background)
+        private static void CreatePageLabel(Transform background)
         {
-            previousPageButton = CreateControlButton(background, "MilitaryStatusPrevious", "Anterior", new Vector2(-224f, 11f), 78f, PreviousPage);
-            nextPageButton = CreateControlButton(background, "MilitaryStatusNext", "Siguiente", new Vector2(-119f, 11f), 78f, NextPage);
-
             GameObject labelObject = new GameObject("MilitaryStatusPageLabel");
             labelObject.transform.SetParent(background, false);
             pageLabel = labelObject.AddComponent<Text>();
@@ -222,13 +224,15 @@ namespace ModernBox
 
             RectTransform labelRect = labelObject.GetComponent<RectTransform>();
             labelRect.anchorMin = new Vector2(0f, 0f);
-            labelRect.anchorMax = new Vector2(0f, 0f);
-            labelRect.pivot = new Vector2(0f, 0f);
-            labelRect.anchoredPosition = new Vector2(18f, 12f);
-            labelRect.sizeDelta = new Vector2(180f, 23f);
+            labelRect.anchorMax = new Vector2(1f, 1f);
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            LayoutElement layout = labelObject.AddComponent<LayoutElement>();
+            layout.minWidth = 80f;
+            layout.flexibleWidth = 1f;
         }
 
-        private static Button CreateControlButton(Transform background, string name, string labelText, Vector2 position, float width, UnityEngine.Events.UnityAction action)
+        private static Button CreateControlButton(Transform background, string name, string labelText, float width, UnityEngine.Events.UnityAction action)
         {
             GameObject buttonObject = new GameObject(name);
             buttonObject.transform.SetParent(background, false);
@@ -245,11 +249,10 @@ namespace ModernBox
             button.onClick.AddListener(action);
 
             RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
-            buttonRect.anchorMin = new Vector2(1f, 0f);
-            buttonRect.anchorMax = new Vector2(1f, 0f);
-            buttonRect.pivot = new Vector2(1f, 0f);
-            buttonRect.anchoredPosition = position;
             buttonRect.sizeDelta = new Vector2(width, 25f);
+            LayoutElement layout = buttonObject.AddComponent<LayoutElement>();
+            layout.minWidth = layout.preferredWidth = width;
+            layout.minHeight = layout.preferredHeight = 25f;
 
             GameObject labelObject = new GameObject("Label");
             labelObject.transform.SetParent(buttonObject.transform, false);
@@ -266,6 +269,86 @@ namespace ModernBox
             labelRect.offsetMin = Vector2.zero;
             labelRect.offsetMax = Vector2.zero;
             return button;
+        }
+
+        private static Transform CreateFooter(Transform background)
+        {
+            GameObject footerObject = new GameObject("MilitaryStatusFooter");
+            footerObject.transform.SetParent(background, false);
+
+            Image footerImage = footerObject.AddComponent<Image>();
+            footerImage.color = new Color(0.08f, 0.14f, 0.19f, 0.97f);
+
+            RectTransform footerRect = footerObject.GetComponent<RectTransform>();
+            footerRect.anchorMin = new Vector2(0f, 0f);
+            footerRect.anchorMax = new Vector2(1f, 0f);
+            footerRect.pivot = new Vector2(0.5f, 0f);
+            footerRect.anchoredPosition = new Vector2(0f, 8f);
+            footerRect.sizeDelta = new Vector2(-30f, FooterHeight);
+
+            HorizontalLayoutGroup layout = footerObject.AddComponent<HorizontalLayoutGroup>();
+            layout.padding = new RectOffset(8, 8, 5, 5);
+            layout.spacing = 8f;
+            layout.childAlignment = TextAnchor.MiddleLeft;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+            return footerObject.transform;
+        }
+
+        private static void ConfigureWindowGeometry(
+            Transform background,
+            Transform scrollTransform,
+            Transform viewport,
+            Transform contentTransform)
+        {
+            RectTransform windowRect = window.GetComponent<RectTransform>();
+            RectTransform backgroundRect = background.GetComponent<RectTransform>();
+            RectTransform scrollRect = scrollTransform.GetComponent<RectTransform>();
+            viewportRect = viewport.GetComponent<RectTransform>();
+            RectTransform contentRect = contentTransform.GetComponent<RectTransform>();
+
+            if (windowRect != null)
+                windowRect.sizeDelta = new Vector2(WindowWidth, WindowHeight);
+            if (backgroundRect != null)
+                backgroundRect.sizeDelta = new Vector2(WindowWidth, WindowHeight);
+            if (scrollRect != null)
+            {
+                scrollRect.anchorMin = Vector2.zero;
+                scrollRect.anchorMax = Vector2.one;
+                scrollRect.pivot = new Vector2(0.5f, 0.5f);
+                scrollRect.offsetMin = new Vector2(14f, FooterBottomInset + 4f);
+                scrollRect.offsetMax = new Vector2(-14f, -40f);
+            }
+
+            reportScroll = scrollTransform.GetComponent<ScrollRect>();
+            if (reportScroll != null)
+            {
+                reportScroll.horizontal = false;
+                reportScroll.vertical = true;
+            }
+
+            if (viewportRect != null)
+            {
+                viewportRect.anchorMin = Vector2.zero;
+                viewportRect.anchorMax = Vector2.one;
+                viewportRect.pivot = new Vector2(0.5f, 0.5f);
+                viewportRect.offsetMin = Vector2.zero;
+                viewportRect.offsetMax = new Vector2(
+                    reportScroll != null && reportScroll.verticalScrollbar != null ? -14f : 0f,
+                    0f);
+            }
+
+            if (contentRect != null)
+            {
+                contentRect.anchorMin = new Vector2(0f, 1f);
+                contentRect.anchorMax = new Vector2(1f, 1f);
+                contentRect.pivot = new Vector2(0.5f, 1f);
+                contentRect.anchoredPosition = Vector2.zero;
+            }
+            if (backgroundRect != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(backgroundRect);
         }
 
         private static void PreviousPage()
@@ -289,7 +372,9 @@ namespace ModernBox
         private static void UpdatePageControls()
         {
             if (pageLabel != null)
-                pageLabel.text = pageCount > 0 ? "Página " + (currentPage + 1) + " de " + pageCount : "Página 0 de 0";
+                pageLabel.text = pageCount > 0
+                    ? "Página " + (currentPage + 1) + " de " + pageCount
+                    : "Sin civilizaciones";
             if (previousPageButton != null)
                 previousPageButton.interactable = currentPage > 0;
             if (nextPageButton != null)
@@ -306,9 +391,13 @@ namespace ModernBox
             if (contentRect == null || reportRect == null)
                 return;
 
-            float height = Mathf.Max(500f, reportText.preferredHeight + 20f);
+            float viewportHeight = viewportRect == null ? 350f : Mathf.Max(250f, viewportRect.rect.height);
+            float height = Mathf.Max(viewportHeight, reportText.preferredHeight + 20f);
             reportRect.sizeDelta = new Vector2(-18f, height);
             contentRect.sizeDelta = new Vector2(contentRect.sizeDelta.x, height + 12f);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
+            if (reportScroll != null)
+                reportScroll.verticalNormalizedPosition = 1f;
         }
 
         private static string BuildReport()
