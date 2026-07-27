@@ -273,7 +273,7 @@ namespace ModernBox
         private static float GetInterceptChance(string projectileId)
         {
             if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.Ordinal))
-                return 0.08f;
+                return 0.25f;
             if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.Ordinal))
                 return 0.12f;
             if (string.Equals(projectileId, "NUKER", StringComparison.Ordinal))

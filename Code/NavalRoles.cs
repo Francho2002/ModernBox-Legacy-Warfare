@@ -207,7 +207,7 @@ namespace ModernBox
             }
             else
             {
-                description = "SSBN de último recurso. Lanza 4 a 6 Bombas del Zar repartidas entre blancos reales sólo cuando el reino está por caer. Requiere Guerra nuclear y no genera terreno baldío.";
+                description = "SSBN de último recurso. Lanza de 4 a 6 cargas nucleares repartidas entre blancos reales cuando el reino está por caer. Cada explosión es apenas mayor que una nuclear normal y no altera el terreno.";
             }
             return true;
         }

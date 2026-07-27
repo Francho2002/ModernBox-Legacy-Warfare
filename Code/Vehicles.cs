@@ -394,15 +394,19 @@ namespace ModernBox
             modernCapNuclearBlast.explode_tile = false;
             AssetManager.terraform.add(modernCapNuclearBlast);
 
-            var modernCapCzarBlast = AssetManager.terraform.clone("modern_cap_czar_blast", "czar_bomba");
-			modernCapCzarBlast.shake = false;
-			modernCapCzarBlast.transform_to_wasteland = false;
-			modernCapCzarBlast.explode_tile = false;
-			modernCapCzarBlast.set_fire = false;
-			modernCapCzarBlast.explode_and_set_random_fire = false;
-            // Czar's stock action refers to its static asset, which would restore wasteland.
-            modernCapCzarBlast.bomb_action = null;
-            AssetManager.terraform.add(modernCapCzarBlast);
+            // Apocalipsis uses the stock atomic damage profile, with a deliberately
+            // small range increase. It has its own safe clone so its detonation
+            // never changes tiles, leaves radiation or starts lasting fires.
+            var modernCapApocalypseBlast = AssetManager.terraform.clone("modern_cap_apocalypse_blast", "modern_cap_nuclear_blast");
+            modernCapApocalypseBlast.shake = false;
+            modernCapApocalypseBlast.transform_to_wasteland = false;
+            modernCapApocalypseBlast.explode_tile = false;
+            modernCapApocalypseBlast.set_fire = false;
+            modernCapApocalypseBlast.explode_and_set_random_fire = false;
+            modernCapApocalypseBlast.add_burned = false;
+            modernCapApocalypseBlast.add_trait = null;
+            modernCapApocalypseBlast.bomb_action = null;
+            AssetManager.terraform.add(modernCapApocalypseBlast);
 
             // Keep the physical projectile at its original scale.  This is only
             // the small ember trail; MissileMapMarker owns the enlarged, persistent
@@ -1444,26 +1448,26 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
             SSBN_CZAR_WARHEAD.texture = "NUKER";
             SSBN_CZAR_WARHEAD.look_at_target = true;
             SSBN_CZAR_WARHEAD.texture_shadow = "shadows/projectiles/shadow_ball";
-            SSBN_CZAR_WARHEAD.terraform_option = "modern_cap_czar_blast";
-            SSBN_CZAR_WARHEAD.terraform_range = 70;
+            // Keep the historical id for saves and missile-defense references.
+            // The actual payload is an atomic warhead, not a Tsar-class bomb.
+            SSBN_CZAR_WARHEAD.terraform_option = "modern_cap_apocalypse_blast";
+            SSBN_CZAR_WARHEAD.terraform_range = 24;
             SSBN_CZAR_WARHEAD.draw_light_area = true;
             SSBN_CZAR_WARHEAD.sound_launch = "event:/SFX/WEAPONS/WeaponFireballStart";
-            // The huge explosion effect already plays WorldBox's native impact sound.
-            // Leaving a projectile sound here would play it twice.
-            SSBN_CZAR_WARHEAD.sound_impact = string.Empty;
-            SSBN_CZAR_WARHEAD.end_effect = "fx_explosion_huge";
-            SSBN_CZAR_WARHEAD.end_effect_scale = 1.5f;
+            SSBN_CZAR_WARHEAD.sound_impact = "event:/SFX/WEAPONS/WeaponFireballLand";
+            SSBN_CZAR_WARHEAD.end_effect = "fx_explosion_nuke_atomic";
+            SSBN_CZAR_WARHEAD.end_effect_scale = 1.10f;
             SSBN_CZAR_WARHEAD.trail_effect_enabled = true;
             SSBN_CZAR_WARHEAD.trail_effect_id = "modern_cap_missile_trail";
             SSBN_CZAR_WARHEAD.trail_effect_scale = 0.30f;
             SSBN_CZAR_WARHEAD.trail_effect_timer = 0.10f;
-            SSBN_CZAR_WARHEAD.scale_start = 0.8f;
-            SSBN_CZAR_WARHEAD.scale_target = 0.8f;
+            SSBN_CZAR_WARHEAD.scale_start = 0.55f;
+            SSBN_CZAR_WARHEAD.scale_target = 0.55f;
             SSBN_CZAR_WARHEAD.can_be_left_on_ground = false;
             SSBN_CZAR_WARHEAD.can_be_blocked = false;
-			// SalvoSubmarine_* is the SSBN Apocalipsis.  It keeps the Czar-scale
-			// damage/range above, but its warhead has no terrain action: no craters,
-			// biome conversion, radiation or post-impact fire.
+			// SalvoSubmarine_* is the SSBN Apocalipsis. Its nuclear salvo retains
+			// normal atomic behavior while the dedicated blast blocks craters,
+			// biome conversion, radiation and post-impact fire.
             AssetManager.projectiles.add(SSBN_CZAR_WARHEAD);
 
 

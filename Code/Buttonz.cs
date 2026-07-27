@@ -690,7 +690,7 @@ namespace ModernBox
             if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "SSBN de salva nuclear - " + faction;
-                description = "SSBN de último recurso. Conserva misiles convencionales; su salva de hasta 4 Bombas del Zar solo se autoriza cuando el reino conserva 1 o 2 ciudades y sufre una derrota extrema. Requiere Guerra nuclear y 160 de oro; recarga: 600 s. No genera terreno baldío.";
+                description = "SSBN de último recurso. Conserva misiles convencionales; su salva de 4 a 6 cargas nucleares se autoriza cuando el reino conserva 1 o 2 ciudades y sufre una derrota extrema. Cada carga es apenas mayor que una nuclear normal y no altera el terreno. Requiere Guerra nuclear y 240 de oro; recarga: 600 s.";
                 return;
             }
             if (id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase))

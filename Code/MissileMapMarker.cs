@@ -107,7 +107,7 @@ namespace ModernBox
 
             if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.Ordinal))
             {
-                markerScale = 0.65f;
+                markerScale = 0.50f;
                 return true;
             }
 

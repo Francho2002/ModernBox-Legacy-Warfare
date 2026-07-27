@@ -147,7 +147,8 @@ clases existan a la vez sin inundar las flotas.
 - **SSBN Ruina:** carga radiológica de baja potencia que afecta temporalmente
   unidades cercanas sin crear bioma de radiación.
 - **SSBN Apocalipsis:** conserva el ID legacy `SalvoSubmarine_*` para partidas
-  guardadas y dispara de 4 a 6 Bombas del Zar distribuidas en el último recurso.
+  guardadas y dispara de 4 a 6 cargas nucleares normales, de radio levemente mayor,
+  distribuidas en el último recurso.
 
 Las armas nucleares de Tridente, Neutrón, Martillo, Ruina y Apocalipsis
 respetan la opción **Guerra nuclear**. Ninguna clase crea wasteland ni un bioma
@@ -161,8 +162,8 @@ una embarcación militar normal y tiene un coste de `15` madera, `13` piedra,
 `11` metal y `6` oro.
 
 Durante una guerra, con la opción de guerra nuclear activada, el SSBN consume
-`240` de oro para lanzar de cuatro a seis Bombas del Zar sin convertir el terreno
-en wasteland. Prioriza una ciudad por misil y sólo usa posiciones de reserva
+`240` de oro para lanzar de cuatro a seis cargas nucleares de radio levemente
+mayor sin convertir el terreno en wasteland. Prioriza una ciudad por misil y sólo usa posiciones de reserva
 separadas cuando no existen suficientes blancos reales. La recarga de la salva
 es de `600` segundos. También conserva su ataque convencional.
 
