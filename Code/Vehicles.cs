@@ -418,7 +418,7 @@ namespace ModernBox
 
 			ProjectileAsset missileartillery = new ProjectileAsset();
             missileartillery.id = "missileartillery";
-            missileartillery.speed = 100f;
+			missileartillery.speed = 70f;
             missileartillery.look_at_target = true;
 			missileartillery.texture = "missileartillery";
 			missileartillery.texture_shadow = "shadows/projectiles/shadow_ball";
@@ -450,7 +450,7 @@ namespace ModernBox
 
 			ProjectileAsset fireboneartillery = new ProjectileAsset();
             fireboneartillery.id = "fireboneartillery";
-            fireboneartillery.speed = 100f;
+			fireboneartillery.speed = 70f;
             fireboneartillery.look_at_target = true;
 			fireboneartillery.texture = "missileartillery";
 			fireboneartillery.texture_shadow = "shadows/projectiles/shadow_ball";
@@ -479,7 +479,7 @@ namespace ModernBox
 
 			ProjectileAsset frostmissileartillery = new ProjectileAsset();
             frostmissileartillery.id = "frostmissileartillery";
-            frostmissileartillery.speed = 100f;
+			frostmissileartillery.speed = 70f;
             frostmissileartillery.look_at_target = true;
 			frostmissileartillery.texture = "missileartillery";
 			frostmissileartillery.texture_shadow = "shadows/projectiles/shadow_ball";
@@ -509,7 +509,7 @@ namespace ModernBox
 
 			ProjectileAsset plantmissileartillery = new ProjectileAsset();
             plantmissileartillery.id = "plantmissileartillery";
-            plantmissileartillery.speed = 100f;
+			plantmissileartillery.speed = 70f;
             plantmissileartillery.look_at_target = true;
 			plantmissileartillery.texture = "missileartillery";
 			plantmissileartillery.texture_shadow = "shadows/projectiles/shadow_ball";
@@ -1417,7 +1417,7 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
 
 			ProjectileAsset NUKER = new ProjectileAsset();
             NUKER.id = "NUKER";
-            NUKER.speed = 150f;
+            NUKER.speed = 105f;
 			NUKER.texture = "NUKER";
 			NUKER.look_at_target = true;
 			NUKER.texture_shadow = "shadows/projectiles/shadow_ball";
@@ -1440,7 +1440,7 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
 
             ProjectileAsset SSBN_CZAR_WARHEAD = new ProjectileAsset();
             SSBN_CZAR_WARHEAD.id = "SSBN_CZAR_WARHEAD";
-            SSBN_CZAR_WARHEAD.speed = 120f;
+            SSBN_CZAR_WARHEAD.speed = 84f;
             SSBN_CZAR_WARHEAD.texture = "NUKER";
             SSBN_CZAR_WARHEAD.look_at_target = true;
             SSBN_CZAR_WARHEAD.texture_shadow = "shadows/projectiles/shadow_ball";

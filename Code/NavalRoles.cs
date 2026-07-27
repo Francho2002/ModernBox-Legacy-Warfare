@@ -318,13 +318,13 @@ namespace ModernBox
         {
             CreateProjectile(TorpedoProjectileId, "missileartillery", "modern_cap_missile_blast", 4, 62f,
                 0.42f, "fx_firebomb_explosion", false);
-            CreateProjectile(NeutronProjectileId, "NUKER", "modernbox_neutron_blast", 7, 130f,
+            CreateProjectile(NeutronProjectileId, "NUKER", "modernbox_neutron_blast", 7, 91f,
                 0.48f, "fx_explosion_nuke_atomic", true);
-            CreateProjectile(EmpProjectileId, "NUKER", null, 0, 145f,
+            CreateProjectile(EmpProjectileId, "NUKER", null, 0, 102f,
                 0.46f, "fx_explosion_nuke_atomic", true);
-            CreateProjectile(HammerProjectileId, "NUKER", "modernbox_hammer_blast", 34, 110f,
+            CreateProjectile(HammerProjectileId, "NUKER", "modernbox_hammer_blast", 34, 77f,
                 0.72f, "fx_explosion_huge", true);
-            CreateProjectile(RuinProjectileId, "NUKER", "modernbox_ruin_blast", 9, 125f,
+            CreateProjectile(RuinProjectileId, "NUKER", "modernbox_ruin_blast", 9, 88f,
                 0.50f, "fx_explosion_nuke_atomic", true);
         }
 
