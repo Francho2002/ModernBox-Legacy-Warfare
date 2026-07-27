@@ -4112,7 +4112,7 @@ namespace Trainbox {
                 return;
             }
 
-            if (!IsPrimaryCity(city, kingdom) || HasTrainForKingdom(kingdom) || TaxiTrainLogic.FindTrainOnTile(sourceStop) != null) {
+            if (HasTrainForKingdom(kingdom) || TaxiTrainLogic.FindTrainOnTile(sourceStop) != null) {
                 return;
             }
 
