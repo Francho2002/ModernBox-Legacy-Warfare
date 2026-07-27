@@ -126,6 +126,7 @@ namespace ModernBox{
                 gameObject.AddComponent<AntiSubmarineWarfareController>();
                 gameObject.AddComponent<GroundMissileProductionController>();
                 gameObject.AddComponent<CivilMilitaryCommissionController>();
+                gameObject.AddComponent<ModernDiplomacyController>();
                 gameObject.AddComponent<ForbiddenKnowledgeKeeper>();
                 if (EnableRuntimeUiEffects)
                 {

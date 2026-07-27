@@ -83,6 +83,7 @@ namespace ModernBox
             produced.setKingdom(actor.kingdom);
             produced.setCity(city);
             city.spendResourcesForBuildingAsset(selected.cost);
+            ModernDiplomacyController.ApplyArmsCredit(city);
             EffectsLibrary.spawn("fx_spawn", produced.current_tile);
             ActionLibrary.removeUnit(actor);
             actor.setTransformed();
@@ -179,6 +180,7 @@ namespace ModernBox
             produced.setKingdom(city.kingdom);
             produced.setCity(city);
             city.spendResourcesForBuildingAsset(cost);
+            ModernDiplomacyController.ApplyArmsCredit(city);
             EffectsLibrary.spawn("fx_spawn", produced.current_tile);
             ModernBoxLogger.Log("[MX.DefenseProduction] Built " + launcherId +
                 " for a city with population " + city.getPopulationPeople() + ".");

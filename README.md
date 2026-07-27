@@ -18,6 +18,7 @@ submarinos, misiles convencionales y armas nucleares.
 - Misiles visibles desde la vista máxima y persistentes hasta el impacto.
 - Las explosiones nucleares militares destruyen unidades y edificios e incendian,
   pero no craterizan ni eliminan terreno, ni lo transforman en bioma radiactivo.
+- Diplomacia moderna persistente, escalonada y conectada a guerras y recursos reales.
 - Conocimiento prohibido desbloqueado automáticamente.
 - Trenes de la versión moderna de ModernBox.
 
@@ -84,13 +85,36 @@ son de core.skull. Créditos y texto de licencia completos en
 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md); proyecto original:
 https://github.com/Erex147/OreBox.
 
+## Diplomacia moderna
+
+Cada reino conserva en la propia partida sus pactos defensivos, garantías de
+independencia, bloques comerciales, embargos, sanciones, ultimátums, estados
+títeres, ventas de armas, ayuda económica y apoyo a guerras por
+intermediarios. Las organizaciones internacionales votan sanciones, fondos de
+ayuda o la mediación de guerras prolongadas con una mayoría mínima del 60%.
+
+Los acuerdos tienen efectos concretos y limitados: los defensores se incorporan
+a una guerra mediante una cola segura; el comercio, la ayuda, los tributos y
+las armas transfieren recursos reales; las sanciones no pueden retirar más de
+tres unidades de oro combinadas por ciclo; y un patrocinador proxy no entra
+automáticamente en la guerra. La evaluación rota entre pocos reinos cada ciclo
+y nunca recorre todas las relaciones en cada frame.
+
+El panel **Diplomacia moderna** muestra una civilización por página, la
+dirección de sus acuerdos, sus estados sujetos, su organización y el registro
+reciente. El sistema no cambia culturas, edificios, gobernantes ni fronteras
+para representar un estado títere.
+
 ## Flotas
 
-Cada puerto recibe un límite determinista de tres a cinco embarcaciones
-automáticas. Conserva una plaza para escolta convencional y puede añadir un
-submarino especial cuando el cupo total, el cupo estratégico del puerto y el
-del reino lo permiten. Los límites se calculan por puerto: una ciudad con dos
-puertos dispone de dos presupuestos navales independientes.
+Cada puerto conserva un límite determinista de tres a cinco cascos totales,
+pero ModernBox fabrica como máximo dos plataformas militares: una escolta
+convencional y, si los cupos lo permiten, un submarino especial. Los
+portaviones que arrojaban bombas pequeñas, cargueros, pesqueros y transportes
+de ModernBox ya no se producen ni aparecen en el menú. Si existen en una
+partida antigua, ocupan una plaza hasta desaparecer y no rompen el guardado.
+Los límites se calculan por puerto: una ciudad con dos puertos dispone de dos
+presupuestos navales independientes.
 
 Los barcos creados manualmente desde el menú de aparición no están limitados
 por este sistema.

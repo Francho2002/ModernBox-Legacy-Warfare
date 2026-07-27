@@ -36,6 +36,12 @@ namespace ModernBox
             "submarine", "arsenal_submarine", "trident_submarine", "neutron_submarine",
             "emp_submarine", "hammer_submarine", "ruin_submarine", "salvo_submarine"
         };
+        // These hulls can remain in old saves. They occupy a berth, but are
+        // intentionally not part of the modern military quota or production pool.
+        private static readonly string[] LegacyDockBoatTypePrefixes =
+        {
+            "cargo", "fishing", "transporter", "carrier"
+        };
 
         internal static void EnableAllDocks()
         {
@@ -77,6 +83,7 @@ namespace ModernBox
             boat.setCity(city);
             dock.addBoatToDock(boat);
             city.spendResourcesForBuildingAsset(GetCost(id));
+            ModernDiplomacyController.ApplyArmsCredit(city);
             result = boat;
             return true;
         }
@@ -131,7 +138,8 @@ namespace ModernBox
                 "SalvoSubmarine_" + faction
             };
 
-            int total = CountDockBoats(dock, faction, MilitaryBoatTypePrefixes);
+            int total = CountDockBoats(dock, faction, MilitaryBoatTypePrefixes) +
+                CountDockBoats(dock, faction, LegacyDockBoatTypePrefixes);
             int military = CountDockBoats(dock, faction, MilitaryBoatTypePrefixes);
             int normalMilitary = CountDockBoats(dock, faction, NormalMilitaryBoatTypePrefixes);
             int strategic = CountDockBoats(dock, faction, StrategicBoatTypePrefixes);
