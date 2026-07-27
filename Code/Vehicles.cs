@@ -392,6 +392,11 @@ namespace ModernBox
             modernCapNuclearBlast.shake = false;
             modernCapNuclearBlast.transform_to_wasteland = false;
             modernCapNuclearBlast.explode_tile = false;
+            // The stock atomic callback can independently paint a broad
+            // radioactive/terrain footprint. NuclearFallout adds the only
+            // intended residue: a few controlled, superficial tiles.
+            modernCapNuclearBlast.add_trait = null;
+            modernCapNuclearBlast.bomb_action = null;
             AssetManager.terraform.add(modernCapNuclearBlast);
 
             // Apocalipsis uses the stock atomic damage profile, with a deliberately
