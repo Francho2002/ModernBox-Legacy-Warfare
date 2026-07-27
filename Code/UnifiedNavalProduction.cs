@@ -129,11 +129,11 @@ namespace ModernBox
             int kingdomStrategicCap = MilitaryQuotaService.GetKingdomStrategicCap(city?.kingdom);
 
             return ids.Where(id => AssetManager.actor_library.get(id) != null)
-                // There is intentionally no per-port berth, military or
-                // strategic quota. A kingdom-wide deterrent ceiling is enough
-                // to protect stability while any coastal city can expand a dock.
+                // A port must be allowed to complete its first varied combat
+                // template. The kingdom-wide strategic ceiling resumes once
+                // that exact dock already has the hull in question.
                 .Where(id => !NavalRoles.IsStrategicSubmarine(id) ||
-                    kingdomStrategic < kingdomStrategicCap)
+                    kingdomStrategic < kingdomStrategicCap || !DockOwnsVariant(dock, id))
                 .ToList();
         }
 
@@ -149,6 +149,15 @@ namespace ModernBox
             List<string> strategic = military.Where(NavalRoles.IsStrategicSubmarine).ToList();
             List<string> normalMilitary = military.Where(id => !NavalRoles.IsStrategicSubmarine(id)).ToList();
             List<string> escorts = normalMilitary.Where(IsEscortDestroyer).ToList();
+
+            // Home-dock template: do not use kingdom ownership here. A fleet
+            // based at another port is not a substitute for this dock having
+            // its own example of each hull. Resources remain the normal gate.
+            List<string> missingAtDock = military
+                .Where(id => !DockOwnsVariant(dock, id))
+                .ToList();
+            if (missingAtDock.Count > 0)
+                return missingAtDock[Randy.randomInt(0, missingAtDock.Count)];
 
             // Put an escort into a young fleet early. It remains a short-range
             // anti-submarine ship; it never uses the retired bomb-boat attack.
@@ -223,6 +232,16 @@ namespace ModernBox
                 }
             }
             return false;
+        }
+
+        private static bool DockOwnsVariant(Docks dock, string assetId)
+        {
+            if (dock == null || string.IsNullOrEmpty(assetId))
+                return false;
+
+            ActorAsset asset = AssetManager.actor_library.get(assetId);
+            string boatType = asset?.boat_type;
+            return !string.IsNullOrEmpty(boatType) && dock.countBoatTypes(boatType) > 0;
         }
 
         private static string GetFaction(City city)
