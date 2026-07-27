@@ -404,24 +404,6 @@ namespace ModernBox
             modernCapMissileTrail.limit = 160;
             AssetManager.effects_library.add(modernCapMissileTrail);
 
-            EffectAsset modernCapMissileMarker = new EffectAsset();
-            modernCapMissileMarker.id = "modern_cap_missile_marker";
-            modernCapMissileMarker.use_basic_prefab = true;
-            modernCapMissileMarker.sorting_layer_id = "EffectsTop";
-            modernCapMissileMarker.sprite_path = "effects/projectiles/missileartillery/0";
-            modernCapMissileMarker.show_on_mini_map = true;
-            modernCapMissileMarker.limit = 256;
-            AssetManager.effects_library.add(modernCapMissileMarker);
-
-            EffectAsset modernCapNuclearMissileMarker = new EffectAsset();
-            modernCapNuclearMissileMarker.id = "modern_cap_nuclear_missile_marker";
-            modernCapNuclearMissileMarker.use_basic_prefab = true;
-            modernCapNuclearMissileMarker.sorting_layer_id = "EffectsTop";
-            modernCapNuclearMissileMarker.sprite_path = "effects/projectiles/NUKER/0";
-            modernCapNuclearMissileMarker.show_on_mini_map = true;
-            modernCapNuclearMissileMarker.limit = 96;
-            AssetManager.effects_library.add(modernCapNuclearMissileMarker);
-
 			ProjectileAsset missileartillery = new ProjectileAsset();
             missileartillery.id = "missileartillery";
             missileartillery.speed = 100f;

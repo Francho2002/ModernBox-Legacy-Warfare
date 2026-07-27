@@ -1,17 +1,18 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using HarmonyLib;
 using UnityEngine;
 
 namespace ModernBox
 {
+    /// <summary>
+    /// Adds a second QuantumSprite only while WorldBox renders the overview.
+    /// Projectiles are ECS objects in build 719, so copying their Unity renderer
+    /// is not possible; drawing their already-loaded projectile frame here keeps
+    /// the marker identical to the real missile without changing its physics.
+    /// </summary>
     internal static class MissileMapMarker
     {
-        private const string ConventionalMarkerId = "modern_cap_missile_marker";
-        private const string NuclearMarkerId = "modern_cap_nuclear_missile_marker";
-
         private static readonly HashSet<string> ConventionalProjectiles =
             new HashSet<string>(StringComparer.Ordinal)
             {
@@ -22,179 +23,103 @@ namespace ModernBox
                 "modernbox_torpedo"
             };
 
-        private static readonly ConditionalWeakTable<Projectile, MarkerState> Markers =
-            new ConditionalWeakTable<Projectile, MarkerState>();
-
-        private static readonly FieldInfo SpriteAnimationField =
-            AccessTools.Field(typeof(BaseAnimatedObject), "sprite_animation");
-
-        private sealed class MarkerState
+        internal static void DrawOverviewMarkers(QuantumSpriteAsset spriteAsset)
         {
-            internal BaseEffect effect;
-            internal SpriteRenderer renderer;
-        }
-
-        internal static void Start(Projectile projectile)
-        {
-            Remove(projectile);
-            Update(projectile);
-        }
-
-        internal static void Update(Projectile projectile)
-        {
-            string markerId;
-            float markerScale;
-            if (!TryGetMarker(projectile, out markerId, out markerScale))
-            {
-                Remove(projectile);
+            // This render pass knows whether the map is currently being drawn.
+            // Checking here (rather than during Projectile.update) prevents a
+            // marker from appearing large in normal gameplay view.
+            if (!MapBox.isRenderMiniMap() || spriteAsset?.group_system == null)
                 return;
-            }
 
-            MarkerState state = Markers.GetOrCreateValue(projectile);
-            if (state.effect == null || state.effect.isKilled())
-            {
-                Vector2 initialPosition = projectile.getTransformedPositionWithHeight();
-                state.effect = EffectsLibrary.spawnAt(markerId, initialPosition, markerScale);
-                FreezeAnimation(state.effect);
-                state.renderer = state.effect != null
-                    ? state.effect.GetComponentInChildren<SpriteRenderer>()
-                    : null;
-            }
-
-            if (state.effect == null || state.effect.isKilled())
-            {
+            List<Projectile> projectiles = World.world?.projectiles?.list;
+            if (projectiles == null)
                 return;
-            }
 
-            Vector2 position = projectile.getTransformedPositionWithHeight();
-            state.effect.current_position = position;
-            state.effect.transform.position = new Vector3(position.x, position.y, 0f);
-            state.effect.transform.rotation = projectile.rotation;
-            if (state.renderer != null)
+            foreach (Projectile projectile in projectiles)
             {
-                // WorldBox renders the high-camera map after Projectile.update().
-                // Disabling the renderer here therefore hid the marker precisely
-                // when the overview needed it.  The projectile itself remains at
-                // its original scale; this is the independent overview marker.
-                state.renderer.enabled = true;
+                if (!TryGetMarkerScale(projectile, out float markerScale))
+                    continue;
+
+                ProjectileAsset asset = projectile.asset;
+                Sprite sprite = GetProjectileSprite(projectile, asset);
+                if (sprite == null)
+                    continue;
+
+                QuantumSprite marker = spriteAsset.group_system.getNext();
+                if (marker == null)
+                    continue;
+
+                Vector3 position = projectile.getTransformedPositionWithHeight();
+                position.z = projectile.getCurrentHeight();
+                marker.setSprite(sprite);
+                marker.set(ref position,
+                    Mathf.Max(0.05f, projectile.getCurrentScale() * markerScale));
+                marker.transform.rotation = projectile.rotation;
+
+                Color color = new Color(1f, 1f, 1f, projectile.getAlpha());
+                marker.setColor(ref color);
             }
         }
 
-        internal static void Remove(Projectile projectile)
+        private static Sprite GetProjectileSprite(Projectile projectile, ProjectileAsset asset)
         {
-            if (projectile == null)
-            {
-                return;
-            }
+            if (projectile == null || asset?.frames == null || asset.frames.Length == 0)
+                return null;
 
-            MarkerState state;
-            if (Markers.TryGetValue(projectile, out state))
-            {
-                BaseEffect effect = state.effect;
-                if (effect != null && !effect.isKilled())
-                {
-                    // The object returns to the shared effect pool.
-                    if (state.renderer != null)
-                    {
-                        state.renderer.enabled = true;
-                    }
-                    effect.kill();
-                }
-            }
-
-            Markers.Remove(projectile);
+            if (asset.animated)
+                return AnimationHelper.getSpriteFromList(
+                    projectile.GetHashCode(), asset.frames, asset.animation_speed);
+            return asset.frames[0];
         }
 
-        private static bool TryGetMarker(Projectile projectile, out string markerId, out float markerScale)
+        private static bool TryGetMarkerScale(Projectile projectile, out float markerScale)
         {
-            markerId = null;
             markerScale = 0f;
-
-            string projectileId = projectile != null && projectile.asset != null
-                ? projectile.asset.id
-                : null;
+            string projectileId = projectile?.asset?.id;
             if (string.IsNullOrEmpty(projectileId))
-            {
                 return false;
-            }
 
             if (ConventionalProjectiles.Contains(projectileId))
             {
-                markerId = ConventionalMarkerId;
-                markerScale = 1.6f;
+                markerScale = 3.0f;
                 return true;
             }
 
             if (string.Equals(projectileId, "NUKER", StringComparison.Ordinal))
             {
-                markerId = NuclearMarkerId;
-                markerScale = 1.2f;
+                markerScale = 3.3f;
                 return true;
             }
 
             if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.Ordinal))
             {
-                markerId = NuclearMarkerId;
-                markerScale = 1.45f;
+                markerScale = 3.8f;
                 return true;
             }
 
             if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.Ordinal))
             {
-                markerId = NuclearMarkerId;
-                markerScale = 1.35f;
+                markerScale = 3.6f;
                 return true;
             }
 
             if (NavalRoles.IsHeavyWarhead(projectileId))
             {
-                markerId = NuclearMarkerId;
-                markerScale = 1.20f;
+                markerScale = 3.3f;
                 return true;
             }
 
             return false;
         }
-
-        private static void FreezeAnimation(BaseEffect effect)
-        {
-            if (effect == null || SpriteAnimationField == null)
-            {
-                return;
-            }
-
-            SpriteAnimation animation = SpriteAnimationField.GetValue(effect) as SpriteAnimation;
-            if (animation != null)
-            {
-                animation.stopAnimations();
-            }
-        }
     }
 
-    [HarmonyPatch(typeof(Projectile), "start")]
-    internal static class MissileMapMarkerStartPatch
+    [HarmonyPatch(typeof(QuantumSpriteLibrary), "drawProjectiles")]
+    internal static class MissileMapMarkerRenderPatch
     {
-        private static void Postfix(Projectile __instance)
+        [HarmonyPostfix]
+        private static void Postfix(QuantumSpriteAsset pAsset)
         {
-            MissileMapMarker.Start(__instance);
-        }
-    }
-
-    [HarmonyPatch(typeof(Projectile), "update")]
-    internal static class MissileMapMarkerUpdatePatch
-    {
-        private static void Postfix(Projectile __instance)
-        {
-            MissileMapMarker.Update(__instance);
-        }
-    }
-
-    [HarmonyPatch(typeof(Projectile), "reset")]
-    internal static class MissileMapMarkerResetPatch
-    {
-        private static void Prefix(Projectile __instance)
-        {
-            MissileMapMarker.Remove(__instance);
+            MissileMapMarker.DrawOverviewMarkers(pAsset);
         }
     }
 }
