@@ -63,9 +63,7 @@ namespace ModernBox
 
         private static bool IsConventionalExact(string actorId)
         {
-            return string.Equals(actorId, "catapulta", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(actorId, "orcatapulta", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(actorId, "batteringram", StringComparison.OrdinalIgnoreCase)
+            return string.Equals(actorId, "batteringram", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(actorId, "humancavalry", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(actorId, "humancannon", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(actorId, "orccannon", StringComparison.OrdinalIgnoreCase)
@@ -93,9 +91,7 @@ namespace ModernBox
                 return false;
             return actorId.StartsWith("howitzer_", StringComparison.OrdinalIgnoreCase)
                 || actorId.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(actorId, "catapulta", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(actorId, "orcatapulta", StringComparison.OrdinalIgnoreCase)
-                 || actorId.IndexOf("cannon", StringComparison.OrdinalIgnoreCase) >= 0;
+                || actorId.IndexOf("cannon", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         internal static bool IsConventionalArtillery(string actorId)

@@ -477,7 +477,7 @@ namespace ModernBox
         private static void BuildUnitCategoryHub(PowersTab hubTab)
         {
             BuildUnitCategoryButton(hubTab, "modernbox_units_artillery", "Artillería", "Abre las unidades de artillería.", "ModernBoxUnitsArtillery", 0, 0,
-                LoadUnitCategorySprite(new[] { "catapulta", "howitzer_Human", "MissileSystem_Human" }, "ui/icons/Industrial", "ui/Icons/TabText"));
+                LoadUnitCategorySprite(new[] { "howitzer_Human", "humancannon", "MissileSystem_Human" }, "ui/icons/Industrial", "ui/Icons/TabText"));
             BuildUnitCategoryButton(hubTab, "modernbox_units_ground", "Tierra", "Abre las unidades terrestres.", "ModernBoxUnitsGround", 1, 0,
                 LoadUnitCategorySprite(new[] { "Tank_Human", "AbramTank" }, "ui/icons/Tank", "ui/icons/Industrial", "ui/Icons/TabText"));
             BuildUnitCategoryButton(hubTab, "modernbox_units_air", "Aire", "Abre las unidades aéreas.", "ModernBoxUnitsAir", 0, 1,
@@ -662,7 +662,6 @@ namespace ModernBox
             if (id.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase)) return 0;
             if (id.StartsWith("howitzer_", StringComparison.OrdinalIgnoreCase)) return 1;
             if (id.EndsWith("cannon", StringComparison.OrdinalIgnoreCase)) return 2;
-            if (id.IndexOf("catapulta", StringComparison.OrdinalIgnoreCase) >= 0) return 3;
             if (id.StartsWith("Tank_", StringComparison.OrdinalIgnoreCase) || id.StartsWith("AbramTank", StringComparison.OrdinalIgnoreCase)) return 10;
             if (id.StartsWith("wheeledtank_", StringComparison.OrdinalIgnoreCase)) return 11;
             if (id.StartsWith("modernhumvee_", StringComparison.OrdinalIgnoreCase)) return 12;
@@ -711,10 +710,10 @@ namespace ModernBox
                 description = "Artillería terrestre de largo alcance.";
                 return;
             }
-            if (id.IndexOf("catapulta", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (string.Equals(id, "batteringram", StringComparison.OrdinalIgnoreCase))
             {
-                title = "Catapulta" + (faction == "Sin facción" ? string.Empty : " - " + faction);
-                description = "Artillería medieval de asedio.";
+                title = "Ariete";
+                description = "Vehiculo medieval para derribar fortificaciones.";
                 return;
             }
             if (id.EndsWith("cannon", StringComparison.OrdinalIgnoreCase))
@@ -742,12 +741,6 @@ namespace ModernBox
             {
                 title = "Camión de apoyo" + (faction == "Sin facción" ? string.Empty : " - " + faction);
                 description = "Vehículo logístico de apoyo terrestre.";
-                return;
-            }
-            if (string.Equals(id, "batteringram", StringComparison.OrdinalIgnoreCase))
-            {
-                title = "Ariete";
-                description = "Vehículo medieval para derribar fortificaciones.";
                 return;
             }
             if (string.Equals(id, "humancavalry", StringComparison.OrdinalIgnoreCase))

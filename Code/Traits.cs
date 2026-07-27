@@ -473,28 +473,28 @@ namespace ModernBox {
           { "modern",      new List<string>{ "Tank_Human" , "MissileSystem_Human" , "wheeledtank_Human" } },
           { "industrial",  new List<string>{ "AbramTank" , "shermanww" , "tankie" , "genericwwtank" , "landship" , "bigtankww" } },
           { "renaissance", new List<string>{ "davincitank" } },
-          { "medieval",    new List<string>{ "catapulta" , "batteringram" } }
+          { "medieval",    new List<string>{ "batteringram" } }
         }},
         { "orc", new Dictionary<string, List<string>> {
           { "hyperfuture",      new List<string>{ "P9000" , "dreadnaught" , "dreadnaught_brrt", "Railgun" , "MA9000", "HumanTitan", "AT9000" } },
           { "modern",      new List<string>{ "Tank_Ork" , "MissileSystem_Ork" , "wheeledtank_Ork" } },
           { "industrial",  new List<string>{ "AbramTank" , "shermanww" , "tankie" , "genericwwtank" , "landship" , "bigtankww" } },
           { "renaissance", new List<string>{ "davincitank" } },
-          { "medieval",    new List<string>{ "orcatapulta" } }
+          { "medieval",    new List<string>{ "orccannon" } }
         }},
         { "dwarf", new Dictionary<string, List<string>> {
           { "hyperfuture",      new List<string>{ "P9000" , "dreadnaught" , "dreadnaught_brrt", "Railgun" , "MA9000", "HumanTitan", "AT9000" } },
           { "modern",      new List<string>{ "Tank_Dwarf" , "MissileSystem_Dwarf" , "wheeledtank_Dwarf" } },
           { "industrial",  new List<string>{ "AbramTank" , "shermanww" , "tankie" , "genericwwtank" , "landship" , "bigtankww" } },
           { "renaissance", new List<string>{ "davincitank" } },
-          { "medieval",    new List<string>{ "santaguin", "catapulta" } }
+          { "medieval",    new List<string>{ "santaguin", "dwarfcannon" } }
         }},
         { "elf", new Dictionary<string, List<string>> {
           { "hyperfuture",      new List<string>{ "P9000" , "dreadnaught" , "dreadnaught_brrt", "Railgun" , "MA9000", "HumanTitan", "AT9000" } },
           { "modern",      new List<string>{ "Tank_Gaia" , "MissileSystem_Gaia" , "wheeledtank_Gaia" } },
           { "industrial",  new List<string>{ "AbramTank" , "shermanww" , "tankie" , "genericwwtank" , "landship" , "bigtankww" } },
           { "renaissance", new List<string>{ "davincitank" } },
-          { "medieval",    new List<string>{ "woolyrhino", "catapulta" } }
+          { "medieval",    new List<string>{ "woolyrhino", "elfcannon" } }
         }},
         { "demon", new Dictionary<string, List<string>> {
           { "hyperfuture",      new List<string>{ "P9000" , "dreadnaught" , "dreadnaught_brrt", "Railgun" , "MA9000", "HumanTitan", "AT9000" } },
