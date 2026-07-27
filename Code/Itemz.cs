@@ -1757,8 +1757,12 @@ MGL.item_modifier_ids = AssetLibrary<EquipmentAsset>.a<string>("poison");
             {
                 AssetManager.items.equipment_by_subtypes.Add("ring", new List<EquipmentAsset>());
             }
-         AssetManager.items.equipment_by_subtypes["ring"].Add(GrenadeBelt);
+          AssetManager.items.equipment_by_subtypes["ring"].Add(GrenadeBelt);
 
+            // Item registration fills the native pools after InitCustomItems.
+            // Apply the compatibility-safe retirement pass once more so these
+            // entries cannot return through an alternate crafting path.
+            CustomItemsList.RemoveRetiredWeaponsFromCraftingPools();
 
         }
 

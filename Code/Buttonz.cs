@@ -327,21 +327,6 @@ namespace ModernBox
                 CustomItemsList.toggleDrugs();
             }
 
-            new ButtonBuilder("mgltoggle")
-                .SetSprite(Resources.Load<Sprite>("ui/icons/XenoInfectionIcon"))
-                .SetTitle("Permitir armas químicas")
-                .SetDescription("Activa o desactiva la producción de armas químicas.")
-                .SetPosition(3, 0)
-                .SetType(ButtonType.Toggle)
-                .SetTransform(tab5.transform)
-                .SetFunction(CustomItemsList.toggleMGL)
-                .Build();
-
-            if (Main.savedSettings.boolOptions["ChemOption"]) {
-                PowerButtons.ToggleButton("mgltoggle");
-                CustomItemsList.toggleMGL();
-            }
-
             if (false) {
             new ButtonBuilder("atat")
                 .SetSprite(Resources.Load<Sprite>("actors/AT9000/main/walk_7"))
@@ -924,15 +909,6 @@ namespace ModernBox
             .SetTitle("Tuxium Bomb")
             .SetDescription("In ModernBox fashion, we need at least one ungodly huge bomb that serves no use.")
             .SetPosition(15, 1)
-            .SetType(ButtonType.GodPower)
-            .SetTransform(tab3.transform)
-            .Build();
-
-             new ButtonBuilder("firebomb_button")
-            .SetSprite(Resources.Load<Sprite>("ui/icons/FIRE!"))
-            .SetTitle("Sun Glazing Bomb")
-            .SetDescription("Drop the sun on people!")
-            .SetPosition(16, 0)
             .SetType(ButtonType.GodPower)
             .SetTransform(tab3.transform)
             .Build();

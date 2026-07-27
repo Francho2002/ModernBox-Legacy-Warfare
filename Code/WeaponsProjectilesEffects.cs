@@ -87,6 +87,17 @@ namespace ModernBox
             "MGL"
         };
 
+        // Keep the assets registered for old saves, but never offer fantasy,
+        // chemical, incendiary, or handheld nuclear weapons for new crafting.
+        private static readonly HashSet<string> RetiredNonConventionalWeapons = new HashSet<string>
+        {
+            "Flamethrower",
+            "MGL",
+            "greenheavyblaster",
+            "grifle",
+            "bigboy"
+        };
+
         public static void InitCustomItems()
         {
             if (!AssetManager.items.dict.ContainsKey("Glock17"))
@@ -113,17 +124,12 @@ namespace ModernBox
             CustomWeapons.Add(AssetManager.items.get("M32"));
             CustomWeapons.Add(AssetManager.items.get("Sluggershotgun"));
             CustomWeapons.Add(AssetManager.items.get("Americanshotgun"));
-            CustomWeapons.Add(AssetManager.items.get("Flamethrower"));
             CustomWeapons.Add(AssetManager.items.get("vrifle"));
-            CustomWeapons.Add(AssetManager.items.get("bigboy"));
-            CustomWeapons.Add(AssetManager.items.get("grifle"));
-            CustomWeapons.Add(AssetManager.items.get("MGL"));
             CustomWeapons.Add(AssetManager.items.get("BudgetMIRV"));
             CustomWeapons.Add(AssetManager.items.get("DecentMIRV"));
             CustomWeapons.Add(AssetManager.items.get("MIRV"));
             CustomWeapons.Add(AssetManager.items.get("MIRVBomb"));
             CustomWeapons.Add(AssetManager.items.get("STRONGMIRV"));
-            CustomWeapons.Add(AssetManager.items.get("greenheavyblaster"));
             CustomWeapons.Add(AssetManager.items.get("Musket"));
             CustomWeapons.Add(AssetManager.items.get("Flintlock"));
             CustomWeapons.Add(AssetManager.items.get("Crossbow"));
@@ -133,6 +139,8 @@ namespace ModernBox
             CustomWeapons.Add(AssetManager.items.get("Morphine"));
             CustomWeapons.Add(AssetManager.items.get("Oxycodone"));
             CustomWeapons.Add(AssetManager.items.get("Ritalin"));
+
+            RemoveRetiredWeaponsFromCraftingPools();
         }
 
         public static bool IsUnifiedWeaponAllowed(EquipmentAsset asset)
@@ -143,9 +151,35 @@ namespace ModernBox
             if (!WeaponEras.TryGetValue(asset.id, out string weaponEra))
                 return false;
 
+            if (RetiredNonConventionalWeapons.Contains(asset.id))
+                return false;
+
             // Appearance never decides combat equipment. The unified pool is
             // Modern-first and includes the conventional Renaissance/Medieval set.
             return !string.Equals(weaponEra, "Hyperfuture", StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static void RemoveRetiredWeaponsFromCraftingPools()
+        {
+            RemoveRetiredWeapons(AssetManager.items.pot_weapon_assets_all);
+            RemoveRetiredWeapons(AssetManager.items.pot_weapon_assets_unlocked);
+
+            foreach (List<EquipmentAsset> pool in AssetManager.items.equipment_by_subtypes.Values)
+                RemoveRetiredWeapons(pool);
+
+            foreach (List<EquipmentAsset> pool in AssetManager.items.pot_equipment_by_groups_all.Values)
+                RemoveRetiredWeapons(pool);
+
+            foreach (List<EquipmentAsset> pool in AssetManager.items.pot_equipment_by_groups_unlocked.Values)
+                RemoveRetiredWeapons(pool);
+        }
+
+        private static void RemoveRetiredWeapons(List<EquipmentAsset> pool)
+        {
+            if (pool == null)
+                return;
+
+            pool.RemoveAll(asset => asset != null && RetiredNonConventionalWeapons.Contains(asset.id));
         }
 
         public static void turnOnGuns() => GunsAllowed = true;
