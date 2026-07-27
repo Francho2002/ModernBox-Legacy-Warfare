@@ -85,6 +85,8 @@ namespace ModernBox
 
                 // Realistic surface combatants only. Cargo, fishing, transport,
                 // legacy brawlers and any fantasy ship stay out of this cache.
+                yield return "aDestroyer_" + faction;
+                yield return "bDestroyer_" + faction;
                 yield return "CarrierVessel_" + faction;
             }
 
