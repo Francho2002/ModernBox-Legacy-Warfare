@@ -191,11 +191,10 @@ namespace ModernBox
 			////////
 			////////spawn of vehicles based on what upgrade level the hall has and unitpotential should erase vehicles if they are below the corresponding tier of hall by ID
 
-			WorldLogAsset balls = AssetManager.world_log_library.clone("bigballs", "$basic_disaster$");
-			balls.locale_id = "NUCLEAR WEAPONS ARE IN THE AIR!";
-			balls.path_icon = "ui/Icons/Nuke";
-
-			AssetManager.world_log_library.add(balls);
+            WorldLogAsset nuclearAlert = AssetManager.world_log_library.clone("modernbox_nuclear_alert", "$basic_disaster$");
+            nuclearAlert.locale_id = "Alarma nuclear: los vigías anuncian una ojiva estratégica a menos de tres segundos del impacto.";
+            nuclearAlert.path_icon = "ui/Icons/Nuke";
+            AssetManager.world_log_library.add(nuclearAlert);
 
 			
 	var cannonball = AssetManager.terraform.get("cannonball");
@@ -10086,10 +10085,6 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
                         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
                         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
                         startProjectile.y += 0.5f;
-						if (balls)
-						{
-							addNews("this wont work");
-						}
                         World.world.projectiles.spawn(caster, null, "NUKER", startProjectile, attackVector);
 						StatManager.Instance.SpawnUnit();
                         caster.punchTargetAnimation(attackVector, true, false, 45f);
@@ -10222,8 +10217,6 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
         StatManager.Instance.SpawnUnit();
     }
 
-    if (balls)
-        addNews("this wont work");
     caster.punchTargetAnimation(salvoAnimationVector, true, false, 45f);
     return true;
 }
@@ -10326,13 +10319,6 @@ internal static bool IsKingdomInNuclearLastResort(Kingdom kingdom)
         enemyPopulation >= Math.Max(150, ownPopulation * 3) &&
         enemyWarriors >= Math.Max(12, ownWarriors * 2);
 }
-
-        public static void addNews(string news)
-        {
-            WorldLogMessage worldLogMessage = new WorldLogMessage { asset_id = "bigballs" };
-
-            HistoryHud.instance.newHistory(worldLogMessage);
-        }
 
 public static bool AntiBossNuke(BaseSimObject pTarget, WorldTile pTile = null)
 {

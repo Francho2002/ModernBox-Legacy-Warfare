@@ -276,7 +276,10 @@ namespace ModernBox
     {
         private static bool Prefix(Projectile __instance, float pElapsed)
         {
-            return !IntegratedAirDefense.TryInterceptMissile(__instance, pElapsed);
+            bool intercepted = IntegratedAirDefense.TryInterceptMissile(__instance, pElapsed);
+            if (!intercepted)
+                NuclearAlertController.Observe(__instance, pElapsed);
+            return !intercepted;
         }
 
         [HarmonyPatch(typeof(Projectile), "start")]
@@ -284,6 +287,7 @@ namespace ModernBox
         private static void StartPostfix(Projectile __instance)
         {
             IntegratedAirDefense.Forget(__instance);
+            NuclearAlertController.Forget(__instance);
         }
 
         [HarmonyPatch(typeof(Projectile), "reset")]
@@ -291,6 +295,7 @@ namespace ModernBox
         private static void ResetPostfix(Projectile __instance)
         {
             IntegratedAirDefense.Forget(__instance);
+            NuclearAlertController.Forget(__instance);
         }
 
         [HarmonyPatch(typeof(Projectile), "targetReached")]
@@ -298,6 +303,7 @@ namespace ModernBox
         private static void TargetReachedPrefix(Projectile __instance)
         {
             IntegratedAirDefense.PlayConventionalImpactSound(__instance);
+            NuclearAlertController.Forget(__instance);
         }
     }
 }
