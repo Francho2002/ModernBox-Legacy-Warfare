@@ -183,39 +183,39 @@ namespace ModernBox
             title = label + " - " + factionLabel;
             if (actorId.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
-                description = "Submarino de ataque. Lanza un torpedo convencional contra buques enemigos y una ráfaga de 2 misiles de crucero. No usa armas nucleares.";
+                description = "1 torpedo + 2 misiles normales.";
             }
             else if (actorId.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase))
             {
-                description = "SSBN tactico. Lanza una carga atomica compacta de radio estandar; no deja crateres, radiacion ni fuego persistente.";
+                description = "1 misil nuclear normal.";
             }
             else if (actorId.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
-                description = "Submarino de ataque de crucero. Dispara una salva de 6 a 10 misiles convencionales repartidos entre objetivos enemigos. No usa armas nucleares.";
+                description = "6 a 10 misiles normales.";
             }
             else if (actorId.StartsWith("TridentSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
-                description = "SSBN MIRV. Lanza de 3 a 5 misiles nucleares sólo en una derrota extrema; requiere Guerra nuclear y oro. No deja terreno radiactivo.";
+                description = "3 a 5 misiles nucleares.";
             }
             else if (actorId.StartsWith("NeutronSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
-                description = "SSBN de carga táctica. Su explosión nuclear pequeña prioriza unidades cercanas, aturde temporalmente y evita el cambio permanente del terreno.";
+                description = "1 nuclear pequeña que aturde.";
             }
             else if (actorId.StartsWith("EmpSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
-                description = "SSBN EMP. Detona en el aire e incapacita temporalmente vehículos y unidades modernas enemigas, sin dañar ni transformar el suelo.";
+                description = "1 pulso EMP que paraliza vehículos.";
             }
             else if (actorId.StartsWith("HammerSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
-                description = "SSBN termonuclear de uso excepcional. Lanza una única carga grande sólo durante una derrota extrema; requiere Guerra nuclear y oro. No crateriza el terreno.";
+                description = "1 misil nuclear de gran potencia.";
             }
             else if (actorId.StartsWith("RuinSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
-                description = "SSBN radiológico de baja potencia. Afecta temporalmente a unidades cercanas sin crear bioma de radiación ni daño permanente al terreno.";
+                description = "1 nuclear pequeña con aturdimiento.";
             }
             else
             {
-                description = "SSBN de último recurso. Lanza de 4 a 6 cargas nucleares repartidas entre blancos reales cuando el reino está por caer. Cada explosión es apenas mayor que una nuclear normal y no altera el terreno.";
+                description = "4 a 6 misiles nucleares a objetivos distintos.";
             }
             return true;
         }
