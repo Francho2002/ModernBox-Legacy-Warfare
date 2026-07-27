@@ -40,42 +40,8 @@ namespace ModernBox
                 return;
             }
 
-            // Reports are created lazily when their clearly labelled buttons
-            // are pressed. This avoids caching an empty pre-world report.
-
-			GameObject largeImageObject = new GameObject("LargeImage");
-			largeImageObject.transform.SetParent(tab.transform);
-			largeImageObject.transform.localPosition = new Vector3(396, 18, 0);
-			largeImageObject.transform.localScale = Vector3.one;
-
-			Image largeImage = largeImageObject.AddComponent<Image>();
-			largeImage.sprite = Resources.Load<Sprite>("ui/Icons/TabText");
-
-			RectTransform imageRect = largeImageObject.GetComponent<RectTransform>();
-			imageRect.sizeDelta = new Vector2(200, 100);
-			imageRect.anchorMin = new Vector2(0.5f, 0.5f);
-			imageRect.anchorMax = new Vector2(0.5f, 0.5f);
-
-            StatManager.Instance.RegisterImage(largeImage);
-
-            GameObject statLabelObject = new GameObject("StatLabel");
-            statLabelObject.transform.SetParent(tab.transform);
-            statLabelObject.transform.localPosition = new Vector3(356, -18, 0); 
-            statLabelObject.transform.localScale = Vector3.one;
-
-            Text statText = statLabelObject.AddComponent<Text>();
-            statText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            statText.fontSize = 9;
-            statText.color = new Color(1f, 0.95f, 0.8f); 
-            statText.supportRichText = true;
-            statText.text = "Cargando estadísticas...";
-
-            RectTransform textRect = statLabelObject.GetComponent<RectTransform>();
-            textRect.sizeDelta = new Vector2(200, 100);
-            textRect.anchorMin = new Vector2(0.5f, 0.5f);
-            textRect.anchorMax = new Vector2(0.5f, 0.5f);
-
-            StatManager.Instance.RegisterStatLabel(statText);
+            // The hub intentionally contains only game controls. Reports are
+            // created lazily when their buttons are pressed.
 
             // ── Panel background ──────────────────────────────────────────────────────────
             if (Main.EnableSpaceSystems)
@@ -168,66 +134,11 @@ namespace ModernBox
             StatManager.Instance.RegisterStatLabel3(statText3);
             }
 
-            GameObject discordAdObject = new GameObject("DiscordAd");
-            discordAdObject.transform.SetParent(tab.transform);
-            discordAdObject.transform.localPosition = new Vector3(136, -20, 0); 
-            discordAdObject.transform.localScale = Vector3.one;
-
-            Image discordAdImage = discordAdObject.AddComponent<Image>();
-            discordAdImage.sprite = Resources.Load<Sprite>("ui/Icons/buttonSprite"); 
-
-            RectTransform adRect = discordAdObject.GetComponent<RectTransform>();
-            adRect.sizeDelta = new Vector2(65, 25);
-            adRect.anchorMin = new Vector2(0.5f, 0.5f);
-            adRect.anchorMax = new Vector2(0.5f, 0.5f);
-
-            discordAdObject.AddComponent<DiscordAdHover>();
-
-            Button adButton = discordAdObject.AddComponent<Button>();
-            adButton.onClick.AddListener(() =>
-            {
-                Application.OpenURL("https://discord.gg/PahzD7rtv2");
-
-            });
-
-            StatManager.Instance.RegisterFlashingImage(discordAdImage);
-
-            new ButtonBuilder("credits")
-            .SetSprite(Resources.Load<Sprite>("ui/icons/iconabout"))
-            .SetTitle("Acerca de ModernBox")
-            .SetDescription("Conoce a las personas detrás de ModernBox y más.")
-            .SetPosition(0, 0)
-            .SetType(ButtonType.Click)
-            .SetFunction(openAboutWindow)
-            .SetTransform(tab.transform)
-
-            .Build();
-
-        new ButtonBuilder("resettodefaults")
-            .SetSprite(Resources.Load<Sprite>("ui/icons/Reset"))
-            .SetTitle("Restablecer valores predeterminados")
-            .SetDescription("Restablece TODOS los ajustes guardados a sus valores predeterminados.")
-            .SetPosition(1, 0)
-            .SetType(ButtonType.Click)
-            .SetFunction(Main.resetToDefaults)
-            .SetTransform(tab.transform)
-            .Build();
-
-        new ButtonBuilder("infinitebox")
-            .SetSprite(Resources.Load<Sprite>("ui/icons/insd"))
-            .SetTitle("InfiniteBox")
-            .SetDescription("Conoce mi próximo proyecto.")
-            .SetPosition(2, 0)
-            .SetType(ButtonType.Click)
-            .SetTransform(tab.transform)
-            .SetFunction(openInfiniteBoxWindow)
-            .Build();
-
         new ButtonBuilder("modernbox_military_status")
             .SetSprite(Resources.Load<Sprite>("ui/icons/MIRV"))
             .SetTitle("INFORME: Estado militar")
             .SetDescription("Abre el informe de producción militar por reino y ciudad. Es un visor; no modifica la partida.")
-            .SetPosition(3, 0)
+            .SetPosition(0, 0)
             .SetType(ButtonType.Click)
             .SetFunction(MilitaryStatusWindow.Show)
             .SetTransform(tab.transform)
@@ -237,38 +148,17 @@ namespace ModernBox
             .SetSprite(Resources.Load<Sprite>("ui/Icons/landTradeDecision"))
             .SetTitle("ABRIR CENTRO DIPLOMÁTICO")
             .SetDescription("Icono del carro con bandera. La IA gestiona automáticamente pactos, comercio, sanciones y crisis; este panel muestra el estado de cada reino.")
-            .SetPosition(4, 0)
+            .SetPosition(1, 0)
             .SetType(ButtonType.Click)
             .SetFunction(ModernDiplomacyWindow.Show)
             .SetTransform(tab.transform)
-            .Build();
-
-        new ButtonBuilder("resetbawls")
-            .SetSprite(Resources.Load<Sprite>("ui/icons/tabIconModernWarfare"))
-            .SetTitle("Reconfigurar el mod")
-            .SetDescription("ADVERTENCIA: GUARDA LA PARTIDA ANTES DE PULSAR ESTE BOTÓN.")
-            .SetPosition(4, 1)
-            .SetType(ButtonType.Click)
-            .SetTransform(tab.transform)
-            .SetFunction(opendaSetup)
-            .Build();
-
-        new ButtonBuilder("m3achievements")
-            .SetSprite(Resources.Load<Sprite>("ui/icons/trophy"))
-            .SetTitle("Logros")
-            .SetDescription("PRÓXIMAMENTE")
-            .SetPosition(0, 1)
-            .SetType(ButtonType.Click)
-            .SetFunction(openAchievmentsWindow)
-            .SetTransform(tab.transform)
-            .SetFunction(openAchievmentsWindow)
             .Build();
 
         new ButtonBuilder("modernbox_tab_units")
             .SetSprite(Resources.Load<Sprite>("ui/icons/warhamma"))
             .SetTitle("Unidades de ModernBox")
             .SetDescription("Abre la pestaña de unidades.")
-            .SetPosition(16, 0)
+            .SetPosition(2, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(() => openModernBoxSubTab("ModernBoxUnits"))
@@ -278,7 +168,7 @@ namespace ModernBox
             .SetSprite(Resources.Load<Sprite>("ui/Icons/MIRV_nuke"))
             .SetTitle("ModernBox Nuclear")
             .SetDescription("Abre los controles estratégicos de guerra nuclear.")
-            .SetPosition(16, 1)
+            .SetPosition(3, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(() => openModernBoxSubTab("ModernBoxBombs"))
@@ -288,7 +178,7 @@ namespace ModernBox
             .SetSprite(Resources.Load<Sprite>("ui/icons/Industrial"))
             .SetTitle("Eras de ModernBox")
             .SetDescription("Apariencia manual y conocimiento prohibido.")
-            .SetPosition(17, 0)
+            .SetPosition(4, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(() => openModernBoxSubTab("ModernBoxEras"))
@@ -298,7 +188,7 @@ namespace ModernBox
             .SetSprite(Resources.Load<Sprite>("ui/icons/firearm"))
             .SetTitle("Objetos de ModernBox")
             .SetDescription("Abre la pestaña de objetos.")
-            .SetPosition(18, 0)
+            .SetPosition(5, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(() => openModernBoxSubTab("ModernBoxItems"))
@@ -308,7 +198,7 @@ namespace ModernBox
             .SetSprite(Resources.Load<Sprite>("ui/icons/orebox_tab_icon"))
             .SetTitle("Recursos")
             .SetDescription("Abre los generadores de recursos de OreBox.")
-            .SetPosition(17, 1)
+            .SetPosition(0, 1)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(() => openModernBoxSubTab("ModernBoxResources"))
@@ -318,22 +208,14 @@ namespace ModernBox
             .SetSprite(Resources.Load<Sprite>("ui/icons/Industrial"))
             .SetTitle("Trainbox")
             .SetDescription("Abre la pestaña de Trainbox.")
-            .SetPosition(19, 1)
+            .SetPosition(1, 1)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(openTrainboxTab)
             .Build();
 
             if (otherTab != null)
-            {
-                EnsureOtherTabButton("modernbox_other_resources", "ui/icons/orebox_tab_icon", "Recursos", "Abre los generadores de recursos de OreBox.", 1, 1, otherTab.transform, () => openModernBoxSubTab("ModernBoxResources"));
                 EnsureOtherTabButton("modernbox_launcher", "ui/icons/tabIconModernWarfare", "ModernBox", "Abre el centro principal de ModernBox.", 0, 0, otherTab.transform, openModernBoxHub);
-                EnsureOtherTabButton("modernbox_other_units", "ui/icons/warhamma", "Unidades MB", "Abre la pestaña de unidades.", 1, 0, otherTab.transform, () => openModernBoxSubTab("ModernBoxUnits"));
-                EnsureOtherTabButton("modernbox_other_bombs", "ui/Icons/MIRV_nuke", "MB Nuclear", "Abre los controles estratégicos de guerra nuclear.", 2, 0, otherTab.transform, () => openModernBoxSubTab("ModernBoxBombs"));
-                EnsureOtherTabButton("modernbox_other_trainbox", "ui/icons/Industrial", "Trainbox", "Abre la pestaña de Trainbox.", 3, 0, otherTab.transform, openTrainboxTab);
-                EnsureOtherTabButton("modernbox_other_eras", "ui/icons/Industrial", "MB Eras", "Apariencia manual y conocimiento prohibido.", 0, 1, otherTab.transform, () => openModernBoxSubTab("ModernBoxEras"));
-                EnsureOtherTabButton("modernbox_other_items", "ui/icons/firearm", "Objetos MB", "Abre la pestaña de objetos.", 2, 1, otherTab.transform, () => openModernBoxSubTab("ModernBoxItems"));
-            }
 
             BuildOreSpawnerButtons(resourcesTab);
 
@@ -351,18 +233,6 @@ namespace ModernBox
                 PowerButtons.ToggleButton("nukes_toggle");
                 Vehicles.toggleNukes();
             }
-
-            new ButtonBuilder("pizza")
-                .SetSprite(Resources.Load<Sprite>("ui/Icons/Pizza"))
-                .SetTitle("Pizza")
-                .SetDescription("Adelante, toma una porción.")
-                // Keep the main-row diplomacy entry visible. Pizza used to occupy
-                // the exact same cell and therefore captured its icon and clicks.
-                .SetPosition(5, 1)
-                .SetType(ButtonType.Click)
-                .SetTransform(tab.transform)
-                .SetFunction(PizzaManager.instance.ClickPizza)
-                .Build();
 
             new ButtonBuilder("vehicle_toggle")
                 .SetSprite(Resources.Load<Sprite>("actors/Heli_Human/new_helicopter1"))
@@ -471,8 +341,6 @@ namespace ModernBox
                 PowerButtons.ToggleButton("mgltoggle");
                 CustomItemsList.toggleMGL();
             }
-
-            InsertLine.Space(21, tab5.transform);
 
             if (false) {
             new ButtonBuilder("atat")
@@ -589,7 +457,6 @@ namespace ModernBox
                 SetupBombs();
             }
             SetupEras();
-            SetupLines();
 		}
 
         private enum UnitCategory
@@ -989,14 +856,6 @@ namespace ModernBox
 
             string result = formatted.ToString().Trim();
             return result.Length == 0 ? "Unidad" : char.ToUpperInvariant(result[0]) + result.Substring(1);
-        }
-
-        private void SetupLines()
-        {
-          PowersTab tab = getPowersTab("ModernBoxTab");
-
-          InsertLine.At(10, tab.transform);
-        //  InsertLine.At(21, tab.transform);
         }
 
         string failedprofesion;

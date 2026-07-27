@@ -62,7 +62,6 @@ namespace ModernBox{
         public PlayWavDirectly PlayWavDirectly = new PlayWavDirectly();
         public SpaceManager SpaceManager;
         public PlanetGenerator PlanetGenerator;
-        public AchievementManager AchievementManager;
         public LocalizationManager LocalizationManager;
         public BombUtilities testBombDebugger;
         public Bombs Bombs = new Bombs();
@@ -74,7 +73,6 @@ namespace ModernBox{
         public const string settingsKey = "MBoxSettings"; 
         public static bool isNewVersion;
         public static SavedSettings savedSettings = new SavedSettings();
-        public static PizzaManager PizzaManager;
         private const bool EnableStartupAssetPreload = false;
         private const bool EnableRuntimeUiEffects = false;
         // Compatibility gate: fantasy assets/classes remain loadable for saves, but
@@ -120,7 +118,8 @@ namespace ModernBox{
             //    PowersTab tab = TabManager.CreateTab("ModernBox", "ModernBox", "Best Mod Ever", Resources.Load<Sprite>("ui/icon"));
 
                   ModernBoxLogger.Log("[M2] Space Manager set to lazy-load.");
-                AchievementManager = gameObject.AddComponent<AchievementManager>();
+                // StatManager remains a headless gameplay service for manual
+                // appearance controls; legacy achievements are not initialized.
                 StatManager = gameObject.AddComponent<StatManager>();
                 gameObject.AddComponent<MilitaryProgressionController>();
                 gameObject.AddComponent<AntiSubmarineWarfareController>();
@@ -134,7 +133,6 @@ namespace ModernBox{
                 }
         		UnitTracker = gameObject.AddComponent<UnitTracker>();
         		testBombDebugger = gameObject.AddComponent<BombUtilities>();
-                PizzaManager = gameObject.AddComponent<PizzaManager>();
                 ModernBoxLogger.Log("SpaceBoxModernBox: Pls no lag!");
 
                 if (EnableFantasySystems)
@@ -143,18 +141,6 @@ namespace ModernBox{
                     Bombs.Init();
                     ModernBoxLogger.Log("[MX] Bombs loaded!");
                 }
-
-                ModernBoxLogger.Log("[MX] Loading AboutWindow...");
-                AboutWindow.init();
-                ModernBoxLogger.Log("[MX] AboutWindow loaded!");
-
-                ModernBoxLogger.Log("[MX] Loading InfiniteBoxWindow...");
-                InfiniteBoxWindow.init();
-                ModernBoxLogger.Log("[MX] InfiniteBoxWindow loaded!");
-
-                ModernBoxLogger.Log("[MX] Loading CreditsWindow...");
-                CreditsWindow.init();
-                ModernBoxLogger.Log("[MX] CreditsWindow loaded!");
 
                 if (EnableSpaceSystems)
                 {
@@ -166,9 +152,6 @@ namespace ModernBox{
                     ModernBoxLogger.Log("[MX] CustomGalaxiesWindow loaded!");
                 }
 
-                              ModernBoxLogger.Log("[MX] Loading AchievementsWindow...");
-                 AchievementsWindow.init();
-                 ModernBoxLogger.Log("[MX] AchievementsWindow loaded!");
                                  Vehicles.init();
                 if (EnableFantasySystems)
                 {
@@ -182,10 +165,8 @@ namespace ModernBox{
 
                 ModernBoxLogger.Log("[MX] Buildings initialized");
 
-			    Windows.ShowWindow("AboutWindow");
-
-                GameObject setupGO = new GameObject("FirstTimeSetupGO");
-                setupGO.AddComponent<FirstTimeSetup>();
+                // Promotional windows and the legacy onboarding wizard are
+                // intentionally not created in the streamlined build.
             }
             catch (Exception ex)
             {
@@ -346,8 +327,6 @@ namespace ModernBox{
 
 
                 instance = this;
-
-                PizzaWindow.init();
 
                 if (EnableStartupAssetPreload)
                 {
