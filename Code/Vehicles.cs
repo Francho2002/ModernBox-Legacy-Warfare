@@ -9829,11 +9829,24 @@ private static bool IsMissilePlatform(Actor actor)
          NavalRoles.IsAnyModernSubmarine(actorId));
 }
 
+private static bool IsGroundMissileLauncher(Actor actor)
+{
+    string actorId = actor?.asset?.id;
+    return !string.IsNullOrEmpty(actorId) &&
+        actorId.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase);
+}
+
 private static bool IsValidMissilePlatformDirectTarget(Actor caster, BaseSimObject target)
 {
     if (caster == null || caster.kingdom == null || target == null ||
         !IsMissileTargetSafe(caster.kingdom, target.current_position, GetMissilePlatformBlastSafetyRadius(caster)))
         return false;
+
+    // Land launchers are strategic artillery only. Never use their native
+    // direct-fire route against a landing force or any target on home soil:
+    // that fight belongs to soldiers, tanks and conventional artillery.
+    if (IsGroundMissileLauncher(caster))
+        return IsStrategicMissileTargetSafe(caster.kingdom, target.current_position, 4f);
 
     WorldTile tile = target.current_tile;
     City territoryCity = tile?.zone?.city;
@@ -10497,8 +10510,6 @@ public static bool AntiBossNuke(BaseSimObject pTarget, WorldTile pTile = null)
     if (ownerCity == null || ownerCity.amount_gold < 10)
         return false;
 
-    ownerCity.takeResource("gold", 10);
-
     List<Actor> validTargets = new List<Actor>();
     foreach (var other in World.world.units)
     {
@@ -10518,6 +10529,8 @@ public static bool AntiBossNuke(BaseSimObject pTarget, WorldTile pTile = null)
     Actor target = validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
     if (!IsMissileTargetSafe(caster.kingdom, target.current_position, 20f))
         return false;
+
+    ownerCity.takeResource("gold", 10);
 
     Vector3 start = caster.current_position;
     Vector3 end = target.current_position;
@@ -10701,6 +10714,37 @@ public static class Patch_ActorAnimationLoader_Fix
 				}
 
 				__instance.clearAttackTarget();
+				return false;
+			}
+		}
+
+		[HarmonyPatch(typeof(Actor), "isAttackPossible")]
+		public static class Patch_Actor_GroundMissileLauncherTerritoryGuard
+		{
+			[HarmonyPrefix]
+			public static bool Prefix(Actor __instance, ref bool __result)
+			{
+				if (!IsGroundMissileLauncher(__instance))
+				{
+					return true;
+				}
+
+				BaseSimObject target = __instance.attack_target;
+				if (target != null && IsValidMissilePlatformDirectTarget(__instance, target))
+				{
+					return true;
+				}
+
+				if (target != null)
+				{
+					__instance.ignoreTarget(target);
+					__instance.clearAttackTarget();
+				}
+
+				// The direct-fire attack is deliberately unavailable without a
+				// verified enemy-territory target. Strategic decisions still launch
+				// normally against valid hostile cities.
+				__result = false;
 				return false;
 			}
 		}
