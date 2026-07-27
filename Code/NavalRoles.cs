@@ -701,6 +701,7 @@ namespace ModernBox
             float minimumSeparation, float blastSafetyRadius)
         {
             if (candidate == null || !Vehicles.TryResolveWorldTarget(candidate.Value, out Vector2 resolved) ||
+                !Vehicles.IsIntercontinentalMissileTargetInRange(caster, resolved) ||
                 !Vehicles.IsStrategicMissileTargetSafe(caster?.kingdom, resolved, blastSafetyRadius))
                 return;
             foreach (Vector2 target in targets)
@@ -723,6 +724,13 @@ namespace ModernBox
         {
             if (caster == null || !caster.isAlive() || World.world?.projectiles == null ||
                 !Vehicles.TryResolveWorldTarget(target, out target))
+                return false;
+
+            // Hunter submarines retain their torpedo for close anti-ship work.
+            // Every missile warhead, including the hunter's accompanying cruise
+            // missiles, must travel beyond the strategic minimum range.
+            bool closeRangeTorpedo = string.Equals(projectileId, TorpedoProjectileId, StringComparison.OrdinalIgnoreCase);
+            if (!closeRangeTorpedo && !Vehicles.IsIntercontinentalMissileTargetInRange(caster, target))
                 return false;
 
             float blastSafetyRadius = Vehicles.GetMissileBlastSafetyRadius(projectileId);

@@ -9871,6 +9871,24 @@ private static bool IsMissilePlatform(Actor actor)
          NavalRoles.IsAnyModernSubmarine(actorId));
 }
 
+// Strategic launchers need enough room for a meaningful flight path.  The
+// values are measured in WorldBox tiles.  Thirty-six tiles keeps both land and
+// submarine missile batteries outside local coastal and city fights. Aircraft,
+// tanks and other conventional projectiles never enter this helper.
+private const float GroundLauncherIntercontinentalMinimumRange = 36f;
+private const float SubmarineIntercontinentalMinimumRange = 36f;
+
+internal static bool IsIntercontinentalMissileTargetInRange(Actor caster, Vector2 target)
+{
+    if (!IsMissilePlatform(caster))
+        return true;
+
+    float minimumRange = IsGroundMissileLauncher(caster)
+        ? GroundLauncherIntercontinentalMinimumRange
+        : SubmarineIntercontinentalMinimumRange;
+    return Vector2.Distance(caster.current_position, target) >= minimumRange;
+}
+
 private static bool IsGroundMissileLauncher(Actor actor)
 {
     string actorId = actor?.asset?.id;
@@ -9881,6 +9899,7 @@ private static bool IsGroundMissileLauncher(Actor actor)
 private static bool IsValidMissilePlatformDirectTarget(Actor caster, BaseSimObject target)
 {
     if (caster == null || caster.kingdom == null || target == null ||
+        !IsIntercontinentalMissileTargetInRange(caster, target.current_position) ||
         !IsMissileTargetSafe(caster.kingdom, target.current_position, GetMissilePlatformBlastSafetyRadius(caster)))
         return false;
 
@@ -9991,7 +10010,9 @@ public static bool MissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile
                             attackPos = targetTile.pos;
                     }
 
-                    if (attackPos != null && IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
+                    if (attackPos != null &&
+                        IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
+                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
@@ -10056,7 +10077,9 @@ public static bool HORDEmissileArtilleryEffect(BaseSimObject pTarget, WorldTile 
                             attackPos = targetTile.pos;
                     }
 
-                    if (attackPos != null && IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
+                    if (attackPos != null &&
+                        IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
+                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
@@ -10123,7 +10146,9 @@ public static bool GAIAmissileArtilleryEffect(BaseSimObject pTarget, WorldTile p
                             attackPos = targetTile.pos;
                     }
 
-                    if (attackPos != null && IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
+                    if (attackPos != null &&
+                        IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
+                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
@@ -10188,7 +10213,9 @@ public static bool HARDENmissileArtilleryEffect(BaseSimObject pTarget, WorldTile
                             attackPos = targetTile.pos;
                     }
 
-                    if (attackPos != null && IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
+                    if (attackPos != null &&
+                        IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
+                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
@@ -10265,7 +10292,9 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
                             attackPos = targetTile.pos;
                     }
 
-                    if (attackPos != null && IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 20f))
+                    if (attackPos != null &&
+                        IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
+                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 20f))
                     {
                         // Do not charge a launch that the territorial safety
                         // rule rejected while choosing a target.
@@ -10392,7 +10421,9 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
         }
     }
 
-    salvoTargets.RemoveAll(target => !IsStrategicMissileTargetSafe(caster.kingdom, target, 24f));
+    salvoTargets.RemoveAll(target =>
+        !IsIntercontinentalMissileTargetInRange(caster, target) ||
+        !IsStrategicMissileTargetSafe(caster.kingdom, target, 24f));
     if (salvoTargets.Count == 0)
         return false;
 
@@ -10564,7 +10595,8 @@ public static bool AntiBossNuke(BaseSimObject pTarget, WorldTile pTile = null)
             continue;
         if (!caster.kingdom.isEnemy(other.kingdom))
             continue;
-        if (other.stats["health"] >= 10000f)
+        if (other.stats["health"] >= 10000f &&
+            IsIntercontinentalMissileTargetInRange(caster, other.current_position))
             validTargets.Add(other);
     }
 
@@ -10572,7 +10604,8 @@ public static bool AntiBossNuke(BaseSimObject pTarget, WorldTile pTile = null)
         return false;
 
     Actor target = validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
-    if (!IsMissileTargetSafe(caster.kingdom, target.current_position, 20f))
+    if (!IsIntercontinentalMissileTargetInRange(caster, target.current_position) ||
+        !IsMissileTargetSafe(caster.kingdom, target.current_position, 20f))
         return false;
 
     ownerCity.takeResource("gold", 10);
