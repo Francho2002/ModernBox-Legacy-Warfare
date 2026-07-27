@@ -143,7 +143,33 @@ namespace ModernBox
 
         private static string SelectAffordableId(Docks dock, City city)
         {
-            List<string> affordable = GetPool(dock, city)
+            List<string> pool = GetPool(dock, city);
+            string carrierId = "CarrierVessel_" + GetFaction(city);
+
+            // Every home dock reserves its first capital ship. An empty dock
+            // may establish itself with one cheap escort; from then on it
+            // spends nothing on other hulls until its carrier is affordable.
+            // GetPool removes the carrier after the dock owns one, preserving
+            // the exact one-carrier-per-dock ceiling.
+            if (pool.Contains(carrierId) && !DockOwnsVariant(dock, carrierId))
+            {
+                if (city.hasEnoughResourcesFor(GetCost(carrierId)))
+                    return carrierId;
+
+                if (!DockHasCombatFleet(dock))
+                {
+                    List<string> starterEscorts = pool
+                        .Where(IsEscortDestroyer)
+                        .Where(id => city.hasEnoughResourcesFor(GetCost(id)))
+                        .ToList();
+                    if (starterEscorts.Count > 0)
+                        return starterEscorts[Randy.randomInt(0, starterEscorts.Count)];
+                }
+
+                return null;
+            }
+
+            List<string> affordable = pool
                 .Where(id => city.hasEnoughResourcesFor(GetCost(id)))
                 .ToList();
             if (affordable.Count == 0)
@@ -246,6 +272,19 @@ namespace ModernBox
             ActorAsset asset = AssetManager.actor_library.get(assetId);
             string boatType = asset?.boat_type;
             return !string.IsNullOrEmpty(boatType) && dock.countBoatTypes(boatType) > 0;
+        }
+
+        private static bool DockHasCombatFleet(Docks dock)
+        {
+            if (dock == null)
+                return false;
+
+            foreach (string boatType in CombatBoatTypes)
+            {
+                if (dock.countBoatTypes(boatType) > 0)
+                    return true;
+            }
+            return false;
         }
 
         private static string GetFaction(City city)
