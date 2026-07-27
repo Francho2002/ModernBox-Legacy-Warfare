@@ -9764,13 +9764,139 @@ private static void UpdateLandVehicleAmmoRuntime(Actor actor, float pElapsed)
 	}
 }
 
+internal static bool IsMissileTargetSafe(Kingdom casterKingdom, Vector2 target, float blastRadius)
+{
+    if (casterKingdom == null || !TryResolveWorldTarget(target, out Vector2 resolved))
+        return false;
+
+    int targetX = Mathf.RoundToInt(resolved.x);
+    int targetY = Mathf.RoundToInt(resolved.y);
+    int tileRadius = Mathf.CeilToInt(Mathf.Max(0f, blastRadius));
+    float radiusSquared = blastRadius * blastRadius;
+    for (int y = -tileRadius; y <= tileRadius; y++)
+    {
+        for (int x = -tileRadius; x <= tileRadius; x++)
+        {
+            if ((x * x) + (y * y) > radiusSquared)
+                continue;
+
+            WorldTile tile = World.world.GetTile(targetX + x, targetY + y);
+            if (tile?.zone?.city?.kingdom != null && !casterKingdom.isEnemy(tile.zone.city.kingdom))
+                return false;
+        }
+    }
+
+    return true;
+}
+
+private static bool IsFriendlyMissileTerritory(Kingdom casterKingdom, Vector2 target)
+{
+    if (casterKingdom == null || !TryResolveWorldTarget(target, out Vector2 resolved))
+        return false;
+
+    WorldTile tile = World.world.GetTile(Mathf.RoundToInt(resolved.x), Mathf.RoundToInt(resolved.y));
+    return tile?.zone?.city?.kingdom == casterKingdom;
+}
+
+internal static float GetMissileBlastSafetyRadius(string projectileId)
+{
+    if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.OrdinalIgnoreCase))
+        return 24f;
+    if (!string.IsNullOrEmpty(projectileId) && projectileId.IndexOf("hammer", StringComparison.OrdinalIgnoreCase) >= 0)
+        return 34f;
+    if (string.Equals(projectileId, "NUKER", StringComparison.OrdinalIgnoreCase) ||
+        (!string.IsNullOrEmpty(projectileId) && projectileId.IndexOf("warhead", StringComparison.OrdinalIgnoreCase) >= 0))
+        return 20f;
+    return 4f;
+}
+
+internal static bool IsStrategicMissileTargetSafe(Kingdom casterKingdom, Vector2 target, float blastRadius)
+{
+    if (!IsMissileTargetSafe(casterKingdom, target, blastRadius) ||
+        !TryResolveWorldTarget(target, out Vector2 resolved))
+        return false;
+
+    WorldTile targetTile = World.world.GetTile(Mathf.RoundToInt(resolved.x), Mathf.RoundToInt(resolved.y));
+    City targetCity = targetTile?.zone?.city;
+    return targetCity?.kingdom != null && casterKingdom.isEnemy(targetCity.kingdom);
+}
+
+private static bool IsMissilePlatform(Actor actor)
+{
+    string actorId = actor?.asset?.id;
+    return !string.IsNullOrEmpty(actorId) &&
+        (actorId.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase) ||
+         NavalRoles.IsAnyModernSubmarine(actorId));
+}
+
+private static bool IsValidMissilePlatformDirectTarget(Actor caster, BaseSimObject target)
+{
+    if (caster == null || caster.kingdom == null || target == null ||
+        !IsMissileTargetSafe(caster.kingdom, target.current_position, GetMissilePlatformBlastSafetyRadius(caster)))
+        return false;
+
+    WorldTile tile = target.current_tile;
+    City territoryCity = tile?.zone?.city;
+    if (territoryCity != null)
+        return caster.kingdom.isEnemy(territoryCity.kingdom);
+
+    // Outside a kingdom zone, missile platforms only pursue explicit naval or
+    // tornado threats; they do not bombard neutral/friendly shore skirmishes.
+    Actor targetActor = target.isActor() ? target.a : null;
+    string targetId = targetActor?.asset?.id;
+    return targetActor != null &&
+        ((targetActor.asset != null && targetActor.asset.is_boat) || targetActor.hasTrait("boat") ||
+         (!string.IsNullOrEmpty(targetId) && targetId.IndexOf("tornado", StringComparison.OrdinalIgnoreCase) >= 0));
+}
+
+private static float GetMissilePlatformBlastSafetyRadius(Actor actor)
+{
+    string actorId = actor?.asset?.id;
+    if (actorId != null && actorId.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
+        return 24f;
+    if (!string.IsNullOrEmpty(actorId) &&
+        (actorId.StartsWith("TridentSubmarine_", StringComparison.OrdinalIgnoreCase) ||
+         actorId.StartsWith("NeutronSubmarine_", StringComparison.OrdinalIgnoreCase) ||
+         actorId.StartsWith("EmpSubmarine_", StringComparison.OrdinalIgnoreCase) ||
+         actorId.StartsWith("HammerSubmarine_", StringComparison.OrdinalIgnoreCase) ||
+         actorId.StartsWith("RuinSubmarine_", StringComparison.OrdinalIgnoreCase)))
+        return 20f;
+    return 4f;
+}
+
+internal static bool IsLocalFriendlyTerritoryUnderInvasion(Actor caster, float radius = 36f)
+{
+    if (caster == null || caster.current_tile == null || caster.kingdom == null)
+        return false;
+
+    foreach (Actor other in Finder.getUnitsFromChunk(caster.current_tile, 3, radius))
+    {
+        if (other == null || other == caster || !other.isAlive() || other.kingdom == null ||
+            !caster.kingdom.isEnemy(other.kingdom))
+            continue;
+
+        if (IsFriendlyMissileTerritory(caster.kingdom, other.current_position))
+            return true;
+    }
+
+    return false;
+}
+
+private static bool CanLaunchConventionalMissile(Actor caster)
+{
+    // Do not answer a landing force inside our city zone with a strategic blast.
+    // Ground forces and regular artillery handle that local fight instead.
+    return caster != null && caster.isAlive() && caster.kingdom != null && caster.kingdom.hasEnemies() &&
+        !IsLocalFriendlyTerritoryUnderInvasion(caster);
+}
+
 public static bool MissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile = null)
 {
     if (pTarget == null || !pTarget.isActor())
         return false;
 
     Actor caster = pTarget.a;
-    if (!caster.isAlive() || !caster.kingdom.hasEnemies())
+    if (!CanLaunchConventionalMissile(caster))
         return false;
 
     using (var enemies = caster.kingdom.getEnemiesKingdoms())
@@ -9810,7 +9936,7 @@ public static bool MissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile
                             attackPos = targetTile.pos;
                     }
 
-                    if (attackPos != null)
+                    if (attackPos != null && IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
@@ -9835,7 +9961,7 @@ public static bool HORDEmissileArtilleryEffect(BaseSimObject pTarget, WorldTile 
         return false;
 
     Actor caster = pTarget.a;
-    if (!caster.isAlive() || !caster.kingdom.hasEnemies())
+    if (!CanLaunchConventionalMissile(caster))
         return false;
 
     using (var enemies = caster.kingdom.getEnemiesKingdoms())
@@ -9875,7 +10001,7 @@ public static bool HORDEmissileArtilleryEffect(BaseSimObject pTarget, WorldTile 
                             attackPos = targetTile.pos;
                     }
 
-                    if (attackPos != null)
+                    if (attackPos != null && IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
@@ -9902,7 +10028,7 @@ public static bool GAIAmissileArtilleryEffect(BaseSimObject pTarget, WorldTile p
         return false;
 
     Actor caster = pTarget.a;
-    if (!caster.isAlive() || !caster.kingdom.hasEnemies())
+    if (!CanLaunchConventionalMissile(caster))
         return false;
 
     using (var enemies = caster.kingdom.getEnemiesKingdoms())
@@ -9942,7 +10068,7 @@ public static bool GAIAmissileArtilleryEffect(BaseSimObject pTarget, WorldTile p
                             attackPos = targetTile.pos;
                     }
 
-                    if (attackPos != null)
+                    if (attackPos != null && IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
@@ -9967,7 +10093,7 @@ public static bool HARDENmissileArtilleryEffect(BaseSimObject pTarget, WorldTile
         return false;
 
     Actor caster = pTarget.a;
-    if (!caster.isAlive() || !caster.kingdom.hasEnemies())
+    if (!CanLaunchConventionalMissile(caster))
         return false;
 
     using (var enemies = caster.kingdom.getEnemiesKingdoms())
@@ -10007,7 +10133,7 @@ public static bool HARDENmissileArtilleryEffect(BaseSimObject pTarget, WorldTile
                             attackPos = targetTile.pos;
                     }
 
-                    if (attackPos != null)
+                    if (attackPos != null && IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
@@ -10048,8 +10174,6 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
     if (ownerCity == null || ownerCity.amount_gold < 50)
         return false;
 
-    ownerCity.takeResource("gold", 50);
-
     using (var enemies = caster.kingdom.getEnemiesKingdoms())
     {
         foreach (var enemyKingdom in enemies)
@@ -10086,8 +10210,11 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
                             attackPos = targetTile.pos;
                     }
 
-                    if (attackPos != null)
+                    if (attackPos != null && IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 20f))
                     {
+                        // Do not charge a launch that the territorial safety
+                        // rule rejected while choosing a target.
+                        ownerCity.takeResource("gold", 50);
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
                         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
@@ -10207,6 +10334,7 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
         }
     }
 
+    salvoTargets.RemoveAll(target => !IsStrategicMissileTargetSafe(caster.kingdom, target, 24f));
     if (salvoTargets.Count == 0)
         return false;
 
@@ -10388,6 +10516,8 @@ public static bool AntiBossNuke(BaseSimObject pTarget, WorldTile pTile = null)
         return false;
 
     Actor target = validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
+    if (!IsMissileTargetSafe(caster.kingdom, target.current_position, 20f))
+        return false;
 
     Vector3 start = caster.current_position;
     Vector3 end = target.current_position;
@@ -10437,7 +10567,21 @@ public static class Patch_ActorAnimationLoader_Fix
 			[HarmonyPostfix]
 			public static void Postfix(Actor __instance, float pElapsed)
 			{
-				if (__instance == null || !NeedsVehicleRuntimeUpdate(__instance))
+				if (__instance == null)
+				{
+					return;
+				}
+
+				// Revalidate each AI update as well as at setAttackTarget: a target
+				// can move into our territory after the launcher selected it.
+				if (IsMissilePlatform(__instance) && __instance.has_attack_target && __instance.attack_target != null &&
+					!IsValidMissilePlatformDirectTarget(__instance, __instance.attack_target))
+				{
+					__instance.ignoreTarget(__instance.attack_target);
+					__instance.clearAttackTarget();
+				}
+
+				if (!NeedsVehicleRuntimeUpdate(__instance))
 				{
 					return;
 				}
@@ -10528,6 +10672,14 @@ public static class Patch_ActorAnimationLoader_Fix
 				if (pAttackTarget == null)
 				{
 					return true;
+				}
+
+				if (IsMissilePlatform(__instance) &&
+					!IsValidMissilePlatformDirectTarget(__instance, pAttackTarget))
+				{
+					__instance.ignoreTarget(pAttackTarget);
+					__instance.clearAttackTarget();
+					return false;
 				}
 
 				if (IsVehicleActor(__instance) && ShouldProtectCivilianFromVehicle(__instance, pAttackTarget))

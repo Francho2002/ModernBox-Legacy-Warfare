@@ -252,7 +252,7 @@ namespace ModernBox
             // Los SSBN de guerra especial mantienen sus restricciones nucleares.
             // Esta salida sólo usa su misil convencional habitual para cubrir la
             // ausencia de aviación, nunca adelanta una carga estratégica.
-            Vector2? target = GetEnemyTargets(caster, 1, 6f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 6f, 4f).FirstOrNull();
             return target != null && LaunchAt(caster, target.Value, GetFactionConventionalProjectile(actorId));
         }
 
@@ -425,14 +425,14 @@ namespace ModernBox
             if (!IsConventionalLaunchReady(caster))
                 return false;
 
-            Vector2? target = GetNearestEnemyBoatTarget(caster) ?? GetEnemyTargets(caster, 1, 6f).FirstOrNull();
+            Vector2? target = GetNearestEnemyBoatTarget(caster) ?? GetEnemyTargets(caster, 1, 6f, 4f).FirstOrNull();
             if (target == null)
                 return false;
 
             SpendGold(caster.city, 8);
-            bool launched = LaunchAt(caster, target.Value, TorpedoProjectileId);
-            launched |= LaunchAt(caster, target.Value + new Vector2(2.5f, 1.5f), "missileartillery");
-            launched |= LaunchAt(caster, target.Value + new Vector2(-2.5f, -1.5f), "missileartillery");
+            bool launched = LaunchAt(caster, target.Value, TorpedoProjectileId, true);
+            launched |= LaunchAt(caster, target.Value + new Vector2(2.5f, 1.5f), "missileartillery", true);
+            launched |= LaunchAt(caster, target.Value + new Vector2(-2.5f, -1.5f), "missileartillery", true);
             if (launched)
                 MarkConventionalLaunch(caster, 30f);
             return launched;
@@ -447,7 +447,7 @@ namespace ModernBox
                 return false;
 
             int count = UnityEngine.Random.Range(6, 11);
-            List<Vector2> targets = GetEnemyTargets(caster, count, 8f);
+            List<Vector2> targets = GetEnemyTargets(caster, count, 8f, 4f);
             if (targets.Count == 0)
                 return false;
 
@@ -464,7 +464,7 @@ namespace ModernBox
                 return false;
 
             int count = UnityEngine.Random.Range(3, 6);
-            List<Vector2> targets = GetEnemyTargets(caster, count, 12f);
+            List<Vector2> targets = GetEnemyTargets(caster, count, 12f, 20f);
             if (targets.Count == 0)
                 return false;
 
@@ -477,7 +477,7 @@ namespace ModernBox
             if (!CanLaunchNuclear(caster, 35, false))
                 return false;
 
-            Vector2? target = GetEnemyTargets(caster, 1, 6f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 6f, 20f).FirstOrNull();
             if (target == null)
                 return false;
 
@@ -490,7 +490,7 @@ namespace ModernBox
             if (!CanLaunchConventional(caster, 30))
                 return false;
 
-            Vector2? target = GetEnemyTargets(caster, 1, 8f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 8f, 20f).FirstOrNull();
             if (target == null)
                 return false;
 
@@ -503,7 +503,7 @@ namespace ModernBox
             if (!CanLaunchNuclear(caster, 240, true))
                 return false;
 
-            Vector2? target = GetEnemyTargets(caster, 1, 12f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 12f, 34f).FirstOrNull();
             if (target == null)
                 return false;
 
@@ -516,7 +516,7 @@ namespace ModernBox
             if (!CanLaunchNuclear(caster, 25, false))
                 return false;
 
-            Vector2? target = GetEnemyTargets(caster, 1, 8f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 8f, 20f).FirstOrNull();
             if (target == null)
                 return false;
 
@@ -527,12 +527,14 @@ namespace ModernBox
         private static bool CanLaunchConventional(Actor caster, int gold)
         {
             return caster != null && caster.isAlive() && caster.kingdom != null && caster.kingdom.hasEnemies() &&
-                caster.city != null && caster.city.amount_gold >= gold;
+                caster.city != null && caster.city.amount_gold >= gold &&
+                !Vehicles.IsLocalFriendlyTerritoryUnderInvasion(caster);
         }
 
         private static bool CanLaunchNuclear(Actor caster, int gold, bool requiresLastResort)
         {
-            if (!Vehicles.nukesEnabled || !CanLaunchConventional(caster, gold))
+            if (!Vehicles.nukesEnabled || caster == null || !caster.isAlive() || caster.kingdom == null ||
+                !caster.kingdom.hasEnemies() || caster.city == null || caster.city.amount_gold < gold)
                 return false;
             return !requiresLastResort || Vehicles.IsKingdomInNuclearLastResort(caster.kingdom);
         }
@@ -580,7 +582,8 @@ namespace ModernBox
             return closest == null ? (Vector2?)null : closest.current_position;
         }
 
-        private static List<Vector2> GetEnemyTargets(Actor caster, int targetCount, float minimumSeparation)
+        private static List<Vector2> GetEnemyTargets(Actor caster, int targetCount, float minimumSeparation,
+            float blastSafetyRadius)
         {
             List<Vector2> targets = new List<Vector2>();
             if (caster == null || caster.kingdom == null || !caster.kingdom.hasEnemies())
@@ -603,7 +606,7 @@ namespace ModernBox
 
             foreach (City city in enemyCities)
             {
-                TryAddTarget(targets, GetCityPriorityTarget(city), minimumSeparation);
+                TryAddTarget(caster, targets, GetCityPriorityTarget(city), minimumSeparation, blastSafetyRadius);
                 if (targets.Count >= targetCount)
                     return targets;
             }
@@ -615,20 +618,20 @@ namespace ModernBox
                     foreach (Building building in city.buildings)
                     {
                         if (building?.current_tile != null)
-                            TryAddTarget(targets, building.current_tile.pos, minimumSeparation);
+                            TryAddTarget(caster, targets, building.current_tile.pos, minimumSeparation, blastSafetyRadius);
                         if (targets.Count >= targetCount)
                             return targets;
                     }
                 }
 
                 if (city.hasLeader() && city.leader != null && city.leader.isAlive())
-                    TryAddTarget(targets, city.leader.current_position, minimumSeparation);
+                    TryAddTarget(caster, targets, city.leader.current_position, minimumSeparation, blastSafetyRadius);
                 if (targets.Count >= targetCount)
                     return targets;
 
                 WorldTile tile = city.getTile();
                 if (tile != null)
-                    TryAddTarget(targets, tile.pos, minimumSeparation);
+                    TryAddTarget(caster, targets, tile.pos, minimumSeparation, blastSafetyRadius);
                 if (targets.Count >= targetCount)
                     return targets;
             }
@@ -647,7 +650,7 @@ namespace ModernBox
                 };
                 foreach (Vector2 offset in offsets)
                 {
-                    TryAddTarget(targets, center + offset, minimumSeparation);
+                    TryAddTarget(caster, targets, center + offset, minimumSeparation, blastSafetyRadius);
                     if (targets.Count >= targetCount)
                         break;
                 }
@@ -671,9 +674,11 @@ namespace ModernBox
             return tile == null ? (Vector2?)null : tile.pos;
         }
 
-        private static void TryAddTarget(List<Vector2> targets, Vector2? candidate, float minimumSeparation)
+        private static void TryAddTarget(Actor caster, List<Vector2> targets, Vector2? candidate,
+            float minimumSeparation, float blastSafetyRadius)
         {
-            if (candidate == null || !Vehicles.TryResolveWorldTarget(candidate.Value, out Vector2 resolved))
+            if (candidate == null || !Vehicles.TryResolveWorldTarget(candidate.Value, out Vector2 resolved) ||
+                !Vehicles.IsStrategicMissileTargetSafe(caster?.kingdom, resolved, blastSafetyRadius))
                 return;
             foreach (Vector2 target in targets)
             {
@@ -691,10 +696,15 @@ namespace ModernBox
             return launched;
         }
 
-        private static bool LaunchAt(Actor caster, Vector2 target, string projectileId)
+        private static bool LaunchAt(Actor caster, Vector2 target, string projectileId, bool allowExplicitSeaThreat = false)
         {
             if (caster == null || !caster.isAlive() || World.world?.projectiles == null ||
                 !Vehicles.TryResolveWorldTarget(target, out target))
+                return false;
+
+            float blastSafetyRadius = Vehicles.GetMissileBlastSafetyRadius(projectileId);
+            if (!Vehicles.IsMissileTargetSafe(caster.kingdom, target, blastSafetyRadius) ||
+                !IsValidLaunchTerritory(caster, target, allowExplicitSeaThreat))
                 return false;
 
             Vector3 position = caster.current_position;
@@ -710,6 +720,35 @@ namespace ModernBox
                 StatManager.Instance.SpawnUnit();
             caster.punchTargetAnimation(vector, true, false, 45f);
             return true;
+        }
+
+        private static bool IsValidLaunchTerritory(Actor caster, Vector2 target, bool allowExplicitSeaThreat)
+        {
+            if (caster?.kingdom == null)
+                return false;
+
+            WorldTile tile = World.world.GetTile(Mathf.RoundToInt(target.x), Mathf.RoundToInt(target.y));
+            City territoryCity = tile?.zone?.city;
+            if (territoryCity?.kingdom != null)
+                return caster.kingdom.isEnemy(territoryCity.kingdom);
+
+            if (!allowExplicitSeaThreat || World.world?.units == null)
+                return false;
+
+            foreach (Actor other in World.world.units)
+            {
+                if (other == null || !other.isAlive() || other.kingdom == null ||
+                    !caster.kingdom.isEnemy(other.kingdom) ||
+                    Vector2.Distance(other.current_position, target) > 5f)
+                    continue;
+
+                string actorId = other.asset?.id;
+                if ((other.asset != null && other.asset.is_boat) || other.hasTrait("boat") ||
+                    (!string.IsNullOrEmpty(actorId) && actorId.IndexOf("tornado", StringComparison.OrdinalIgnoreCase) >= 0))
+                    return true;
+            }
+
+            return false;
         }
 
         internal static void HandleSpecialWarheadImpact(Projectile projectile)
