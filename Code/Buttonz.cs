@@ -811,7 +811,7 @@ namespace ModernBox
             if (id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Bombardero - " + faction;
-                description = "Ataca con bombas explosivas convencionales y regresa a recargar. No emplea misiles nucleares.";
+                description = "Dispara una ráfaga doble de cohetes guiados convencionales con impacto de misil. No emplea armas nucleares.";
                 return;
             }
             if (string.Equals(id, "biplane", StringComparison.OrdinalIgnoreCase))

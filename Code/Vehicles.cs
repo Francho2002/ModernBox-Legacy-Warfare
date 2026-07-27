@@ -377,6 +377,17 @@ namespace ModernBox
             modernCapMissileBlast.explode_strength = 2;
             AssetManager.terraform.add(modernCapMissileBlast);
 
+            // Bomber rockets share the destroyer's twin-rocket silhouette but
+            // use a conventional, terrain-safe blast.  This is deliberately
+            // separate from the nuclear terraformers: it never creates
+            // radiation or destroys map tiles.
+            var modernCapBomberRocketBlast = AssetManager.terraform.clone("modern_cap_bomber_rocket_blast", "modern_cap_missile_blast");
+            modernCapBomberRocketBlast.shake = false;
+            modernCapBomberRocketBlast.transform_to_wasteland = false;
+            modernCapBomberRocketBlast.explode_tile = false;
+            modernCapBomberRocketBlast.explode_strength = 2;
+            AssetManager.terraform.add(modernCapBomberRocketBlast);
+
             // Preserve the stock atomic damage while removing only camera shake.
             var modernCapNuclearBlast = AssetManager.terraform.clone("modern_cap_nuclear_blast", "atomic_bomb");
             modernCapNuclearBlast.shake = false;
@@ -657,12 +668,33 @@ var AntiAirbomb = AssetManager.terraform.clone("AntiAirbomb", "grenade");
 
             EquipmentAsset BomberAttack = AssetManager.items.clone("BomberAttack", "$range");
             BomberAttack.has_locales = false;
-            BomberAttack.projectile = "bigbomb";
-			BomberAttack.base_stats["damage"] = 220f;
-            BomberAttack.base_stats["projectiles"] = 4f;
+            BomberAttack.projectile = "bomberrocketprojectile";
+			BomberAttack.base_stats["damage"] = 420f;
+            BomberAttack.base_stats["projectiles"] = 2f;
             BomberAttack.path_slash_animation = "effects/slashes/slash_cannonball";
             BomberAttack.show_in_meta_editor = false;
             BomberAttack.show_in_knowledge_window = false;
+
+            ProjectileAsset bomberrocketprojectile = new ProjectileAsset();
+            bomberrocketprojectile.id = "bomberrocketprojectile";
+            bomberrocketprojectile.speed = 42f;
+            bomberrocketprojectile.look_at_target = true;
+            bomberrocketprojectile.texture = "jetrocketprojectile";
+            bomberrocketprojectile.texture_shadow = "shadows/projectiles/shadow_ball";
+            bomberrocketprojectile.terraform_option = "modern_cap_bomber_rocket_blast";
+            bomberrocketprojectile.terraform_range = 4;
+            bomberrocketprojectile.sound_launch = "event:/SFX/WEAPONS/WeaponShotgunStart";
+            bomberrocketprojectile.sound_impact = "event:/SFX/WEAPONS/WeaponFireballLand";
+            bomberrocketprojectile.end_effect = "fx_firebomb_explosion";
+            bomberrocketprojectile.trail_effect_enabled = true;
+            bomberrocketprojectile.trail_effect_id = "modern_cap_missile_trail";
+            bomberrocketprojectile.trail_effect_scale = 0.35f;
+            bomberrocketprojectile.trail_effect_timer = 0.10f;
+            bomberrocketprojectile.scale_start = 0.55f;
+            bomberrocketprojectile.scale_target = 0.55f;
+            bomberrocketprojectile.can_be_left_on_ground = false;
+            bomberrocketprojectile.can_be_blocked = false;
+            AssetManager.projectiles.add(bomberrocketprojectile);
 
 			ProjectileAsset bigbombGaia = new ProjectileAsset();
             bigbombGaia.id = "bigbombGaia";
