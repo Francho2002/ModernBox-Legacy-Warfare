@@ -57,7 +57,11 @@ public class UnitTracker : MonoBehaviour
     private Sprite LoadSpriteForUnit(string id)
     {
         string spriteId = id;
-        if (id.StartsWith("aDestroyer_", System.StringComparison.OrdinalIgnoreCase) ||
+        if (id.StartsWith("CarrierVessel_", System.StringComparison.OrdinalIgnoreCase))
+        {
+            spriteId = "OperationalCarrier";
+        }
+        else if (id.StartsWith("aDestroyer_", System.StringComparison.OrdinalIgnoreCase) ||
             id.StartsWith("bDestroyer_", System.StringComparison.OrdinalIgnoreCase))
         {
             spriteId = "Destroyer_" + id.Substring(id.IndexOf('_') + 1);

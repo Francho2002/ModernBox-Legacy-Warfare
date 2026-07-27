@@ -125,6 +125,9 @@ namespace ModernBox
 		private const string BomberFireTickKey = "bj_bomber_fire_tick";
 		private const string BomberNavTickKey = "bj_bomber_nav_tick";
 		private const string BomberTargetRefreshTickKey = "bj_bomber_target_refresh_tick";
+		internal const string CarrierHomeIdKey = "mb_carrier_home_id";
+		internal const string CarrierAircraftKey = "mb_carrier_aircraft";
+		private static readonly Dictionary<long, Actor> CarrierHomeCache = new Dictionary<long, Actor>();
 		private const int AirTargetRefreshInterval = 8;
 		private const int AirBuildingTargetRefreshInterval = 4;
 		private const string LandVehicleAmmoCurrentKey = "bj_land_vehicle_ammo_current";
@@ -8264,6 +8267,7 @@ NavalRoles.RegisterSpawnUnits();
 				// cannon while FleetOrganization supplies anti-submarine torpedoes.
 				SetDefaultAttack("aDestroyer_" + navalFaction, "boat_cannonball");
 				SetDefaultAttack("bDestroyer_" + navalFaction, "boat_cannonball");
+				ConfigureOperationalCarrier("CarrierVessel_" + navalFaction);
 				NormalizeMissilePlatform("MissileSystem_" + faction);
 				NormalizeMissilePlatform("Submarine_" + navalFaction);
 				IntegratedAirDefense.ConfigurePlatform(AssetManager.actor_library.get("MissileSystem_" + faction));
@@ -8275,6 +8279,28 @@ NavalRoles.RegisterSpawnUnits();
 			ActorAsset actorAsset = AssetManager.actor_library.get(actorId);
 			if (actorAsset != null)
 				actorAsset.default_attack = attackId;
+		}
+
+		private static void ConfigureOperationalCarrier(string actorId)
+		{
+			ActorAsset carrier = AssetManager.actor_library.get(actorId);
+			if (carrier == null)
+				return;
+
+			carrier.name_locale = "Portaaviones";
+			carrier.default_attack = "boat_cannonball";
+			carrier.cost = new ConstructionCost(16, 14, 11, 6);
+			carrier.texture_asset = new ActorTextureSubAsset("actors/OperationalCarrier/", false);
+			carrier.has_advanced_textures = false;
+			carrier.has_avatar_prefab = false;
+			carrier.get_override_avatar_frames = (Actor _) => new Sprite[]
+			{
+				SpriteTextureLoader.getSprite("actors/Avatars/OperationalCarrier_avatar")
+			};
+			carrier.has_override_avatar_frames = true;
+			carrier.inspect_avatar_scale = 1.25f;
+			carrier.inspect_avatar_offset_y = 0f;
+			Localization.addLocalization(carrier.name_locale, carrier.name_locale);
 		}
 
 		private static void NormalizeMissilePlatform(string actorId)
@@ -8975,6 +9001,12 @@ private static WorldTile FindBomberBaseTile(Actor actor)
 		return null;
 	}
 
+	WorldTile carrierDeckTile = FindCarrierDeckTile(actor);
+	if (carrierDeckTile != null)
+	{
+		return carrierDeckTile;
+	}
+
 	City city = actor.city;
 	WorldTile cityBaseTile = FindCityBomberBaseTile(city);
 	if (cityBaseTile != null)
@@ -9036,6 +9068,108 @@ private static WorldTile FindBomberBaseTile(Actor actor)
 	}
 
 	return actor.current_tile;
+}
+
+internal static void RegisterCarrier(Actor carrier)
+{
+	if (carrier != null && carrier.getID() != long.MinValue)
+	{
+		CarrierHomeCache[carrier.getID()] = carrier;
+	}
+}
+
+internal static void ResetCarrierCache()
+{
+	CarrierHomeCache.Clear();
+}
+
+internal static void LinkCarrierAircraft(Actor aircraft, Actor carrier)
+{
+	if (aircraft == null || carrier == null)
+	{
+		return;
+	}
+
+	RegisterCarrier(carrier);
+	aircraft.data.set(CarrierAircraftKey, true);
+	aircraft.data.set(CarrierHomeIdKey, carrier.getID().ToString());
+}
+
+internal static bool IsCarrierAircraft(Actor aircraft)
+{
+	if (aircraft == null)
+	{
+		return false;
+	}
+	aircraft.data.get(CarrierAircraftKey, out bool marked, pDefault: false);
+	return marked;
+}
+
+internal static bool TryGetCarrierForAircraft(Actor aircraft, out Actor carrier)
+{
+	carrier = null;
+	if (!IsCarrierAircraft(aircraft))
+	{
+		return false;
+	}
+
+	aircraft.data.get(CarrierHomeIdKey, out string homeIdText, string.Empty);
+	if (!long.TryParse(homeIdText, out long homeId))
+	{
+		return false;
+	}
+
+	if (!CarrierHomeCache.TryGetValue(homeId, out carrier) || carrier == null || !carrier.isAlive())
+	{
+		carrier = FindCarrierById(homeId);
+		if (carrier != null)
+		{
+			CarrierHomeCache[homeId] = carrier;
+		}
+	}
+	return carrier != null && carrier.isAlive() && carrier.current_tile != null &&
+		carrier.kingdom != null && aircraft.kingdom == carrier.kingdom;
+}
+
+internal static void ForceCarrierAircraftRtb(Actor aircraft)
+{
+	if (IsCarrierAircraft(aircraft))
+	{
+		SetBomberBool(aircraft, BomberForceRtbKey, true);
+	}
+}
+
+internal static void UnlinkCarrierAircraft(Actor aircraft)
+{
+	if (aircraft == null)
+	{
+		return;
+	}
+	aircraft.data.set(CarrierAircraftKey, false);
+	aircraft.data.set(CarrierHomeIdKey, string.Empty);
+}
+
+private static WorldTile FindCarrierDeckTile(Actor aircraft)
+{
+	return TryGetCarrierForAircraft(aircraft, out Actor carrier) ? carrier.current_tile : null;
+}
+
+private static Actor FindCarrierById(long carrierId)
+{
+	if (World.world?.units == null)
+	{
+		return null;
+	}
+
+	foreach (Actor unit in World.world.units.Cast<Actor>())
+	{
+		if (unit != null && unit.isAlive() && unit.getID() == carrierId &&
+			unit.asset?.id != null && unit.asset.id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase))
+		{
+			return unit;
+		}
+	}
+	return null;
 }
 
 private static WorldTile FindCityBarracksTile(City city)

@@ -421,6 +421,8 @@ namespace ModernBox
             {
                 if (unit == null || unit == transforming || !unit.isAlive())
                     continue;
+                if (Vehicles.IsCarrierAircraft(unit))
+                    continue;
                 if (IsFixedWingAircraft(unit.asset?.id))
                     return true;
             }
@@ -435,6 +437,8 @@ namespace ModernBox
             foreach (Actor unit in city.units)
             {
                 if (unit == null || unit == transforming || !unit.isAlive())
+                    continue;
+                if (Vehicles.IsCarrierAircraft(unit))
                     continue;
                 string id = unit.asset?.id;
                 if (fighter ? IsFighter(id) : IsBomber(id))

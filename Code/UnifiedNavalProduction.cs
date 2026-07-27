@@ -104,6 +104,7 @@ namespace ModernBox
             {
                 types.Add("destroyer_a_" + faction + "_boat");
                 types.Add("destroyer_b_" + faction + "_boat");
+                types.Add("carrier_" + faction + "_boat");
                 types.Add("submarine_" + faction + "_boat");
                 types.Add("salvo_submarine_" + faction + "_boat");
                 foreach (string rolePrefix in RoleBoatPrefixes)
@@ -117,7 +118,7 @@ namespace ModernBox
             string faction = GetFaction(city);
             string[] ids =
             {
-                "aDestroyer_" + faction, "bDestroyer_" + faction,
+                "aDestroyer_" + faction, "bDestroyer_" + faction, "CarrierVessel_" + faction,
                 "HunterSubmarine_" + faction, "Submarine_" + faction,
                 "ArsenalSubmarine_" + faction, "TridentSubmarine_" + faction,
                 "NeutronSubmarine_" + faction, "EmpSubmarine_" + faction,
@@ -134,6 +135,9 @@ namespace ModernBox
                 // that exact dock already has the hull in question.
                 .Where(id => !NavalRoles.IsStrategicSubmarine(id) ||
                     kingdomStrategic < kingdomStrategicCap || !DockOwnsVariant(dock, id))
+                // A carrier is a dock's capital ship: exactly one per home
+                // dock, while other hulls may repeat after the template.
+                .Where(id => !IsCarrier(id) || !DockOwnsVariant(dock, id))
                 .ToList();
         }
 
@@ -266,6 +270,11 @@ namespace ModernBox
                  id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase));
         }
 
+        private static bool IsCarrier(string id)
+        {
+            return !string.IsNullOrEmpty(id) && id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static bool IsSalvoSubmarine(string id)
         {
             return !string.IsNullOrEmpty(id) && id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase);
@@ -273,6 +282,7 @@ namespace ModernBox
 
         private static ConstructionCost GetCost(string id)
         {
+            if (id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(16, 14, 11, 6);
             if (IsEscortDestroyer(id)) return new ConstructionCost(7, 6, 4, 2);
             if (id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(6, 5, 3, 1);
             if (id.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(8, 7, 5, 2);

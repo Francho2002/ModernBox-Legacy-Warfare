@@ -591,13 +591,13 @@ namespace ModernBox
         {
             return NavalRoles.IsAnyModernSubmarine(id) ||
                 id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) ||
-                id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase);
+                id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsHiddenNavalUnit(string id)
         {
-            return id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase)
-                || id.StartsWith("CargoShip_", StringComparison.OrdinalIgnoreCase)
+            return id.StartsWith("CargoShip_", StringComparison.OrdinalIgnoreCase)
                 || id.StartsWith("FishingBoat_", StringComparison.OrdinalIgnoreCase)
                 || id.StartsWith("Transporter_", StringComparison.OrdinalIgnoreCase);
         }
@@ -764,7 +764,7 @@ namespace ModernBox
             if (id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Portaaviones - " + faction;
-                description = "Realiza ataques aéreos con bombas convencionales. No puede lanzar armas nucleares.";
+                description = "Despliega 1 caza + 1 bombardero.";
                 return;
             }
             if (id.StartsWith("CargoShip_", StringComparison.OrdinalIgnoreCase))
