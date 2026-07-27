@@ -146,13 +146,18 @@ namespace ModernBox
             int normalMilitary = CountDockBoats(dock, faction, NormalMilitaryBoatTypePrefixes);
             int strategic = CountDockBoats(dock, faction, StrategicBoatTypePrefixes);
             MilitaryQuotaService.DockQuota quota = MilitaryQuotaService.GetDockQuota(dock, city);
+            // A one-ship military budget made the first destroyer/hunter block
+            // every strategic submarine at that port. A dock may now reserve a
+            // second military berth: one conventional escort and one special
+            // submarine, never a fleet-wide flood.
+            int militaryLimit = Math.Max(2, quota.MilitaryBoats);
             int kingdomStrategic = MilitaryQuotaService.CountKingdomStrategicAssets(city?.kingdom);
             int kingdomStrategicCap = MilitaryQuotaService.GetKingdomStrategicCap(city?.kingdom);
             if (total >= quota.TotalBoats)
                 return new List<string>();
 
             return ids.Where(id => AssetManager.actor_library.get(id) != null)
-                .Where(id => !IsMilitary(id) || military < quota.MilitaryBoats)
+                .Where(id => !IsMilitary(id) || military < militaryLimit)
                 // A strategic hull first requires a normal escort/attack hull.
                 // No more than one strategic hull can belong to this port, and
                 // a kingdom's deterministic 1-2 strategic budget is respected
@@ -187,15 +192,15 @@ namespace ModernBox
             List<string> strategic = military.Where(NavalRoles.IsStrategicSubmarine).ToList();
             List<string> normalMilitary = military.Where(id => !NavalRoles.IsStrategicSubmarine(id)).ToList();
 
-            if (Randy.randomChance(.65f))
+            if (Randy.randomChance(.70f))
             {
                 // Strategic assets are available together but do not all become
                 // production candidates at once: a port can commission one and
                 // reaches for it only after a normal warship exists.
-                if (strategic.Count > 0 && normalMilitary.Count > 0 && Randy.randomChance(.18f))
+                if (strategic.Count > 0 && normalMilitary.Count > 0 && Randy.randomChance(.35f))
                 {
                     List<string> nonApocalypse = strategic
-                        .Where(id => !IsSalvoSubmarine(id) || Randy.randomChance(.20f))
+                        .Where(id => !IsSalvoSubmarine(id) || Randy.randomChance(.15f))
                         .ToList();
                     if (nonApocalypse.Count > 0)
                         return nonApocalypse[Randy.randomInt(0, nonApocalypse.Count)];
@@ -242,15 +247,15 @@ namespace ModernBox
 
         private static ConstructionCost GetCost(string id)
         {
-            if (id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(8, 7, 6, 3);
-            if (id.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(11, 9, 8, 4);
-            if (id.StartsWith("TridentSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(15, 13, 12, 8);
-            if (id.StartsWith("NeutronSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(13, 11, 10, 6);
-            if (id.StartsWith("EmpSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(12, 10, 9, 5);
-            if (id.StartsWith("HammerSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(16, 14, 13, 8);
-            if (id.StartsWith("RuinSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(13, 11, 9, 5);
-            if (IsSalvoSubmarine(id)) return new ConstructionCost(18, 16, 14, 9);
-            if (NavalRoles.IsAnyModernSubmarine(id)) return new ConstructionCost(10, 8, 7, 4);
+            if (id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(6, 5, 3, 1);
+            if (id.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(8, 7, 5, 2);
+            if (id.StartsWith("TridentSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(12, 10, 8, 4);
+            if (id.StartsWith("NeutronSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(9, 8, 6, 3);
+            if (id.StartsWith("EmpSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(9, 8, 6, 3);
+            if (id.StartsWith("HammerSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(13, 11, 9, 5);
+            if (id.StartsWith("RuinSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(9, 8, 6, 3);
+            if (IsSalvoSubmarine(id)) return new ConstructionCost(15, 13, 11, 6);
+            if (NavalRoles.IsAnyModernSubmarine(id)) return new ConstructionCost(8, 7, 5, 2);
             if (IsMilitary(id)) return new ConstructionCost(6, 5, 4, 2);
             if (id.StartsWith("CargoShip_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(7, 5, 3, 2);
             return new ConstructionCost(4, 3, 1, 1);

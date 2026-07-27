@@ -171,7 +171,7 @@ namespace ModernBox
         {
             CityQuota quota = GetCityQuota(city);
             return GetLandUnitCap(city) + " terrestres, " + GetArtilleryCap(city) +
-                " artillería (segunda desde población " + quota.ArtilleryUpgradePopulation + ")";
+                " artillería convencional (segunda desde población " + quota.ArtilleryUpgradePopulation + ")";
         }
 
         internal static string GetKingdomStrategicQuotaLabel(Kingdom kingdom)

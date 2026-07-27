@@ -53,19 +53,19 @@ namespace ModernBox
         private static readonly RoleDefinition[] Roles =
         {
             new RoleDefinition("HunterSubmarine", "SSN Cazador", "hunter_submarine", HunterDecisionId,
-                new ConstructionCost(8, 7, 6, 3), false),
+                new ConstructionCost(6, 5, 3, 1), false),
             new RoleDefinition("ArsenalSubmarine", "SSGN Arsenal", "arsenal_submarine", ArsenalDecisionId,
-                new ConstructionCost(11, 9, 8, 4), true),
+                new ConstructionCost(8, 7, 5, 2), true),
             new RoleDefinition("TridentSubmarine", "SSBN Tridente", "trident_submarine", TridentDecisionId,
-                new ConstructionCost(15, 13, 12, 8), true),
+                new ConstructionCost(12, 10, 8, 4), true),
             new RoleDefinition("NeutronSubmarine", "SSBN Neutrón", "neutron_submarine", NeutronDecisionId,
-                new ConstructionCost(13, 11, 10, 6), true),
+                new ConstructionCost(9, 8, 6, 3), true),
             new RoleDefinition("EmpSubmarine", "SSBN EMP", "emp_submarine", EmpDecisionId,
-                new ConstructionCost(12, 10, 9, 5), true),
+                new ConstructionCost(9, 8, 6, 3), true),
             new RoleDefinition("HammerSubmarine", "SSBN Martillo", "hammer_submarine", HammerDecisionId,
-                new ConstructionCost(16, 14, 13, 8), true),
+                new ConstructionCost(13, 11, 9, 5), true),
             new RoleDefinition("RuinSubmarine", "SSBN Ruina", "ruin_submarine", RuinDecisionId,
-                new ConstructionCost(13, 11, 9, 5), true)
+                new ConstructionCost(9, 8, 6, 3), true)
         };
 
         private static bool _initialized;
@@ -255,13 +255,13 @@ namespace ModernBox
 
         private static void RegisterDecisions()
         {
-            RegisterDecision(HunterDecisionId, 55, HunterEffect);
-            RegisterDecision(ArsenalDecisionId, 180, ArsenalEffect);
+            RegisterDecision(HunterDecisionId, 30, HunterEffect);
+            RegisterDecision(ArsenalDecisionId, 90, ArsenalEffect);
             RegisterDecision(TridentDecisionId, 720, TridentEffect);
-            RegisterDecision(NeutronDecisionId, 360, NeutronEffect);
-            RegisterDecision(EmpDecisionId, 300, EmpEffect);
+            RegisterDecision(NeutronDecisionId, 180, NeutronEffect);
+            RegisterDecision(EmpDecisionId, 150, EmpEffect);
             RegisterDecision(HammerDecisionId, 900, HammerEffect);
-            RegisterDecision(RuinDecisionId, 420, RuinEffect);
+            RegisterDecision(RuinDecisionId, 210, RuinEffect);
         }
 
         private static void RegisterDecision(string id, int cooldown, Func<Actor, bool> action)
@@ -364,14 +364,14 @@ namespace ModernBox
 
         private static bool HunterEffect(Actor caster)
         {
-            if (!CanLaunchConventional(caster, 15))
+            if (!CanLaunchConventional(caster, 8))
                 return false;
 
             Vector2? target = GetNearestEnemyBoatTarget(caster) ?? GetEnemyTargets(caster, 1, 6f).FirstOrNull();
             if (target == null)
                 return false;
 
-            SpendGold(caster.city, 15);
+            SpendGold(caster.city, 8);
             bool launched = LaunchAt(caster, target.Value, TorpedoProjectileId);
             launched |= LaunchAt(caster, target.Value + new Vector2(2.5f, 1.5f), "missileartillery");
             launched |= LaunchAt(caster, target.Value + new Vector2(-2.5f, -1.5f), "missileartillery");
@@ -380,7 +380,7 @@ namespace ModernBox
 
         private static bool ArsenalEffect(Actor caster)
         {
-            if (!CanLaunchConventional(caster, 45))
+            if (!CanLaunchConventional(caster, 25))
                 return false;
 
             int count = UnityEngine.Random.Range(6, 11);
@@ -388,7 +388,7 @@ namespace ModernBox
             if (targets.Count == 0)
                 return false;
 
-            SpendGold(caster.city, 45);
+            SpendGold(caster.city, 25);
             return LaunchAtAll(caster, targets, "missileartillery");
         }
 
@@ -408,27 +408,27 @@ namespace ModernBox
 
         private static bool NeutronEffect(Actor caster)
         {
-            if (!CanLaunchNuclear(caster, 90, false))
+            if (!CanLaunchNuclear(caster, 35, false))
                 return false;
 
             Vector2? target = GetEnemyTargets(caster, 1, 6f).FirstOrNull();
             if (target == null)
                 return false;
 
-            SpendGold(caster.city, 90);
+            SpendGold(caster.city, 35);
             return LaunchAt(caster, target.Value, NeutronProjectileId);
         }
 
         private static bool EmpEffect(Actor caster)
         {
-            if (!CanLaunchConventional(caster, 70))
+            if (!CanLaunchConventional(caster, 30))
                 return false;
 
             Vector2? target = GetEnemyTargets(caster, 1, 8f).FirstOrNull();
             if (target == null)
                 return false;
 
-            SpendGold(caster.city, 70);
+            SpendGold(caster.city, 30);
             return LaunchAt(caster, target.Value, EmpProjectileId);
         }
 
@@ -447,14 +447,14 @@ namespace ModernBox
 
         private static bool RuinEffect(Actor caster)
         {
-            if (!CanLaunchNuclear(caster, 65, false))
+            if (!CanLaunchNuclear(caster, 25, false))
                 return false;
 
             Vector2? target = GetEnemyTargets(caster, 1, 8f).FirstOrNull();
             if (target == null)
                 return false;
 
-            SpendGold(caster.city, 65);
+            SpendGold(caster.city, 25);
             return LaunchAt(caster, target.Value, RuinProjectileId);
         }
 

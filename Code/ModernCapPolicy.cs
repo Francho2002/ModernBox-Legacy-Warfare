@@ -98,6 +98,12 @@ namespace ModernBox
                  || actorId.IndexOf("cannon", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
+        internal static bool IsConventionalArtillery(string actorId)
+        {
+            return IsArtillery(actorId) &&
+                !actorId.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase);
+        }
+
         internal static bool IsAllowedAircraft(string actorId)
         {
             if (string.IsNullOrEmpty(actorId) || !IsAllowedActor(actorId))

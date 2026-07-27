@@ -53,11 +53,17 @@ datos espaciales existentes.
 
 Los lanzamisiles terrestres y los destructores pueden derribar aeronaves enemigas con los cohetes ya existentes. También intentan interceptar una vez los misiles enemigos que pasan cerca: los convencionales son vulnerables, las bombas nucleares son difíciles de detener y la Bomba del Zar casi nunca puede ser interceptada.
 
-Cada 8–12 segundos se revisa la producción defensiva y se construye como máximo
+Cada 10–16 segundos se revisa por tandas la producción defensiva y se construye como máximo
 un lanzamisiles terrestre global por ciclo. Cada ciudad puede mantener uno
-cuando alcanza 100 habitantes, tiene líder y reino válidos, la producción de
-vehículos está activa y puede pagar `9` madera, `7` piedra, `6` metal y `3` oro.
+cuando alcanza 75 habitantes, tiene líder y reino válidos, la producción de
+vehículos está activa y puede pagar `7` madera, `6` piedra, `4` metal y `2` oro.
 No depende de la era visual.
+
+La artillería y los demás vehículos se encargan desde un controlador civil
+escalonado, independiente de las ideologías fantásticas. Sólo examina cuatro
+ciudades por ciclo, aplica 90 segundos de espera por ciudad y usa los mismos
+costes, niveles y cupos del sistema militar. El chasis temporal se elimina si
+no existe una transformación válida, por lo que no deja infantería gratuita.
 
 Los misiles conservan su tamaño físico original. Sólo su marcador seguidor se
 amplía y permanece visible desde la vista máxima, sin dejar copias del misil
@@ -80,9 +86,11 @@ https://github.com/Erex147/OreBox.
 
 ## Flotas
 
-Cada puerto puede mantener cuatro embarcaciones automáticas, con un máximo de
-dos embarcaciones militares por puerto. Dos puertos pertenecientes a la misma
-ciudad pueden mantener hasta ocho embarcaciones en total.
+Cada puerto recibe un límite determinista de tres a cinco embarcaciones
+automáticas. Conserva una plaza para escolta convencional y puede añadir un
+submarino especial cuando el cupo total, el cupo estratégico del puerto y el
+del reino lo permiten. Los límites se calculan por puerto: una ciudad con dos
+puertos dispone de dos presupuestos navales independientes.
 
 Los barcos creados manualmente desde el menú de aparición no están limitados
 por este sistema.
@@ -120,8 +128,8 @@ radiactivo permanente.
 
 Cada facción puede fabricar este submarino estratégico de salva, limitado a uno
 por puerto. Sólo entra en producción después de que ese puerto posea al menos
-una embarcación militar normal y tiene un coste de `18` madera, `16` piedra,
-`14` metal y `9` oro.
+una embarcación militar normal y tiene un coste de `15` madera, `13` piedra,
+`11` metal y `6` oro.
 
 Durante una guerra, con la opción de guerra nuclear activada, el SSBN consume
 `240` de oro para lanzar de cuatro a seis Bombas del Zar sin convertir el terreno

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace ModernBox
@@ -10,9 +9,11 @@ namespace ModernBox
     /// </summary>
     internal sealed class GroundMissileProductionController : MonoBehaviour
     {
-        private const float MinimumInterval = 8f;
-        private const float MaximumInterval = 12f;
+        private const float MinimumInterval = 10f;
+        private const float MaximumInterval = 16f;
+        private const int CitiesPerCycle = 6;
         private float _nextScan;
+        private int _cursor;
 
         private void Awake()
         {
@@ -28,30 +29,26 @@ namespace ModernBox
             TryBuildOneLauncher();
         }
 
-        private static void TryBuildOneLauncher()
+        private void TryBuildOneLauncher()
         {
             try
             {
                 if (World.world?.cities?.list == null)
                     return;
 
-                var eligible = new List<City>();
-                foreach (City city in World.world.cities.list)
-                {
-                    if (UnifiedMilitaryProduction.TryGetDefensiveLauncher(
-                        city, out string launcherId, out ConstructionCost cost))
-                    {
-                        eligible.Add(city);
-                    }
-                }
-
-                if (eligible.Count == 0)
+                var cities = World.world.cities.list;
+                if (cities.Count == 0)
                     return;
 
-                int start = UnityEngine.Random.Range(0, eligible.Count);
-                for (int offset = 0; offset < eligible.Count; offset++)
+                if (_cursor >= cities.Count)
+                    _cursor = 0;
+
+                int attempts = Math.Min(CitiesPerCycle, cities.Count);
+                for (int i = 0; i < attempts; i++)
                 {
-                    City city = eligible[(start + offset) % eligible.Count];
+                    if (_cursor >= cities.Count)
+                        _cursor = 0;
+                    City city = cities[_cursor++];
                     if (UnifiedMilitaryProduction.TryBuildDefensiveLauncher(city))
                         return;
                 }

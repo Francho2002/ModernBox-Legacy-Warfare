@@ -54,7 +54,7 @@ namespace ModernBox
         private static readonly ConstructionCost RenaissanceReadinessCost =
             new ConstructionCost(5, 4, 2, 1);
         private static readonly ConstructionCost HeavyReadinessCost =
-            new ConstructionCost(9, 7, 6, 3);
+            new ConstructionCost(7, 6, 4, 2);
 
         private float _nextTick;
         private int _cursor;
@@ -130,7 +130,10 @@ namespace ModernBox
 
         internal static bool CanBuildDefensiveLauncher(City city)
         {
-            return city != null && city.getPopulationPeople() >= 100 && GetLevel(city) >= 3;
+            // The city must be genuinely mature, but not keep a full resource
+            // stockpile simply to retain a technology level. Production still
+            // charges the full launcher cost when it is commissioned.
+            return city != null && city.getPopulationPeople() >= 75 && GetLevel(city) >= 3;
         }
 
         internal static void ResetSession()
@@ -193,6 +196,12 @@ namespace ModernBox
             int advancedBuildings = 0;
             CountMilitaryInfrastructure(city, out relevantBuildings, out advancedBuildings);
 
+            // Readiness is durable population and infrastructure capacity.
+            // Previously a city fell out of level 3 whenever ordinary building
+            // work briefly spent its supplies, making artillery and launchers
+            // practically unreachable. Resources are now checked at purchase.
+            // Keep the live values for diagnostics only; they no longer revoke
+            // an already-developed city's level between production cycles.
             bool canFundRenaissance = city.hasEnoughResourcesFor(RenaissanceReadinessCost);
             bool canFundHeavy = city.hasEnoughResourcesFor(HeavyReadinessCost);
             int level = 0;
@@ -205,23 +214,23 @@ namespace ModernBox
             else
             {
                 level = 1;
-                if (population < 55 || relevantBuildings == 0 || !canFundRenaissance)
+                if (population < 40 || relevantBuildings == 0)
                 {
-                    reason = BuildLevelTwoBlockReason(population, relevantBuildings, canFundRenaissance);
+                    reason = BuildLevelTwoBlockReason(population, relevantBuildings);
                 }
                 else
                 {
                     level = 2;
-                    if (population < 100 || relevantBuildings == 0 || !canFundHeavy)
+                    if (population < 75 || relevantBuildings == 0)
                     {
-                        reason = BuildLevelThreeBlockReason(population, relevantBuildings, canFundHeavy);
+                        reason = BuildLevelThreeBlockReason(population, relevantBuildings);
                     }
                     else
                     {
                         level = 3;
-                        if (population < 180 || relevantBuildings < 2 || advancedBuildings == 0 || !canFundHeavy)
+                        if (population < 140 || relevantBuildings < 2 || advancedBuildings == 0)
                         {
-                            reason = BuildLevelFourBlockReason(population, relevantBuildings, advancedBuildings, canFundHeavy);
+                            reason = BuildLevelFourBlockReason(population, relevantBuildings, advancedBuildings);
                         }
                         else
                         {
@@ -271,42 +280,35 @@ namespace ModernBox
             }
         }
 
-        private static string BuildLevelTwoBlockReason(int population, int infrastructure, bool funded)
+        private static string BuildLevelTwoBlockReason(int population, int infrastructure)
         {
-            if (population < 55)
-                return "Faltan habitantes: se requieren 55 para el nivel militar 2.";
+            if (population < 40)
+                return "Faltan habitantes: se requieren 40 para el nivel militar 2.";
             if (infrastructure == 0)
                 return "Falta cuartel o salón de ciudad para el nivel militar 2.";
-            if (!funded)
-                return "Faltan recursos para equipamiento de transición.";
             return "La ciudad aún no alcanza el nivel militar 2.";
         }
 
-        private static string BuildLevelThreeBlockReason(int population, int infrastructure, bool funded)
+        private static string BuildLevelThreeBlockReason(int population, int infrastructure)
         {
-            if (population < 100)
-                return "Faltan habitantes: se requieren 100 para armamento pesado moderno.";
+            if (population < 75)
+                return "Faltan habitantes: se requieren 75 para armamento pesado moderno.";
             if (infrastructure == 0)
                 return "Falta infraestructura militar para armamento pesado moderno.";
-            if (!funded)
-                return "Faltan recursos para tanques, artillería o lanzamisiles.";
             return "La ciudad aún no alcanza el nivel militar 3.";
         }
 
         private static string BuildLevelFourBlockReason(
             int population,
             int relevantInfrastructure,
-            int advancedInfrastructure,
-            bool funded)
+            int advancedInfrastructure)
         {
-            if (population < 180)
-                return "Faltan habitantes: se requieren 180 para aviación y logística avanzada.";
+            if (population < 140)
+                return "Faltan habitantes: se requieren 140 para aviación y logística avanzada.";
             if (relevantInfrastructure < 2)
                 return "Falta una segunda pieza de infraestructura: ayuntamiento, cuartel, puerto o entrenamiento.";
             if (advancedInfrastructure == 0)
                 return "Falta cuartel, puerto o zona de entrenamiento para aviación avanzada.";
-            if (!funded)
-                return "Faltan recursos para aviación y sistemas estratégicos.";
             return "La ciudad aún no alcanza el nivel militar 4.";
         }
 
