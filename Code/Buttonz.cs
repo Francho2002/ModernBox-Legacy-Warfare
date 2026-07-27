@@ -40,10 +40,8 @@ namespace ModernBox
                 return;
             }
 
-            // This window is initialized with the rest of the ModernBox UI so
-            // opening the report never needs a per-frame scene lookup.
-            MilitaryStatusWindow.init();
-            ModernDiplomacyWindow.init();
+            // Reports are created lazily when their clearly labelled buttons
+            // are pressed. This avoids caching an empty pre-world report.
 
 			GameObject largeImageObject = new GameObject("LargeImage");
 			largeImageObject.transform.SetParent(tab.transform);
@@ -227,8 +225,8 @@ namespace ModernBox
 
         new ButtonBuilder("modernbox_military_status")
             .SetSprite(Resources.Load<Sprite>("ui/icons/MIRV"))
-            .SetTitle("Estado militar")
-            .SetDescription("Muestra por reino y ciudad las unidades, capacidades de fabricación y bloqueos actuales.")
+            .SetTitle("INFORME: Estado militar")
+            .SetDescription("Abre el informe de producción militar por reino y ciudad. Es un visor; no modifica la partida.")
             .SetPosition(3, 0)
             .SetType(ButtonType.Click)
             .SetFunction(MilitaryStatusWindow.Show)
@@ -237,8 +235,8 @@ namespace ModernBox
 
         new ButtonBuilder("modernbox_diplomacy")
             .SetSprite(Resources.Load<Sprite>("ui/Icons/landTradeDecision"))
-            .SetTitle("Diplomacia moderna")
-            .SetDescription("Pactos, garantías, comercio, crisis, apoyos proxy y resoluciones de la Liga Moderna.")
+            .SetTitle("ABRIR CENTRO DIPLOMÁTICO")
+            .SetDescription("Icono del carro con bandera. La IA gestiona automáticamente pactos, comercio, sanciones y crisis; este panel muestra el estado de cada reino.")
             .SetPosition(4, 0)
             .SetType(ButtonType.Click)
             .SetFunction(ModernDiplomacyWindow.Show)
