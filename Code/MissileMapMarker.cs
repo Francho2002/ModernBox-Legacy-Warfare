@@ -6,16 +6,15 @@ using UnityEngine;
 namespace ModernBox
 {
     /// <summary>
-    /// Adds a second QuantumSprite only while WorldBox renders the overview.
-    /// Projectiles are ECS objects in build 719, so copying their Unity renderer
-    /// is not possible; drawing their already-loaded projectile frame here keeps
-    /// the marker identical to the real missile without changing its physics.
+    /// Draws a full missile sprite into the aerial-map boat pass. Projectiles use
+    /// a gameplay-only QuantumSpriteAsset in build 719, so patching
+    /// drawProjectiles cannot ever draw into the aerial map. Reusing the loaded
+    /// projectile frame here changes no projectile physics, collision or scale.
     /// </summary>
     internal static class MissileMapMarker
     {
-        // Overview rendering can run every frame. This keeps the additional
-        // marker pass bounded during a saturation launch without changing the
-        // physical projectile or allocating marker state.
+        // The map pass can run every frame. Keep this bounded during saturation
+        // launches without allocating per-projectile marker state.
         private const int MaximumOverviewMarkers = 192;
 
         private static readonly HashSet<string> ConventionalProjectiles =
@@ -30,10 +29,10 @@ namespace ModernBox
 
         internal static void DrawOverviewMarkers(QuantumSpriteAsset spriteAsset)
         {
-            // This render pass knows whether the map is currently being drawn.
-            // Checking here (rather than during Projectile.update) prevents a
-            // marker from appearing large in normal gameplay view.
-            if (!MapBox.isRenderMiniMap() || spriteAsset?.group_system == null)
+            // drawBoatIcons is called for boats_small and boats_big. Draw only in
+            // boats_big so a missile receives exactly one aerial marker.
+            if (spriteAsset?.group_system == null ||
+                !string.Equals(spriteAsset.id, "boats_big", StringComparison.Ordinal))
                 return;
 
             if (World.world == null)
@@ -60,14 +59,16 @@ namespace ModernBox
                 if (marker == null)
                     break;
 
-                Vector3 position = projectile.getTransformedPositionWithHeight();
-                position.z = projectile.getCurrentHeight();
+                Vector2 transformedPosition = projectile.getTransformedPositionWithHeight();
+                Vector3 position = new Vector3(transformedPosition.x, transformedPosition.y, 0f);
                 marker.setSprite(sprite);
-                marker.set(ref position,
-                    Mathf.Max(0.05f, projectile.getCurrentScale() * markerScale));
+                // Constant map-space scale: the actual projectile stays at its
+                // normal size, while this separate aerial silhouette remains
+                // readable even from WorldBox's maximum camera distance.
+                marker.set(ref position, markerScale);
                 marker.transform.rotation = projectile.rotation;
 
-                Color color = new Color(1f, 1f, 1f, projectile.getAlpha());
+                Color color = new Color(1f, 1f, 1f, 1f);
                 marker.setColor(ref color);
                 drawn++;
             }
@@ -93,31 +94,31 @@ namespace ModernBox
 
             if (ConventionalProjectiles.Contains(projectileId))
             {
-                markerScale = 3.0f;
+                markerScale = 5.5f;
                 return true;
             }
 
             if (string.Equals(projectileId, "NUKER", StringComparison.Ordinal))
             {
-                markerScale = 3.3f;
+                markerScale = 6.5f;
                 return true;
             }
 
             if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.Ordinal))
             {
-                markerScale = 3.8f;
+                markerScale = 7.5f;
                 return true;
             }
 
             if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.Ordinal))
             {
-                markerScale = 3.6f;
+                markerScale = 7.0f;
                 return true;
             }
 
             if (NavalRoles.IsHeavyWarhead(projectileId))
             {
-                markerScale = 3.3f;
+                markerScale = 6.5f;
                 return true;
             }
 
@@ -125,7 +126,7 @@ namespace ModernBox
         }
     }
 
-    [HarmonyPatch(typeof(QuantumSpriteLibrary), "drawProjectiles")]
+    [HarmonyPatch(typeof(QuantumSpriteLibrary), "drawBoatIcons", new[] { typeof(QuantumSpriteAsset) })]
     internal static class MissileMapMarkerRenderPatch
     {
         [HarmonyPostfix]
