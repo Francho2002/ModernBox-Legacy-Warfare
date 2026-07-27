@@ -9896,12 +9896,12 @@ private static bool IsMissilePlatform(Actor actor)
          NavalRoles.IsAnyModernSubmarine(actorId));
 }
 
-// Strategic launchers need enough room for a meaningful flight path.  The
-// values are measured in WorldBox tiles.  Thirty-six tiles keeps both land and
-// submarine missile batteries outside local coastal and city fights. Aircraft,
-// tanks and other conventional projectiles never enter this helper.
-private const float GroundLauncherIntercontinentalMinimumRange = 36f;
-private const float SubmarineIntercontinentalMinimumRange = 36f;
+// Strategic launchers need enough room for a visible flight path. The values
+// are measured in WorldBox tiles. Twelve tiles still prevents point-blank
+// launches without excluding nearby enemy cities. Aircraft, tanks and other
+// conventional projectiles never enter this helper.
+private const float GroundLauncherIntercontinentalMinimumRange = 12f;
+private const float SubmarineIntercontinentalMinimumRange = 12f;
 
 internal static bool IsIntercontinentalMissileTargetInRange(Actor caster, Vector2 target)
 {
