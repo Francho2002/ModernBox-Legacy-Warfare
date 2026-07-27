@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using HarmonyLib;
 using NCMS.Utils;
 using tools;
@@ -28,6 +29,13 @@ namespace ModernBox
         private const string RuinProjectileId = "modernbox_ruin_warhead";
 
         private static readonly string[] Factions = { "alliance", "harden", "gaia", "horde" };
+        private static readonly ConditionalWeakTable<Actor, ConventionalLaunchState> ConventionalLaunchStates =
+            new ConditionalWeakTable<Actor, ConventionalLaunchState>();
+
+        private sealed class ConventionalLaunchState
+        {
+            internal float readyAt;
+        }
 
         private sealed class RoleDefinition
         {
@@ -212,6 +220,53 @@ namespace ModernBox
                 string.Equals(projectileId, EmpProjectileId, StringComparison.OrdinalIgnoreCase);
         }
 
+        // Cuando un reino carece de alas fijas operativas, el controlador naval
+        // usa esta cadencia como sustitución limitada del apoyo aéreo. No altera
+        // los enfriamientos ni las decisiones normales mientras sí haya aviación.
+        internal static float GetNoAirFallbackCadence(string actorId)
+        {
+            if (string.IsNullOrEmpty(actorId))
+                return 30f;
+            if (actorId.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase))
+                return 30f;
+            if (actorId.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase))
+                return 90f;
+            if (actorId.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
+                return 24f;
+            if (IsRoleSubmarine(actorId))
+                return 45f;
+            return 18f;
+        }
+
+        internal static bool TryLaunchNoAirFallback(Actor caster)
+        {
+            string actorId = caster?.asset?.id;
+            if (!CanLaunchConventional(caster, 0))
+                return false;
+
+            if (actorId != null && actorId.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase))
+                return HunterEffect(caster);
+            if (actorId != null && actorId.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase))
+                return ArsenalEffect(caster);
+
+            // Los SSBN de guerra especial mantienen sus restricciones nucleares.
+            // Esta salida sólo usa su misil convencional habitual para cubrir la
+            // ausencia de aviación, nunca adelanta una carga estratégica.
+            Vector2? target = GetEnemyTargets(caster, 1, 6f).FirstOrNull();
+            return target != null && LaunchAt(caster, target.Value, GetFactionConventionalProjectile(actorId));
+        }
+
+        private static string GetFactionConventionalProjectile(string actorId)
+        {
+            if (actorId != null && actorId.EndsWith("_horde", StringComparison.OrdinalIgnoreCase))
+                return "fireboneartillery";
+            if (actorId != null && actorId.EndsWith("_harden", StringComparison.OrdinalIgnoreCase))
+                return "frostmissileartillery";
+            if (actorId != null && actorId.EndsWith("_gaia", StringComparison.OrdinalIgnoreCase))
+                return "plantmissileartillery";
+            return "missileartillery";
+        }
+
         private static void CreateRoleSubmarine(string faction, RoleDefinition role)
         {
             string id = role.Prefix + "_" + faction;
@@ -367,6 +422,9 @@ namespace ModernBox
             if (!CanLaunchConventional(caster, 8))
                 return false;
 
+            if (!IsConventionalLaunchReady(caster))
+                return false;
+
             Vector2? target = GetNearestEnemyBoatTarget(caster) ?? GetEnemyTargets(caster, 1, 6f).FirstOrNull();
             if (target == null)
                 return false;
@@ -375,6 +433,8 @@ namespace ModernBox
             bool launched = LaunchAt(caster, target.Value, TorpedoProjectileId);
             launched |= LaunchAt(caster, target.Value + new Vector2(2.5f, 1.5f), "missileartillery");
             launched |= LaunchAt(caster, target.Value + new Vector2(-2.5f, -1.5f), "missileartillery");
+            if (launched)
+                MarkConventionalLaunch(caster, 30f);
             return launched;
         }
 
@@ -383,13 +443,19 @@ namespace ModernBox
             if (!CanLaunchConventional(caster, 25))
                 return false;
 
+            if (!IsConventionalLaunchReady(caster))
+                return false;
+
             int count = UnityEngine.Random.Range(6, 11);
             List<Vector2> targets = GetEnemyTargets(caster, count, 8f);
             if (targets.Count == 0)
                 return false;
 
             SpendGold(caster.city, 25);
-            return LaunchAtAll(caster, targets, "missileartillery");
+            bool launched = LaunchAtAll(caster, targets, "missileartillery");
+            if (launched)
+                MarkConventionalLaunch(caster, 90f);
+            return launched;
         }
 
         private static bool TridentEffect(Actor caster)
@@ -475,6 +541,19 @@ namespace ModernBox
         {
             if (city != null)
                 city.takeResource("gold", gold);
+        }
+
+        private static bool IsConventionalLaunchReady(Actor caster)
+        {
+            return caster != null &&
+                (!ConventionalLaunchStates.TryGetValue(caster, out ConventionalLaunchState state) ||
+                 Time.time >= state.readyAt);
+        }
+
+        private static void MarkConventionalLaunch(Actor caster, float cooldown)
+        {
+            ConventionalLaunchState state = ConventionalLaunchStates.GetOrCreateValue(caster);
+            state.readyAt = Time.time + cooldown;
         }
 
         private static Vector2? GetNearestEnemyBoatTarget(Actor caster)

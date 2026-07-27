@@ -167,23 +167,29 @@ namespace ModernBox
     }
 
     /// <summary>
-    /// Periodic conventional anti-submarine warfare.  The controller samples
-    /// a small roster every 2.5-4.5 seconds rather than scanning per frame.
-    /// It only orders existing destroyer assets to fire safe torpedoes and
-    /// never changes terrain, biomes or the boat movement system.
+    /// Periodic conventional naval warfare. The controller samples a small
+    /// roster every 2.5-4.5 seconds rather than scanning per frame. It keeps
+    /// anti-submarine attacks terrain-safe and gives existing missile submarines
+    /// their normal feasible cadence when a kingdom has no fixed-wing support.
     /// </summary>
     internal sealed class AntiSubmarineWarfareController : MonoBehaviour
     {
         private const float MinimumInterval = 2.5f;
         private const float MaximumInterval = 4.5f;
         private const int DefendersPerCycle = 3;
+        private const int MissilePlatformsPerCycle = 2;
 
         private readonly List<Actor> _defenders = new List<Actor>();
+        private readonly List<Actor> _missilePlatforms = new List<Actor>();
         private readonly ConditionalWeakTable<Actor, Cooldown> _cooldowns =
+            new ConditionalWeakTable<Actor, Cooldown>();
+        private readonly ConditionalWeakTable<Actor, Cooldown> _missileCooldowns =
             new ConditionalWeakTable<Actor, Cooldown>();
         private float _nextCycle;
         private float _nextRosterRefresh;
         private int _cursor;
+        private int _missileCursor;
+        private bool _rosterInitialized;
 
         private sealed class Cooldown
         {
@@ -203,10 +209,11 @@ namespace ModernBox
             ScheduleNextCycle();
             try
             {
-                if (Time.time >= _nextRosterRefresh || _defenders.Count == 0)
+                if (!_rosterInitialized || Time.time >= _nextRosterRefresh)
                     RefreshRoster();
 
                 ProcessDefenderSlice();
+                ProcessMissilePlatformSlice();
             }
             catch (Exception ex)
             {
@@ -222,8 +229,11 @@ namespace ModernBox
         private void RefreshRoster()
         {
             _defenders.Clear();
+            _missilePlatforms.Clear();
             _cursor = 0;
+            _missileCursor = 0;
             _nextRosterRefresh = Time.time + 22f;
+            _rosterInitialized = true;
 
             if (World.world?.units == null)
                 return;
@@ -232,6 +242,8 @@ namespace ModernBox
             {
                 if (IsAswDestroyer(actor))
                     _defenders.Add(actor);
+                if (IsMissileNavalPlatform(actor))
+                    _missilePlatforms.Add(actor);
             }
         }
 
@@ -277,6 +289,66 @@ namespace ModernBox
                 // the mod torpedo projectile.
                 target.getHit(heavyDestroyer ? 120f : 72f, true, AttackType.Weapon, defender, true, false, true);
             }
+        }
+
+        private void ProcessMissilePlatformSlice()
+        {
+            if (_missilePlatforms.Count == 0)
+                return;
+
+            int count = Math.Min(MissilePlatformsPerCycle, _missilePlatforms.Count);
+            for (int i = 0; i < count; i++)
+            {
+                if (_missileCursor >= _missilePlatforms.Count)
+                    _missileCursor = 0;
+
+                TryLaunchNoAirFallback(_missilePlatforms[_missileCursor++]);
+            }
+        }
+
+        private void TryLaunchNoAirFallback(Actor platform)
+        {
+            if (!IsMissileNavalPlatform(platform) || IsMissileOnCooldown(platform) ||
+                KingdomHasOperationalFixedWing(platform.kingdom))
+                return;
+
+            if (NavalRoles.TryLaunchNoAirFallback(platform))
+            {
+                float cadence = NavalRoles.GetNoAirFallbackCadence(platform.asset.id);
+                PutMissileOnCooldown(platform, cadence);
+            }
+            else
+            {
+                // Sin blancos, oro o ruta válida no se reintenta cada ciclo.
+                // La espera corta mantiene reactiva la flota sin hacer sondeos
+                // repetidos sobre todos los reinos enemigos.
+                PutMissileOnCooldown(platform, 8f);
+            }
+        }
+
+        private static bool KingdomHasOperationalFixedWing(Kingdom kingdom)
+        {
+            if (kingdom == null || World.world?.units == null)
+                return false;
+
+            foreach (Actor unit in World.world.units)
+            {
+                if (unit == null || !unit.isAlive() || unit.kingdom != kingdom || !IsFixedWingAircraft(unit.asset?.id))
+                    continue;
+                return true;
+            }
+            return false;
+        }
+
+        private static bool IsFixedWingAircraft(string actorId)
+        {
+            return !string.IsNullOrEmpty(actorId) &&
+                (actorId.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) ||
+                 actorId.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(actorId, "F55FighterJet", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(actorId, "americanbomberww", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(actorId, "biplane", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(actorId, "fighterww", StringComparison.OrdinalIgnoreCase));
         }
 
         private static Actor FindNearestEnemySubmarine(Actor defender, float range)
@@ -330,6 +402,17 @@ namespace ModernBox
             cooldown.readyAt = Time.time + seconds;
         }
 
+        private bool IsMissileOnCooldown(Actor platform)
+        {
+            return _missileCooldowns.TryGetValue(platform, out Cooldown cooldown) && Time.time < cooldown.readyAt;
+        }
+
+        private void PutMissileOnCooldown(Actor platform, float seconds)
+        {
+            Cooldown cooldown = _missileCooldowns.GetOrCreateValue(platform);
+            cooldown.readyAt = Time.time + seconds;
+        }
+
         private static bool IsAswDestroyer(Actor actor)
         {
             if (actor == null || !actor.isAlive() || actor.asset == null || actor.current_tile == null || actor.kingdom == null)
@@ -338,6 +421,12 @@ namespace ModernBox
             string id = actor.asset.id;
             return id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) ||
                    id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsMissileNavalPlatform(Actor actor)
+        {
+            return actor != null && actor.isAlive() && actor.asset != null && actor.kingdom != null &&
+                   NavalRoles.IsAnyModernSubmarine(actor.asset.id);
         }
 
         private static bool IsEnemySubmarine(Actor defender, Actor candidate)
