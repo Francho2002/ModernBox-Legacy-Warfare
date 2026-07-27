@@ -294,6 +294,7 @@ namespace ModernBox{
             EnsureTabBuilt("ModernBoxBombs", "ModernBox Nuclear", "Controles estratégicos de guerra nuclear.", 200, true, false, "ModernBoxTab", "ui/Icons/MIRV_nuke");
             EnsureTabBuilt("ModernBoxEras", "Eras de ModernBox", "Controles manuales de apariencia y conocimiento prohibido persistente.", 200, true, false, "ModernBoxTab", "ui/icons/Industrial");
             EnsureTabBuilt("ModernBoxItems", "Objetos de ModernBox", "Activa o desactiva tipos de objetos específicos.", 200, true, false, "ModernBoxTab", "ui/icons/firearm");
+            EnsureTabBuilt("ModernBoxResources", "Recursos", "Generadores de recursos de OreBox.", 200, true, false, "ModernBoxTab", "ui/icons/orebox_tab_icon");
         }
 
         private static void EnsureTabBuilt(string tabId, string tabName, string tabDescription, int positionX, bool isAfrican, bool toolbarVisible, string returnTabId, string iconPath)
@@ -336,6 +337,7 @@ namespace ModernBox{
 
 
                 Buildings.init();
+                OreBoxIntegration.InitializeAssets();
 
 
                 instance = this;

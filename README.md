@@ -53,6 +53,19 @@ datos espaciales existentes.
 
 Los lanzamisiles terrestres y los destructores pueden derribar aeronaves enemigas con los cohetes ya existentes. También intentan interceptar una vez los misiles enemigos que pasan cerca: los convencionales son vulnerables, las bombas nucleares son difíciles de detener y la Bomba del Zar casi nunca puede ser interceptada. Una ciudad de al menos 100 habitantes reserva una plaza defensiva para un lanzamisiles, siempre que pueda pagar su coste pesado y la producción de vehículos esté activada.
 
+## Recursos OreBox integrados
+
+ModernBox incorpora los seis generadores de recursos de OreBox: metal, oro,
+piedra, plata, mitril y adamantita. Están en la pestaña **Recursos** del centro
+de ModernBox y conservan sus identificadores originales para que las partidas
+guardadas de OreBox sigan siendo compatibles. Esta integración no requiere que
+el mod OreBox independiente esté instalado.
+
+OreBox fue creado por Erex_147 y se distribuye bajo licencia MIT. Los sprites
+son de core.skull. Créditos y texto de licencia completos en
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md); proyecto original:
+https://github.com/Erex147/OreBox.
+
 ## Flotas
 
 Cada puerto puede mantener cuatro embarcaciones automáticas, con un máximo de

@@ -26,13 +26,14 @@ namespace ModernBox
 			PowersTab tab3 = getPowersTab("ModernBoxBombs");
 			PowersTab tab4 = getPowersTab("ModernBoxEras");
 			PowersTab tab5 = getPowersTab("ModernBoxItems");
+			PowersTab resourcesTab = getPowersTab("ModernBoxResources");
 			PowersTab artilleryTab = getPowersTab("ModernBoxUnitsArtillery");
 			PowersTab groundTab = getPowersTab("ModernBoxUnitsGround");
 			PowersTab airTab = getPowersTab("ModernBoxUnitsAir");
 			PowersTab navalTab = getPowersTab("ModernBoxUnitsNaval");
             PowersTab otherTab = getPowersTab("other");
 
-			if (tab == null || tab2 == null || tab3 == null || tab4 == null || tab5 == null ||
+			if (tab == null || tab2 == null || tab3 == null || tab4 == null || tab5 == null || resourcesTab == null ||
                 artilleryTab == null || groundTab == null || airTab == null || navalTab == null)
             {
                 ModernBoxLogger.Error("[Buttonz] One or more ModernBox tabs are missing during Init().");
@@ -280,6 +281,16 @@ namespace ModernBox
             .SetFunction(() => openModernBoxSubTab("ModernBoxItems"))
             .Build();
 
+        new ButtonBuilder("modernbox_tab_resources")
+            .SetSprite(Resources.Load<Sprite>("ui/icons/orebox_tab_icon"))
+            .SetTitle("Recursos")
+            .SetDescription("Abre los generadores de recursos de OreBox.")
+            .SetPosition(17, 1)
+            .SetType(ButtonType.Click)
+            .SetTransform(tab.transform)
+            .SetFunction(() => openModernBoxSubTab("ModernBoxResources"))
+            .Build();
+
         new ButtonBuilder("modernbox_tab_trainbox")
             .SetSprite(Resources.Load<Sprite>("ui/icons/Industrial"))
             .SetTitle("Trainbox")
@@ -292,6 +303,7 @@ namespace ModernBox
 
             if (otherTab != null)
             {
+                EnsureOtherTabButton("modernbox_other_resources", "ui/icons/orebox_tab_icon", "Recursos", "Abre los generadores de recursos de OreBox.", 1, 1, otherTab.transform, () => openModernBoxSubTab("ModernBoxResources"));
                 EnsureOtherTabButton("modernbox_launcher", "ui/icons/tabIconModernWarfare", "ModernBox", "Abre el centro principal de ModernBox.", 0, 0, otherTab.transform, openModernBoxHub);
                 EnsureOtherTabButton("modernbox_other_units", "ui/icons/warhamma", "Unidades MB", "Abre la pestaña de unidades.", 1, 0, otherTab.transform, () => openModernBoxSubTab("ModernBoxUnits"));
                 EnsureOtherTabButton("modernbox_other_bombs", "ui/Icons/MIRV_nuke", "MB Nuclear", "Abre los controles estratégicos de guerra nuclear.", 2, 0, otherTab.transform, () => openModernBoxSubTab("ModernBoxBombs"));
@@ -299,6 +311,8 @@ namespace ModernBox
                 EnsureOtherTabButton("modernbox_other_eras", "ui/icons/Industrial", "MB Eras", "Apariencia manual y conocimiento prohibido.", 0, 1, otherTab.transform, () => openModernBoxSubTab("ModernBoxEras"));
                 EnsureOtherTabButton("modernbox_other_items", "ui/icons/firearm", "Objetos MB", "Abre la pestaña de objetos.", 2, 1, otherTab.transform, () => openModernBoxSubTab("ModernBoxItems"));
             }
+
+            BuildOreSpawnerButtons(resourcesTab);
 
             new ButtonBuilder("nukes_toggle")
                 .SetSprite(Resources.Load<Sprite>("ui/Icons/MIRV_nuke"))
@@ -559,6 +573,28 @@ namespace ModernBox
             Ground,
             Air,
             Naval
+        }
+
+        private static void BuildOreSpawnerButtons(PowersTab resourcesTab)
+        {
+            BuildOreSpawnerButton(resourcesTab, "metal_spawner", "Generador de metal", "Coloca un nodo que expulsa mineral de metal.", 0, 0);
+            BuildOreSpawnerButton(resourcesTab, "gold_spawner", "Generador de oro", "Coloca un nodo que expulsa mineral de oro.", 1, 0);
+            BuildOreSpawnerButton(resourcesTab, "stone_spawner", "Generador de piedra", "Coloca un nodo que expulsa piedra.", 2, 0);
+            BuildOreSpawnerButton(resourcesTab, "silver_spawner", "Generador de plata", "Coloca un nodo que expulsa mineral de plata.", 0, 1);
+            BuildOreSpawnerButton(resourcesTab, "mythril_spawner", "Generador de mitril", "Coloca un nodo que expulsa mineral de mitril.", 1, 1);
+            BuildOreSpawnerButton(resourcesTab, "adamantine_spawner", "Generador de adamantita", "Coloca un nodo que expulsa mineral de adamantita.", 2, 1);
+        }
+
+        private static void BuildOreSpawnerButton(PowersTab resourcesTab, string id, string title, string description, int x, int y)
+        {
+            new ButtonBuilder(id)
+                .SetSprite(Resources.Load<Sprite>("ui/icons/buttons/" + id))
+                .SetTitle(title)
+                .SetDescription(description)
+                .SetPosition(x, y)
+                .SetType(ButtonType.GodPower)
+                .SetTransform(resourcesTab.transform)
+                .Build();
         }
 
         private static void BuildUnitCategoryHub(PowersTab hubTab)
