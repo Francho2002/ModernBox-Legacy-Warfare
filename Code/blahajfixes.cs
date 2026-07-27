@@ -158,12 +158,24 @@ namespace ModernBox
             "frostmissileartillery",
             "plantmissileartillery",
             "NUKER",
-            "SSBN_CZAR_WARHEAD"
+            "modernbox_baseline_ssbn_warhead",
+            "SSBN_CZAR_WARHEAD",
+            "modernbox_torpedo",
+            "modernbox_arsenal_warhead",
+            "modernbox_trident_warhead",
+            "modernbox_neutron_warhead",
+            "modernbox_emp_warhead",
+            "modernbox_hammer_warhead",
+            "modernbox_ruin_warhead"
         };
 
         private sealed class ProjectileLifetime
         {
             public float age;
+            public float initialDistance;
+            public float lastDistance;
+            public float stalledSeconds;
+            public bool hasDistanceSample;
         }
 
         private static void Prefix(Projectile __instance, float pElapsed)
@@ -180,10 +192,12 @@ namespace ModernBox
             }
 
             // These projectiles are spawned against a position, often beyond the
-            // generic 2.5-second cleanup distance. Let Projectile.update remove
-            // them when they actually reach that position.
+            // generic 2.5-second cleanup distance. They need a longer allowance,
+            // but never an unlimited one: a malformed/overshot target vector can
+            // otherwise leave a visible missile looping forever.
             if (LongRangeImpactProjectiles.Contains(id))
             {
+                TrackLongRangeProjectile(__instance, pElapsed);
                 return;
             }
 
@@ -197,6 +211,54 @@ namespace ModernBox
             if (data.age > 2.5f)
             {
                 __instance.setState(ProjectileState.ToRemove);
+            }
+        }
+
+        private static void TrackLongRangeProjectile(Projectile projectile, float elapsed)
+        {
+            ProjectileLifetime data = Timers.GetOrCreateValue(projectile);
+            float safeElapsed = Mathf.Max(0f, elapsed);
+            data.age += safeElapsed;
+
+            Vector2 current = projectile.getCurrentPosition();
+            Vector2 target = projectile.getTargetVector();
+            float remainingDistance = Vector2.Distance(current, target);
+            bool invalidPosition = float.IsNaN(remainingDistance) || float.IsInfinity(remainingDistance);
+            if (invalidPosition)
+            {
+                projectile.setState(ProjectileState.ToRemove);
+                Timers.Remove(projectile);
+                return;
+            }
+
+            if (!data.hasDistanceSample)
+            {
+                data.hasDistanceSample = true;
+                data.initialDistance = remainingDistance;
+                data.lastDistance = remainingDistance;
+            }
+            else
+            {
+                // A small tolerance prevents normal low-frame-rate motion from
+                // being misclassified as a loop, while a missile parked away
+                // from its destination is cleaned up after a visible grace time.
+                if (remainingDistance + 0.08f < data.lastDistance)
+                    data.stalledSeconds = 0f;
+                else if (remainingDistance > 1.5f)
+                    data.stalledSeconds += safeElapsed;
+
+                data.lastDistance = remainingDistance;
+            }
+
+            float speed = Mathf.Max(1f, projectile.asset.speed);
+            float lifetimeLimit = Mathf.Clamp(12f + (data.initialDistance / speed) * 4f, 18f, 45f);
+            if (remainingDistance > 1.5f && (data.stalledSeconds > 4.5f || data.age > lifetimeLimit))
+            {
+                // Do not synthesize an explosion at an unknown/invalid point.
+                // The normal game path remains responsible for every valid
+                // impact; this only removes a projectile proven unable to land.
+                projectile.setState(ProjectileState.ToRemove);
+                Timers.Remove(projectile);
             }
         }
 
