@@ -123,6 +123,7 @@ namespace ModernBox{
                 AchievementManager = gameObject.AddComponent<AchievementManager>();
                 StatManager = gameObject.AddComponent<StatManager>();
                 gameObject.AddComponent<MilitaryProgressionController>();
+                gameObject.AddComponent<AntiSubmarineWarfareController>();
                 gameObject.AddComponent<GroundMissileProductionController>();
                 gameObject.AddComponent<ForbiddenKnowledgeKeeper>();
                 if (EnableRuntimeUiEffects)
