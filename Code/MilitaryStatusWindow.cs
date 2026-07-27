@@ -19,10 +19,21 @@ namespace ModernBox
         private const string WindowId = "MilitaryStatusWindow";
         private const float WindowWidth = 560f;
         private const float WindowHeight = 510f;
+        // A city report has substantial production detail. Keeping one city on a
+        // page prevents Unity's Text mesh from exceeding its vertex limit while
+        // still making every city available through the page controls.
+        private const int MaximumUnitGroupsPerCity = 10;
+        private const int MaximumCandidatesPerLine = 8;
+        private const int MaximumDockLinesPerCity = 4;
 
         private static ScrollWindow window;
         private static GameObject content;
         private static Text reportText;
+        private static Text pageLabel;
+        private static Button previousPageButton;
+        private static Button nextPageButton;
+        private static int currentPage;
+        private static int pageCount;
         private static bool initialized;
 
         private sealed class ProductionCandidate
@@ -34,6 +45,14 @@ namespace ModernBox
             internal string costLabel;
         }
 
+        private sealed class ReportPage
+        {
+            internal Kingdom kingdom;
+            internal City city;
+            internal int cityNumber;
+            internal int cityCount;
+        }
+
         internal static void init()
         {
             if (initialized)
@@ -41,7 +60,8 @@ namespace ModernBox
 
             try
             {
-                window = Windows.CreateNewWindow(WindowId, "ModernBox");
+                if (window == null)
+                    window = Windows.CreateNewWindow(WindowId, "ModernBox");
                 if (window == null)
                 {
                     ModernBoxLogger.Warning("[MX.Intel] No se pudo crear la ventana de estado militar.");
@@ -71,6 +91,7 @@ namespace ModernBox
                 content = contentTransform.gameObject;
                 ConfigureTitle(background);
                 CreateReportText(contentTransform);
+                CreatePageControls(background);
                 CreateRefreshButton(background);
                 initialized = true;
                 Refresh();
@@ -85,7 +106,7 @@ namespace ModernBox
         {
             init();
             Refresh();
-            if (initialized)
+            if (window != null)
                 Windows.ShowWindow(WindowId);
         }
 
@@ -97,12 +118,15 @@ namespace ModernBox
             try
             {
                 reportText.text = BuildReport();
+                UpdatePageControls();
                 ResizeContent();
             }
             catch (Exception ex)
             {
                 reportText.text = "<color=#FF7777>No se pudo actualizar el informe militar.</color>\n" +
                     Escape(ex.Message);
+                pageCount = 0;
+                UpdatePageControls();
                 ResizeContent();
                 ModernBoxLogger.Error("[MX.Intel] Error al actualizar estado militar: " + ex.Message);
             }
@@ -183,6 +207,95 @@ namespace ModernBox
             labelRect.offsetMax = Vector2.zero;
         }
 
+        private static void CreatePageControls(Transform background)
+        {
+            previousPageButton = CreateControlButton(background, "MilitaryStatusPrevious", "Anterior", new Vector2(-224f, 11f), 78f, PreviousPage);
+            nextPageButton = CreateControlButton(background, "MilitaryStatusNext", "Siguiente", new Vector2(-119f, 11f), 78f, NextPage);
+
+            GameObject labelObject = new GameObject("MilitaryStatusPageLabel");
+            labelObject.transform.SetParent(background, false);
+            pageLabel = labelObject.AddComponent<Text>();
+            pageLabel.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            pageLabel.fontSize = 10;
+            pageLabel.alignment = TextAnchor.MiddleCenter;
+            pageLabel.color = new Color(0.87f, 0.91f, 0.95f, 1f);
+
+            RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0f, 0f);
+            labelRect.anchorMax = new Vector2(0f, 0f);
+            labelRect.pivot = new Vector2(0f, 0f);
+            labelRect.anchoredPosition = new Vector2(18f, 12f);
+            labelRect.sizeDelta = new Vector2(180f, 23f);
+        }
+
+        private static Button CreateControlButton(Transform background, string name, string labelText, Vector2 position, float width, UnityEngine.Events.UnityAction action)
+        {
+            GameObject buttonObject = new GameObject(name);
+            buttonObject.transform.SetParent(background, false);
+
+            Image image = buttonObject.AddComponent<Image>();
+            image.color = new Color(0.20f, 0.34f, 0.45f, 0.95f);
+            Button button = buttonObject.AddComponent<Button>();
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1f, 1f, 0.78f, 1f);
+            colors.pressedColor = new Color(0.72f, 0.88f, 1f, 1f);
+            colors.disabledColor = new Color(0.52f, 0.52f, 0.52f, 0.65f);
+            button.colors = colors;
+            button.onClick.AddListener(action);
+
+            RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
+            buttonRect.anchorMin = new Vector2(1f, 0f);
+            buttonRect.anchorMax = new Vector2(1f, 0f);
+            buttonRect.pivot = new Vector2(1f, 0f);
+            buttonRect.anchoredPosition = position;
+            buttonRect.sizeDelta = new Vector2(width, 25f);
+
+            GameObject labelObject = new GameObject("Label");
+            labelObject.transform.SetParent(buttonObject.transform, false);
+            Text label = labelObject.AddComponent<Text>();
+            label.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            label.fontSize = 10;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = Color.white;
+            label.text = labelText;
+
+            RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            return button;
+        }
+
+        private static void PreviousPage()
+        {
+            if (currentPage <= 0)
+                return;
+
+            currentPage--;
+            Refresh();
+        }
+
+        private static void NextPage()
+        {
+            if (currentPage >= pageCount - 1)
+                return;
+
+            currentPage++;
+            Refresh();
+        }
+
+        private static void UpdatePageControls()
+        {
+            if (pageLabel != null)
+                pageLabel.text = pageCount > 0 ? "Página " + (currentPage + 1) + " de " + pageCount : "Página 0 de 0";
+            if (previousPageButton != null)
+                previousPageButton.interactable = currentPage > 0;
+            if (nextPageButton != null)
+                nextPageButton.interactable = currentPage + 1 < pageCount;
+        }
+
         private static void ResizeContent()
         {
             if (content == null || reportText == null)
@@ -208,10 +321,31 @@ namespace ModernBox
 
             if (World.world == null || World.world.kingdoms == null)
             {
+                pageCount = 0;
                 result.AppendLine("<color=#FFCC77>No hay un mundo de civilizaciones activo todavía.</color>");
                 return result.ToString();
             }
 
+            List<ReportPage> pages = GetReportPages();
+            pageCount = pages.Count;
+            if (pageCount == 0)
+            {
+                result.AppendLine("<color=#FFCC77>No hay civilizaciones activas para informar.</color>");
+                return result.ToString();
+            }
+
+            currentPage = Mathf.Clamp(currentPage, 0, pageCount - 1);
+            ReportPage page = pages[currentPage];
+            result.AppendLine("<color=#AFC7D6>Página " + (currentPage + 1) + " de " + pageCount +
+                " - ciudad " + page.cityNumber + " de " + page.cityCount + " del reino seleccionado.</color>");
+            result.AppendLine();
+            AppendKingdomReport(result, page);
+
+            return result.ToString();
+        }
+
+        private static List<ReportPage> GetReportPages()
+        {
             List<Kingdom> kingdoms = new List<Kingdom>();
             foreach (Kingdom kingdom in World.world.kingdoms)
             {
@@ -219,22 +353,38 @@ namespace ModernBox
                     kingdoms.Add(kingdom);
             }
 
-            if (kingdoms.Count == 0)
-            {
-                result.AppendLine("<color=#FFCC77>No hay civilizaciones activas para informar.</color>");
-                return result.ToString();
-            }
-
+            List<ReportPage> pages = new List<ReportPage>();
             foreach (Kingdom kingdom in kingdoms.OrderBy(k => SafeName(k.name, "Reino sin nombre")))
             {
-                AppendKingdomReport(result, kingdom);
-            }
+                List<City> cities = kingdom.cities == null
+                    ? new List<City>()
+                    : kingdom.cities.Where(city => city != null && city.isAlive())
+                        .OrderBy(city => SafeName(GetCityName(city), "Ciudad sin nombre"))
+                        .ToList();
 
-            return result.ToString();
+                if (cities.Count == 0)
+                {
+                    pages.Add(new ReportPage { kingdom = kingdom, cityNumber = 0, cityCount = 0 });
+                    continue;
+                }
+
+                for (int index = 0; index < cities.Count; index++)
+                {
+                    pages.Add(new ReportPage
+                    {
+                        kingdom = kingdom,
+                        city = cities[index],
+                        cityNumber = index + 1,
+                        cityCount = cities.Count
+                    });
+                }
+            }
+            return pages;
         }
 
-        private static void AppendKingdomReport(StringBuilder result, Kingdom kingdom)
+        private static void AppendKingdomReport(StringBuilder result, ReportPage page)
         {
+            Kingdom kingdom = page.kingdom;
             List<City> cities = kingdom.cities == null
                 ? new List<City>()
                 : kingdom.cities.Where(city => city != null && city.isAlive()).ToList();
@@ -250,10 +400,9 @@ namespace ModernBox
                 return;
             }
 
-            foreach (City city in cities.OrderBy(c => SafeName(GetCityName(c), "Ciudad sin nombre")))
-            {
-                AppendCityReport(result, city);
-            }
+            result.AppendLine("  <color=#BBBBBB>Mostrando ciudad " + page.cityNumber + " de " + page.cityCount +
+                ". Usa Anterior/Siguiente para revisar todas las ciudades y reinos.</color>");
+            AppendCityReport(result, page.city);
 
             result.AppendLine();
         }
@@ -293,9 +442,18 @@ namespace ModernBox
             }
 
             result.AppendLine("    Posee:");
-            foreach (KeyValuePair<string, int> group in groups.OrderBy(pair => pair.Key))
+            List<KeyValuePair<string, int>> orderedGroups = groups.OrderBy(pair => pair.Key).ToList();
+            int shownGroups = Math.Min(MaximumUnitGroupsPerCity, orderedGroups.Count);
+            for (int index = 0; index < shownGroups; index++)
             {
+                KeyValuePair<string, int> group = orderedGroups[index];
                 result.AppendLine("      • " + Escape(group.Key) + " ×" + group.Value);
+            }
+            if (orderedGroups.Count > shownGroups)
+            {
+                int remainingUnits = orderedGroups.Skip(shownGroups).Sum(group => group.Value);
+                result.AppendLine("      <color=#BBBBBB>+ " + (orderedGroups.Count - shownGroups) +
+                    " tipos más (" + remainingUnits + " unidades).</color>");
             }
         }
 
@@ -308,7 +466,7 @@ namespace ModernBox
 
             string gate = GetLandGate(city, population, currentLand, landCap);
             result.AppendLine("    Tierra: " + gate + " | capacidad terrestre " + currentLand + "/" + landCap +
-                ", artillería " + currentArtillery + "/" + artilleryCap + ".");
+                ", artillería convencional " + currentArtillery + "/" + artilleryCap + ".");
             result.AppendLine("      Perfil de ciudad: " + MilitaryQuotaService.GetCityQuotaLabel(city) + ".");
 
             List<ProductionCandidate> candidates = GetLandCandidates(city);
@@ -325,10 +483,12 @@ namespace ModernBox
                 .Where(candidate => !MilitaryProgressionController.IsRoleUnlocked(city, candidate.tier, candidate.role, candidate.id))
                 .ToList();
             List<ProductionCandidate> artilleryBlocked = unlocked
-                .Where(candidate => ModernCapPolicy.IsArtillery(candidate.id) && currentArtillery >= artilleryCap)
+                .Where(candidate => ModernCapPolicy.IsConventionalArtillery(candidate.id) &&
+                    currentArtillery >= artilleryCap)
                 .ToList();
             List<ProductionCandidate> productionEligible = unlocked
-                .Where(candidate => !ModernCapPolicy.IsArtillery(candidate.id) || currentArtillery < artilleryCap)
+                .Where(candidate => !ModernCapPolicy.IsConventionalArtillery(candidate.id) ||
+                    currentArtillery < artilleryCap)
                 .ToList();
             List<ProductionCandidate> affordable = productionEligible
                 .Where(candidate => city.hasEnoughResourcesFor(candidate.cost))
@@ -353,7 +513,8 @@ namespace ModernBox
             {
                 result.AppendLine("      Bloqueo: la opción <b>Permitir vehículos</b> está desactivada.");
             }
-            else if (currentLand >= landCap)
+            else if (currentLand >= landCap &&
+                !(MilitaryProgressionController.GetLevel(city) >= 3 && currentArtillery == 0))
             {
                 result.AppendLine("      Bloqueo: la capacidad terrestre de esta ciudad está completa.");
             }
@@ -396,9 +557,9 @@ namespace ModernBox
             {
                 result.AppendLine("    Lanzamisiles terrestre: bloqueado — vehículos desactivados.");
             }
-            else if (population < 100)
+            else if (population < 75)
             {
-                result.AppendLine("    Lanzamisiles terrestre: bloqueado — requiere 100 habitantes (actual: " + population + ").");
+                result.AppendLine("    Lanzamisiles terrestre: bloqueado — requiere 75 habitantes (actual: " + population + ").");
             }
             else if (!MilitaryProgressionController.CanBuildDefensiveLauncher(city))
             {
@@ -440,11 +601,18 @@ namespace ModernBox
             }
 
             result.AppendLine("    Naval: " + dockCount + " puerto(s), " + currentBoats + " embarcación(es) vinculada(s), flota " + Escape(faction) + ".");
-            for (int index = 0; index < docks.Count; index++)
+            int shownDocks = Math.Min(MaximumDockLinesPerCity, docks.Count);
+            for (int index = 0; index < shownDocks; index++)
             {
+                MilitaryQuotaService.DockQuota quota = MilitaryQuotaService.GetDockQuota(docks[index], city);
+                int militaryLimit = Math.Max(2, quota.MilitaryBoats);
                 result.AppendLine("      Puerto " + (index + 1) + ": " +
-                    MilitaryQuotaService.GetDockQuotaLabel(docks[index], city) + ".");
+                    MilitaryQuotaService.GetDockQuotaLabel(docks[index], city) +
+                    "; capacidad militar operativa " + militaryLimit +
+                    " (escolta + submarino especial).");
             }
+            if (docks.Count > shownDocks)
+                result.AppendLine("      + " + (docks.Count - shownDocks) + " puertos más (cupo aplicado individualmente).");
             int kingdomStrategic = MilitaryQuotaService.CountKingdomStrategicAssets(city.kingdom);
             int kingdomStrategicCap = MilitaryQuotaService.GetKingdomStrategicCap(city.kingdom);
             result.AppendLine("      Estratégicos del reino: " + kingdomStrategic + "/" + kingdomStrategicCap + ".");
@@ -505,7 +673,9 @@ namespace ModernBox
             if (!city.hasLeader()) return "<color=#FF8888>bloqueada: sin líder</color>";
             if (!city.hasBuildingType("type_hall")) return "<color=#FF8888>bloqueada: sin ayuntamiento</color>";
             if (population < 20) return "<color=#FF8888>bloqueada: requiere 20 habitantes</color>";
-            if (currentLand >= landCap) return "<color=#FF8888>bloqueada: cupo completo</color>";
+            if (currentLand >= landCap &&
+                !(MilitaryProgressionController.GetLevel(city) >= 3 && CountArtillery(city) == 0))
+                return "<color=#FF8888>bloqueada: cupo completo</color>";
             return "<color=#8FF0A4>habilitada</color>";
         }
 
@@ -569,8 +739,8 @@ namespace ModernBox
                 id.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase) ||
                 id.StartsWith("wheeledtank_", StringComparison.OrdinalIgnoreCase) || id == "AbramTank")
             {
-                cost = new ConstructionCost(9, 7, 6, 3);
-                label = "9 madera, 7 piedra, 6 metal, 3 oro";
+                cost = new ConstructionCost(7, 6, 4, 2);
+                label = "7 madera, 6 piedra, 4 metal, 2 oro";
             }
             else if (tier == "renacimiento")
             {
@@ -620,43 +790,48 @@ namespace ModernBox
                 string label;
                 if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
                 {
-                    cost = new ConstructionCost(18, 16, 14, 9);
-                    label = "18 madera, 16 piedra, 14 metal, 9 oro";
+                    cost = new ConstructionCost(15, 13, 11, 6);
+                    label = "15 madera, 13 piedra, 11 metal, 6 oro";
                 }
                 else if (id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase))
                 {
-                    cost = new ConstructionCost(8, 7, 6, 3);
-                    label = "8 madera, 7 piedra, 6 metal, 3 oro";
+                    cost = new ConstructionCost(6, 5, 3, 1);
+                    label = "6 madera, 5 piedra, 3 metal, 1 oro";
                 }
                 else if (id.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase))
                 {
-                    cost = new ConstructionCost(11, 9, 8, 4);
-                    label = "11 madera, 9 piedra, 8 metal, 4 oro";
+                    cost = new ConstructionCost(8, 7, 5, 2);
+                    label = "8 madera, 7 piedra, 5 metal, 2 oro";
                 }
                 else if (id.StartsWith("TridentSubmarine_", StringComparison.OrdinalIgnoreCase))
                 {
-                    cost = new ConstructionCost(15, 13, 12, 8);
-                    label = "15 madera, 13 piedra, 12 metal, 8 oro";
+                    cost = new ConstructionCost(12, 10, 8, 4);
+                    label = "12 madera, 10 piedra, 8 metal, 4 oro";
                 }
                 else if (id.StartsWith("NeutronSubmarine_", StringComparison.OrdinalIgnoreCase))
                 {
-                    cost = new ConstructionCost(13, 11, 10, 6);
-                    label = "13 madera, 11 piedra, 10 metal, 6 oro";
+                    cost = new ConstructionCost(9, 8, 6, 3);
+                    label = "9 madera, 8 piedra, 6 metal, 3 oro";
                 }
                 else if (id.StartsWith("EmpSubmarine_", StringComparison.OrdinalIgnoreCase))
                 {
-                    cost = new ConstructionCost(12, 10, 9, 5);
-                    label = "12 madera, 10 piedra, 9 metal, 5 oro";
+                    cost = new ConstructionCost(9, 8, 6, 3);
+                    label = "9 madera, 8 piedra, 6 metal, 3 oro";
                 }
                 else if (id.StartsWith("HammerSubmarine_", StringComparison.OrdinalIgnoreCase))
                 {
-                    cost = new ConstructionCost(16, 14, 13, 8);
-                    label = "16 madera, 14 piedra, 13 metal, 8 oro";
+                    cost = new ConstructionCost(13, 11, 9, 5);
+                    label = "13 madera, 11 piedra, 9 metal, 5 oro";
                 }
                 else if (id.StartsWith("RuinSubmarine_", StringComparison.OrdinalIgnoreCase))
                 {
-                    cost = new ConstructionCost(13, 11, 9, 5);
-                    label = "13 madera, 11 piedra, 9 metal, 5 oro";
+                    cost = new ConstructionCost(9, 8, 6, 3);
+                    label = "9 madera, 8 piedra, 6 metal, 3 oro";
+                }
+                else if (IsSubmarine(id))
+                {
+                    cost = new ConstructionCost(8, 7, 5, 2);
+                    label = "8 madera, 7 piedra, 5 metal, 2 oro";
                 }
                 else if (IsMilitaryBoat(id))
                 {
@@ -685,8 +860,12 @@ namespace ModernBox
             if (list.Count == 0)
                 return "ninguno";
 
-            return string.Join(", ", list.Select(candidate =>
+            int shown = Math.Min(MaximumCandidatesPerLine, list.Count);
+            string description = string.Join(", ", list.Take(shown).Select(candidate =>
                 Escape(candidate.id) + " <color=#B9C9D8>(" + Escape(candidate.costLabel) + ")</color>"));
+            if (list.Count > shown)
+                description += " <color=#BBBBBB>+ " + (list.Count - shown) + " más</color>";
+            return description;
         }
 
         private static int CountLandMilitary(City city)
@@ -714,7 +893,8 @@ namespace ModernBox
             int count = 0;
             foreach (Actor unit in city.units)
             {
-                if (unit != null && unit.isAlive() && ModernCapPolicy.IsArtillery(unit.asset?.id))
+                if (unit != null && unit.isAlive() &&
+                    ModernCapPolicy.IsConventionalArtillery(unit.asset?.id))
                     count++;
             }
             return count;
