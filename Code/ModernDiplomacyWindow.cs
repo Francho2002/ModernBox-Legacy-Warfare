@@ -13,10 +13,10 @@ namespace ModernBox
     internal static class ModernDiplomacyWindow
     {
         private const string WindowId = "ModernDiplomacyWindow";
-        private const float WindowWidth = 560f;
-        private const float WindowHeight = 510f;
-        private const float FooterHeight = 36f;
-        private const float FooterBottomInset = 44f;
+        // Use the native legacy prefab dimensions. Resizing Background makes
+        // the stock title and close control drift on wide displays.
+        private const float FooterHeight = 26f;
+        private const float FooterBottomInset = 32f;
 
         private static readonly Color AccentColor = new Color(0.70f, 0.58f, 0.96f, 1f);
         private static readonly Color ButtonColor = new Color(0.25f, 0.17f, 0.39f, 0.96f);
@@ -26,16 +26,20 @@ namespace ModernBox
         private static Text pageLabel;
         private static Button previous;
         private static Button next;
+        private static Button detail;
         private static RectTransform contentRect;
         private static RectTransform viewportRect;
         private static ScrollRect reportScroll;
         private static int page;
+        private static bool detailedView;
         private static bool initialized;
 
         internal static void init()
         {
-            if (initialized)
+            if (initialized && window != null && report != null)
                 return;
+
+            initialized = false;
 
             try
             {
@@ -59,9 +63,10 @@ namespace ModernBox
 
                 Transform footer = CreateFooter(background);
                 pageLabel = CreatePageLabel(footer);
-                previous = CreateButton(footer, "ModernDiplomacyPrevious", "Anterior", 78f, Previous);
-                next = CreateButton(footer, "ModernDiplomacyNext", "Siguiente", 78f, Next);
-                CreateButton(footer, "ModernDiplomacyRefresh", "Actualizar", 94f, Refresh);
+                previous = CreateButton(footer, "ModernDiplomacyPrevious", "<", 24f, Previous);
+                next = CreateButton(footer, "ModernDiplomacyNext", ">", 24f, Next);
+                CreateButton(footer, "ModernDiplomacyRefresh", "\u21bb", 24f, Refresh);
+                detail = CreateButton(footer, "ModernDiplomacyDetail", "\u2261", 24f, ToggleDetail);
 
                 initialized = true;
                 Refresh();
@@ -89,7 +94,7 @@ namespace ModernBox
 
             title.text = "Centro diplomático";
             title.color = AccentColor;
-            title.fontSize = 15;
+            title.fontSize = 12;
             title.alignment = TextAnchor.MiddleCenter;
             title.supportRichText = true;
         }
@@ -101,8 +106,8 @@ namespace ModernBox
 
             report = textObject.AddComponent<Text>();
             report.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            report.fontSize = 11;
-            report.lineSpacing = 1.08f;
+            report.fontSize = 9;
+            report.lineSpacing = 0.97f;
             report.alignment = TextAnchor.UpperLeft;
             report.color = new Color(0.95f, 0.93f, 1f, 1f);
             report.supportRichText = true;
@@ -114,8 +119,8 @@ namespace ModernBox
             rect.anchorMin = new Vector2(0f, 1f);
             rect.anchorMax = new Vector2(1f, 1f);
             rect.pivot = new Vector2(0.5f, 1f);
-            rect.anchoredPosition = new Vector2(8f, -8f);
-            rect.sizeDelta = new Vector2(-16f, 360f);
+            rect.anchoredPosition = new Vector2(4f, -4f);
+            rect.sizeDelta = new Vector2(-8f, 180f);
         }
 
         private static void Previous()
@@ -136,39 +141,47 @@ namespace ModernBox
             Refresh();
         }
 
+        private static void ToggleDetail()
+        {
+            detailedView = !detailedView;
+            Refresh();
+        }
+
         private static void Refresh()
         {
             if (!initialized || report == null)
                 return;
 
             int count = ModernDiplomacyController.PageCount;
-            const string introduction =
-                "<color=#C7B5FF><b>CENTRO DIPLOMÁTICO — SISTEMA AUTOMÁTICO</b></color>\n" +
-                "<color=#B7C9DD>No tienes que activar cada pacto manualmente. Los reinos negocian según su poder, opinión y situación; este panel permite consultar los acuerdos y sus efectos.</color>\n\n";
             if (count <= 0)
             {
                 page = 0;
-                report.text = introduction +
-                    "<color=#FFCC77>No hay civilizaciones activas. Crea o carga reinos y vuelve a pulsar Actualizar.</color>";
+                report.text = "<color=#FFCC77>No hay civilizaciones activas.</color>";
                 if (pageLabel != null)
-                    pageLabel.text = "Sin civilizaciones";
+                    pageLabel.text = "Sin reinos";
                 if (previous != null)
                     previous.interactable = false;
                 if (next != null)
                     next.interactable = false;
+                if (detail != null)
+                    detail.interactable = false;
                 ResizeContent();
                 return;
             }
 
             page = Mathf.Clamp(page, 0, count - 1);
-            report.text = introduction + ModernDiplomacyController.BuildReport(page);
+            report.text = detailedView
+                ? ModernDiplomacyController.BuildReport(page)
+                : ModernDiplomacyController.BuildCompactReport(page);
 
             if (pageLabel != null)
-                pageLabel.text = "Reino " + (page + 1) + " de " + count + " · automático";
+                pageLabel.text = (page + 1) + "/" + count + (detailedView ? " · detalle" : " · resumen");
             if (previous != null)
                 previous.interactable = page > 0;
             if (next != null)
                 next.interactable = page + 1 < count;
+            if (detail != null)
+                detail.interactable = true;
 
             ResizeContent();
         }
@@ -182,10 +195,11 @@ namespace ModernBox
             if (reportRect == null)
                 return;
 
-            float viewportHeight = viewportRect == null ? 350f : Mathf.Max(250f, viewportRect.rect.height);
-            float height = Mathf.Max(viewportHeight, report.preferredHeight + 24f);
-            reportRect.sizeDelta = new Vector2(-16f, height);
-            contentRect.sizeDelta = new Vector2(contentRect.sizeDelta.x, height + 12f);
+            Canvas.ForceUpdateCanvases();
+            float viewportHeight = viewportRect == null ? 160f : Mathf.Max(120f, viewportRect.rect.height);
+            float height = Mathf.Max(viewportHeight, report.preferredHeight + 10f);
+            reportRect.sizeDelta = new Vector2(-8f, height);
+            contentRect.sizeDelta = new Vector2(contentRect.sizeDelta.x, height + 6f);
             LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
             if (reportScroll != null)
                 reportScroll.verticalNormalizedPosition = 1f;
@@ -203,12 +217,12 @@ namespace ModernBox
             rect.anchorMin = new Vector2(0f, 0f);
             rect.anchorMax = new Vector2(1f, 0f);
             rect.pivot = new Vector2(0.5f, 0f);
-            rect.anchoredPosition = new Vector2(0f, 8f);
-            rect.sizeDelta = new Vector2(-30f, FooterHeight);
+            rect.anchoredPosition = new Vector2(0f, 4f);
+            rect.sizeDelta = new Vector2(-16f, FooterHeight);
 
             HorizontalLayoutGroup layout = footer.AddComponent<HorizontalLayoutGroup>();
-            layout.padding = new RectOffset(8, 8, 5, 5);
-            layout.spacing = 8f;
+            layout.padding = new RectOffset(4, 4, 2, 2);
+            layout.spacing = 3f;
             layout.childAlignment = TextAnchor.MiddleLeft;
             layout.childControlWidth = true;
             layout.childControlHeight = true;
@@ -224,7 +238,7 @@ namespace ModernBox
 
             Text label = obj.AddComponent<Text>();
             label.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            label.fontSize = 9;
+            label.fontSize = 8;
             label.alignment = TextAnchor.MiddleLeft;
             label.color = new Color(0.91f, 0.88f, 1f, 1f);
 
@@ -234,7 +248,7 @@ namespace ModernBox
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
             LayoutElement layout = obj.AddComponent<LayoutElement>();
-            layout.minWidth = 80f;
+            layout.minWidth = 42f;
             layout.flexibleWidth = 1f;
             return label;
         }
@@ -262,16 +276,16 @@ namespace ModernBox
             button.onClick.AddListener(action);
 
             RectTransform rect = obj.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(width, 25f);
+            rect.sizeDelta = new Vector2(width, 22f);
             LayoutElement layout = obj.AddComponent<LayoutElement>();
             layout.minWidth = layout.preferredWidth = width;
-            layout.minHeight = layout.preferredHeight = 25f;
+            layout.minHeight = layout.preferredHeight = 22f;
 
             GameObject labelObject = new GameObject("Label");
             labelObject.transform.SetParent(obj.transform, false);
             Text label = labelObject.AddComponent<Text>();
             label.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            label.fontSize = 10;
+            label.fontSize = 12;
             label.alignment = TextAnchor.MiddleCenter;
             label.color = Color.white;
             label.text = text;
@@ -290,23 +304,18 @@ namespace ModernBox
             Transform viewport,
             Transform content)
         {
-            RectTransform windowRect = window.GetComponent<RectTransform>();
             RectTransform backgroundRect = background.GetComponent<RectTransform>();
             RectTransform scrollRect = scrollTransform.GetComponent<RectTransform>();
             viewportRect = viewport.GetComponent<RectTransform>();
             RectTransform innerContentRect = content.GetComponent<RectTransform>();
 
-            if (windowRect != null)
-                windowRect.sizeDelta = new Vector2(WindowWidth, WindowHeight);
-            if (backgroundRect != null)
-                backgroundRect.sizeDelta = new Vector2(WindowWidth, WindowHeight);
             if (scrollRect != null)
             {
                 scrollRect.anchorMin = Vector2.zero;
                 scrollRect.anchorMax = Vector2.one;
                 scrollRect.pivot = new Vector2(0.5f, 0.5f);
-                scrollRect.offsetMin = new Vector2(14f, FooterBottomInset + 4f);
-                scrollRect.offsetMax = new Vector2(-14f, -40f);
+                scrollRect.offsetMin = new Vector2(8f, FooterBottomInset);
+                scrollRect.offsetMax = new Vector2(-8f, -28f);
             }
 
             reportScroll = scrollTransform.GetComponent<ScrollRect>();

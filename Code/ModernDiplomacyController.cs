@@ -789,6 +789,50 @@ namespace ModernBox
         }
 
         internal static int PageCount { get { return Civilizations().Count; } }
+
+        internal static string BuildCompactReport(int page)
+        {
+            List<Kingdom> kingdoms = Civilizations();
+            if (kingdoms.Count == 0)
+                return "<color=#FFCC77>No hay civilizaciones activas.</color>";
+
+            Kingdom kingdom = kingdoms[Mathf.Clamp(page, 0, kingdoms.Count - 1)];
+            CountryState state = State(kingdom);
+            StringBuilder text = new StringBuilder();
+            text.AppendLine("<color=#C7B5FF><b>" + Escape(Name(kingdom)) + "</b></color>");
+            text.AppendLine("Oro " + TotalGold(kingdom) + " · crédito militar " +
+                Mathf.RoundToInt(state.armsCredit * 100f) + "%.");
+            text.AppendLine("Títere: " + (state.puppetMasterId == 0
+                ? "ninguno"
+                : Escape(Name(Find(state.puppetMasterId)))) + " · organización: " +
+                (string.IsNullOrEmpty(state.organizationId) ? "ninguna" : "Liga Moderna") + ".");
+
+            List<DiplomacyLink> visibleLinks = state.links
+                .Where(link => !link.resolved && (link.expiresAt == 0 || link.expiresAt >= Now()))
+                .Take(4)
+                .ToList();
+            if (visibleLinks.Count == 0)
+            {
+                text.AppendLine("Relaciones: <color=#B7C9DD>sin compromisos activos.</color>");
+            }
+            else
+            {
+                text.AppendLine("<color=#B7C9DD>Relaciones</color>");
+                foreach (DiplomacyLink link in visibleLinks)
+                    text.AppendLine("• " + Escape(link.type) + " — " + Escape(Name(Find(link.otherId))) + ".");
+            }
+
+            List<LedgerEntry> events = state.ledger.Take(3).ToList();
+            if (events.Count > 0)
+            {
+                text.AppendLine("<color=#B7C9DD>Últimos eventos</color>");
+                foreach (LedgerEntry entry in events)
+                    text.AppendLine("• " + Escape(entry.text));
+            }
+            text.AppendLine("<color=#AFC7D6>≡ muestra efectos y registro completo.</color>");
+            return text.ToString();
+        }
+
         internal static string BuildReport(int page)
         {
             List<Kingdom> kingdoms = Civilizations();
