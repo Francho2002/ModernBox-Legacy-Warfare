@@ -413,7 +413,10 @@ namespace ModernBox
 			missileartillery.terraform_option = "modern_cap_missile_blast";
 			missileartillery.terraform_range = 4;
 			missileartillery.sound_launch = "event:/SFX/WEAPONS/WeaponShotgunStart";
-			missileartillery.sound_impact = null;
+			// NeoModLoader's audio patch performs a dictionary lookup even for
+			// silent projectiles and throws when the key itself is null.  The
+			// distant-impact controller supplies this missile's audible report.
+			missileartillery.sound_impact = string.Empty;
 			missileartillery.end_effect = "fx_firebomb_explosion";
 			missileartillery.trail_effect_enabled = true;
 			missileartillery.trail_effect_id = "modern_cap_missile_trail";
@@ -442,7 +445,7 @@ namespace ModernBox
 			fireboneartillery.terraform_option = "modern_cap_missile_blast";
 			fireboneartillery.terraform_range = 4;
 			fireboneartillery.sound_launch = "event:/SFX/WEAPONS/WeaponShotgunStart";
-			fireboneartillery.sound_impact = null;
+			fireboneartillery.sound_impact = string.Empty;
 			fireboneartillery.end_effect = "fx_firebomb_explosion";
 			fireboneartillery.trail_effect_enabled = true;
 			fireboneartillery.trail_effect_id = "modern_cap_missile_trail";
@@ -471,7 +474,7 @@ namespace ModernBox
 			frostmissileartillery.terraform_option = "modern_cap_missile_blast";
 			frostmissileartillery.terraform_range = 4;
 			frostmissileartillery.sound_launch = "event:/SFX/WEAPONS/WeaponShotgunStart";
-			frostmissileartillery.sound_impact = null;
+			frostmissileartillery.sound_impact = string.Empty;
 			frostmissileartillery.end_effect = "fx_firebomb_explosion";
 			frostmissileartillery.trail_effect_enabled = true;
 			frostmissileartillery.trail_effect_id = "modern_cap_missile_trail";
@@ -501,7 +504,7 @@ namespace ModernBox
 			plantmissileartillery.terraform_range = 4;
 			plantmissileartillery.terraform_option = "modern_cap_missile_blast";
 			plantmissileartillery.sound_launch = "event:/SFX/WEAPONS/WeaponShotgunStart";
-			plantmissileartillery.sound_impact = null;
+			plantmissileartillery.sound_impact = string.Empty;
 			plantmissileartillery.end_effect = "fx_firebomb_explosion";
 			plantmissileartillery.trail_effect_enabled = true;
 			plantmissileartillery.trail_effect_id = "modern_cap_missile_trail";
@@ -1414,7 +1417,7 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
             SSBN_CZAR_WARHEAD.sound_launch = "event:/SFX/WEAPONS/WeaponFireballStart";
             // The huge explosion effect already plays WorldBox's native impact sound.
             // Leaving a projectile sound here would play it twice.
-            SSBN_CZAR_WARHEAD.sound_impact = null;
+            SSBN_CZAR_WARHEAD.sound_impact = string.Empty;
             SSBN_CZAR_WARHEAD.end_effect = "fx_explosion_huge";
             SSBN_CZAR_WARHEAD.end_effect_scale = 1.5f;
             SSBN_CZAR_WARHEAD.trail_effect_enabled = true;

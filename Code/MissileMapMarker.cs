@@ -13,6 +13,11 @@ namespace ModernBox
     /// </summary>
     internal static class MissileMapMarker
     {
+        // Overview rendering can run every frame. This keeps the additional
+        // marker pass bounded during a saturation launch without changing the
+        // physical projectile or allocating marker state.
+        private const int MaximumOverviewMarkers = 192;
+
         private static readonly HashSet<string> ConventionalProjectiles =
             new HashSet<string>(StringComparer.Ordinal)
             {
@@ -31,12 +36,18 @@ namespace ModernBox
             if (!MapBox.isRenderMiniMap() || spriteAsset?.group_system == null)
                 return;
 
-            List<Projectile> projectiles = World.world?.projectiles?.list;
+            if (World.world == null)
+                return;
+
+            List<Projectile> projectiles = World.world.projectiles?.list;
             if (projectiles == null)
                 return;
 
+            int drawn = 0;
             foreach (Projectile projectile in projectiles)
             {
+                if (drawn >= MaximumOverviewMarkers)
+                    break;
                 if (!TryGetMarkerScale(projectile, out float markerScale))
                     continue;
 
@@ -47,7 +58,7 @@ namespace ModernBox
 
                 QuantumSprite marker = spriteAsset.group_system.getNext();
                 if (marker == null)
-                    continue;
+                    break;
 
                 Vector3 position = projectile.getTransformedPositionWithHeight();
                 position.z = projectile.getCurrentHeight();
@@ -58,6 +69,7 @@ namespace ModernBox
 
                 Color color = new Color(1f, 1f, 1f, projectile.getAlpha());
                 marker.setColor(ref color);
+                drawn++;
             }
         }
 

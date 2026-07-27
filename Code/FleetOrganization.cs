@@ -50,16 +50,27 @@ namespace ModernBox
 
             if (OrdersByDock.TryGetValue(dock, out FleetOrder order) && IsUsableOrder(boat, order))
             {
-                // This is just the destination used by the normal boat AI.
-                // No position is assigned, so ships keep natural navigation.
-                boat.beh_tile_target = order.target;
-                return;
+                // Map destruction can turn a formerly valid sea tile into an
+                // invalid destination. Revalidate it from each ship before
+                // handing it to the native pathfinder; otherwise one stale
+                // fleet order can cause RegionPathFinder failures every tick.
+                WorldTile reachableTarget = GetReachableSeaTarget(boat, order.target);
+                if (reachableTarget != null)
+                {
+                    // This is just the destination used by the normal boat
+                    // AI. No position is assigned, so ships keep natural
+                    // navigation, collision and combat behaviour.
+                    boat.beh_tile_target = reachableTarget;
+                    return;
+                }
+
+                OrdersByDock.Remove(dock);
             }
 
             // BehWarBoatFindTarget has just selected a legal, reachable sea
             // tile for this ship.  Make that natural choice the dock's order.
             WorldTile naturalTarget = boat.beh_tile_target;
-            if (naturalTarget == null)
+            if (!IsNavigableSeaTile(naturalTarget))
                 return;
 
             OrdersByDock[dock] = new FleetOrder
@@ -109,6 +120,26 @@ namespace ModernBox
                 }
             }
             return null;
+        }
+
+        private static WorldTile GetReachableSeaTarget(Actor boat, WorldTile target)
+        {
+            if (boat?.current_tile == null || boat.current_tile.region == null || target == null ||
+                target.region == null || !IsNavigableSeaTile(target))
+                return null;
+
+            // OceanHelper is the same WorldBox helper used by the base war
+            // boat behaviour. It returns null instead of requesting a global
+            // boat path to a broken/non-liquid target.
+            WorldTile reachable = OceanHelper.findTileForBoat(boat.current_tile, target);
+            return reachable != null && reachable.region != null && IsNavigableSeaTile(reachable)
+                ? reachable
+                : null;
+        }
+
+        private static bool IsNavigableSeaTile(WorldTile tile)
+        {
+            return tile?.Type != null && (tile.Type.ocean || tile.Type.liquid);
         }
 
         private static void CleanupExpiredOrders()
@@ -273,7 +304,9 @@ namespace ModernBox
 
         private static bool LaunchSafeTorpedo(Actor defender, Actor target)
         {
-            if (AssetManager.projectiles?.get("modernbox_torpedo") == null)
+            if (defender == null || target == null || !target.isAlive() || defender.current_tile == null ||
+                target.current_tile == null || World.world?.projectiles == null ||
+                AssetManager.projectiles?.get("modernbox_torpedo") == null)
                 return false;
 
             Vector3 origin = defender.current_position;
