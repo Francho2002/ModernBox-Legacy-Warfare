@@ -5,9 +5,9 @@ using System.Linq;
 namespace ModernBox
 {
     /// <summary>
-    /// Common dock production for all visual eras. A dock retains the legacy
-    /// four-boat/two-military cap, while strategic submarines get a separate
-    /// one-per-port ceiling so the new classes cannot flood a kingdom.
+    /// Common dock production for all visual eras. Each dock receives a
+    /// deterministic small quota from MilitaryQuotaService, while strategic
+    /// submarines are additionally constrained at kingdom level.
     /// </summary>
     internal static class UnifiedNavalProduction
     {
@@ -38,10 +38,6 @@ namespace ModernBox
             "submarine", "arsenal_submarine", "trident_submarine", "neutron_submarine",
             "emp_submarine", "hammer_submarine", "ruin_submarine", "salvo_submarine"
         };
-
-        private const int TotalBoatCapPerDock = 4;
-        private const int MilitaryBoatCapPerDock = 2;
-        private const int StrategicSubmarineCapPerDock = 1;
 
         internal static void EnableAllDocks()
         {
@@ -149,15 +145,21 @@ namespace ModernBox
             int military = CountDockBoats(dock, faction, MilitaryBoatTypePrefixes);
             int normalMilitary = CountDockBoats(dock, faction, NormalMilitaryBoatTypePrefixes);
             int strategic = CountDockBoats(dock, faction, StrategicBoatTypePrefixes);
-            if (total >= TotalBoatCapPerDock)
+            MilitaryQuotaService.DockQuota quota = MilitaryQuotaService.GetDockQuota(dock, city);
+            int kingdomStrategic = MilitaryQuotaService.CountKingdomStrategicAssets(city?.kingdom);
+            int kingdomStrategicCap = MilitaryQuotaService.GetKingdomStrategicCap(city?.kingdom);
+            if (total >= quota.TotalBoats)
                 return new List<string>();
 
             return ids.Where(id => AssetManager.actor_library.get(id) != null)
-                .Where(id => !IsMilitary(id) || military < MilitaryBoatCapPerDock)
+                .Where(id => !IsMilitary(id) || military < quota.MilitaryBoats)
                 // A strategic hull first requires a normal escort/attack hull.
-                // No more than one strategic hull can belong to this port.
+                // No more than one strategic hull can belong to this port, and
+                // a kingdom's deterministic 1-2 strategic budget is respected
+                // across all of its ports.
                 .Where(id => !NavalRoles.IsStrategicSubmarine(id) ||
-                    (normalMilitary > 0 && strategic < StrategicSubmarineCapPerDock))
+                    (normalMilitary > 0 && strategic < quota.StrategicBoatsAtThisPort &&
+                     kingdomStrategic < kingdomStrategicCap))
                 .ToList();
         }
 

@@ -277,9 +277,8 @@ namespace ModernBox
 
         private static bool WithinCityCaps(City city, string candidateId, Actor transforming)
         {
-            int population = city.getPopulationPeople();
-            int totalCap = population < 80 ? 3 : 6;
-            int artilleryCap = population < 120 ? 1 : 2;
+            int totalCap = MilitaryQuotaService.GetLandUnitCap(city);
+            int artilleryCap = MilitaryQuotaService.GetArtilleryCap(city);
             int total = 0;
             int artillery = 0;
 
