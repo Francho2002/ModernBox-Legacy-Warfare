@@ -44,6 +44,14 @@ namespace ModernBox
             "modernbox_torpedo"
         };
 
+        private static readonly HashSet<string> HeavyConventionalMissiles = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "missileartillery",
+            "fireboneartillery",
+            "frostmissileartillery",
+            "plantmissileartillery"
+        };
+
         private static readonly ConditionalWeakTable<Projectile, ProjectileData> ProjectileStates =
             new ConditionalWeakTable<Projectile, ProjectileData>();
         private static readonly ConditionalWeakTable<Actor, CooldownData> DefenderCooldowns =
@@ -186,7 +194,12 @@ namespace ModernBox
             state.impactSoundPlayed = true;
             // Coordinates outside the map use WorldBox's non-positional path:
             // the impact remains audible at maximum zoom without nuclear volume.
-            MusicBox.playSound("event:/SFX/EXPLOSIONS/ExplosionSmall", -1f, -1f, true, false);
+            // Cruise/land missiles use WorldBox's native meteorite report; the
+            // lighter torpedo keeps its original smaller splash-like impact.
+            string impactSound = HeavyConventionalMissiles.Contains(projectile.asset.id)
+                ? "event:/SFX/EXPLOSIONS/ExplosionMeteorite"
+                : "event:/SFX/EXPLOSIONS/ExplosionSmall";
+            MusicBox.playSound(impactSound, -1f, -1f, true, false);
         }
 
         private static Actor FindDefender(WorldTile missileTile, Kingdom missileKingdom)
