@@ -1,8 +1,8 @@
 {
     "name": "ModernBox",
     "author": "Tuxxego",
-    "version": "5.6.20",
+    "version": "5.6.21",
     "targetGameBuild": 719,
-    "description": "Guerra realista, recursos OreBox integrados, flotas por puerto y ataques nucleares que preservan el terreno.",
+    "description": "Guerra realista, submarinos especializados, recursos OreBox integrados y ataques nucleares que preservan el terreno.",
     "iconPath": "Icon.jpg"
 }

@@ -62,10 +62,13 @@ public class UnitTracker : MonoBehaviour
         {
             spriteId = "Destroyer_" + id.Substring(id.IndexOf('_') + 1);
         }
-        else if (id.StartsWith("SalvoSubmarine_", System.StringComparison.OrdinalIgnoreCase))
+        else if (ModernBox.NavalRoles.IsAnyModernSubmarine(id))
         {
-            // SSBNs intentionally reuse the stable faction submarine sprites.
-            spriteId = "Submarine_" + id.Substring(id.IndexOf('_') + 1);
+            // All nuclear roles intentionally reuse the stable faction
+            // submarine sprites. The faction is the final ID segment.
+            int factionSeparator = id.LastIndexOf('_');
+            if (factionSeparator >= 0 && factionSeparator < id.Length - 1)
+                spriteId = "Submarine_" + id.Substring(factionSeparator + 1);
         }
 
         string[] spriteNames = { "walk_0", "idle_0", "swim_0" };

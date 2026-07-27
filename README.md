@@ -87,15 +87,44 @@ ciudad pueden mantener hasta ocho embarcaciones en total.
 Los barcos creados manualmente desde el menú de aparición no están limitados
 por este sistema.
 
-### SSBN de salva nuclear
+### Clases de submarino
 
-Cada facción puede fabricar un submarino estratégico de salva, limitado a uno
+Todos los cascos usan el sprite de submarino de su facción y están disponibles
+desde el menú de invocación sin depender de la era visual. La producción
+automática mantiene el límite de dos naves militares por puerto: antes de
+encargar un submarino estratégico necesita una nave militar normal, y cada
+puerto sólo puede tener uno de esos cascos estratégicos. Esto permite que las
+clases existan a la vez sin inundar las flotas.
+
+- **SSN Cazador:** un torpedo convencional contra naves enemigas y dos misiles
+  de crucero.
+- **SSGN Arsenal:** salva de 6 a 10 misiles convencionales distribuidos entre
+  blancos enemigos.
+- **SSBN Tridente:** 3 a 5 misiles nucleares MIRV, sólo ante derrota extrema.
+- **SSBN Neutrón:** carga táctica de radio corto; prioriza unidades y no deja
+  cambios permanentes en el terreno.
+- **SSBN EMP:** detonación aérea que inmoviliza temporalmente vehículos y
+  unidades modernas enemigas, sin terraformar.
+- **SSBN Martillo:** una carga termonuclear grande, rara y limitada a derrota
+  extrema; destruye objetivos, no el terreno.
+- **SSBN Ruina:** carga radiológica de baja potencia que afecta temporalmente
+  unidades cercanas sin crear bioma de radiación.
+- **SSBN Apocalipsis:** conserva el ID legacy `SalvoSubmarine_*` para partidas
+  guardadas y dispara de 4 a 6 Bombas del Zar distribuidas en el último recurso.
+
+Las armas nucleares de Tridente, Neutrón, Martillo, Ruina y Apocalipsis
+respetan la opción **Guerra nuclear**. Ninguna clase crea wasteland ni un bioma
+radiactivo permanente.
+
+### SSBN Apocalipsis (salva nuclear)
+
+Cada facción puede fabricar este submarino estratégico de salva, limitado a uno
 por puerto. Sólo entra en producción después de que ese puerto posea al menos
-una embarcación militar normal y tiene un coste de `14` madera, `12` piedra,
-`10` metal y `6` oro.
+una embarcación militar normal y tiene un coste de `18` madera, `16` piedra,
+`14` metal y `9` oro.
 
 Durante una guerra, con la opción de guerra nuclear activada, el SSBN consume
-`160` de oro para lanzar hasta cuatro Bombas del Zar sin convertir el terreno
+`240` de oro para lanzar de cuatro a seis Bombas del Zar sin convertir el terreno
 en wasteland. Prioriza una ciudad por misil y sólo usa posiciones de reserva
 separadas cuando no existen suficientes blancos reales. La recarga de la salva
 es de `600` segundos. También conserva su ataque convencional.

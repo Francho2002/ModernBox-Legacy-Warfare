@@ -18,7 +18,8 @@ namespace ModernBox
                 "missileartillery",
                 "fireboneartillery",
                 "frostmissileartillery",
-                "plantmissileartillery"
+                "plantmissileartillery",
+                "modernbox_torpedo"
             };
 
         private static readonly ConditionalWeakTable<Projectile, MarkerState> Markers =
@@ -135,6 +136,20 @@ namespace ModernBox
             {
                 markerId = NuclearMarkerId;
                 markerScale = 1.45f;
+                return true;
+            }
+
+            if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.Ordinal))
+            {
+                markerId = NuclearMarkerId;
+                markerScale = 1.35f;
+                return true;
+            }
+
+            if (NavalRoles.IsHeavyWarhead(projectileId))
+            {
+                markerId = NuclearMarkerId;
+                markerScale = 1.20f;
                 return true;
             }
 

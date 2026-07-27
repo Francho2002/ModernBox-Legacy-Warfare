@@ -27,7 +27,12 @@ namespace ModernBox
             "frostmissileartillery",
             "plantmissileartillery",
             "NUKER",
-            "SSBN_CZAR_WARHEAD"
+            "SSBN_CZAR_WARHEAD",
+            "modernbox_torpedo",
+            "modernbox_neutron_warhead",
+            "modernbox_emp_warhead",
+            "modernbox_hammer_warhead",
+            "modernbox_ruin_warhead"
         };
 
         private static readonly HashSet<string> ConventionalMissiles = new HashSet<string>(StringComparer.Ordinal)
@@ -35,7 +40,8 @@ namespace ModernBox
             "missileartillery",
             "fireboneartillery",
             "frostmissileartillery",
-            "plantmissileartillery"
+            "plantmissileartillery",
+            "modernbox_torpedo"
         };
 
         private static readonly ConditionalWeakTable<Projectile, ProjectileData> ProjectileStates =
@@ -255,8 +261,12 @@ namespace ModernBox
         {
             if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.Ordinal))
                 return 0.08f;
+            if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.Ordinal))
+                return 0.12f;
             if (string.Equals(projectileId, "NUKER", StringComparison.Ordinal))
                 return 0.25f;
+            if (NavalRoles.IsHeavyWarhead(projectileId))
+                return 0.30f;
             return 0.65f;
         }
     }

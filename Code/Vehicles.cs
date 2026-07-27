@@ -8108,6 +8108,7 @@ CreateSalvoSubmarine("alliance", "missileArtilleryDecision");
 CreateSalvoSubmarine("harden", "missileArtilleryDecision");
 CreateSalvoSubmarine("gaia", "missileArtilleryDecision");
 CreateSalvoSubmarine("horde", "missileArtilleryDecision");
+NavalRoles.Initialize();
 ApplyAirVehicleDecisionProfiles();
 string[] unitNames = new string[]
 {
@@ -8142,6 +8143,7 @@ foreach (string unitName in unitNames)
 {
     UnitTracker.Instance.RegisterUnit(unitName);
 }
+NavalRoles.RegisterSpawnUnits();
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -8223,8 +8225,8 @@ foreach (string unitName in unitNames)
 
 			salvoSubmarine.id = salvoId;
 			salvoSubmarine.boat_type = "salvo_submarine_" + faction + "_boat";
-			salvoSubmarine.name_locale = "SSBN Nuclear Salvo Submarine";
-			salvoSubmarine.cost = new ConstructionCost(14, 12, 10, 6);
+			salvoSubmarine.name_locale = "SSBN Apocalipsis";
+			salvoSubmarine.cost = new ConstructionCost(18, 16, 14, 9);
 			// Do not inherit the single-warhead nuclear decisions from Submarine_*.
 			// The SSBN keeps its conventional attack, navigation and its own salvo.
 			salvoSubmarine.decision_ids = new List<string>();
@@ -10101,9 +10103,10 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
         return false;
 
     City ownerCity = caster.city;
-    if (ownerCity == null || ownerCity.amount_gold < 160)
+    if (ownerCity == null || ownerCity.amount_gold < 240)
         return false;
 
+    int salvoCount = UnityEngine.Random.Range(4, 7);
     const float minimumTargetSeparation = 12f;
     List<City> enemyCities = new List<City>();
     using (var enemies = caster.kingdom.getEnemiesKingdoms())
@@ -10128,13 +10131,13 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
         Vector2? target = GetNuclearSalvoCityTarget(city);
         if (target != null)
             TryAddNuclearSalvoTarget(salvoTargets, target.Value, minimumTargetSeparation);
-        if (salvoTargets.Count == 4)
+        if (salvoTargets.Count == salvoCount)
             break;
     }
 
     // Second pass: spread remaining warheads across other buildings, leaders,
     // kings and city centers before considering any artificial fallback point.
-    if (salvoTargets.Count < 4)
+    if (salvoTargets.Count < salvoCount)
     {
         foreach (City city in enemyCities)
         {
@@ -10144,33 +10147,33 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
                 {
                     if (building?.current_tile != null)
                         TryAddNuclearSalvoTarget(salvoTargets, building.current_tile.pos, minimumTargetSeparation);
-                    if (salvoTargets.Count == 4)
+                    if (salvoTargets.Count == salvoCount)
                         break;
                 }
             }
-            if (salvoTargets.Count == 4)
+            if (salvoTargets.Count == salvoCount)
                 break;
 
             if (city.hasLeader() && city.leader.isAlive())
                 TryAddNuclearSalvoTarget(salvoTargets, city.leader.current_position, minimumTargetSeparation);
-            if (salvoTargets.Count == 4)
+            if (salvoTargets.Count == salvoCount)
                 break;
 
             if (city.kingdom?.king != null && city.kingdom.king.isAlive())
                 TryAddNuclearSalvoTarget(salvoTargets, city.kingdom.king.current_position, minimumTargetSeparation);
-            if (salvoTargets.Count == 4)
+            if (salvoTargets.Count == salvoCount)
                 break;
 
             WorldTile cityTile = city.getTile();
             if (cityTile != null)
                 TryAddNuclearSalvoTarget(salvoTargets, cityTile.pos, minimumTargetSeparation);
-            if (salvoTargets.Count == 4)
+            if (salvoTargets.Count == salvoCount)
                 break;
         }
     }
 
     // Only a shortage of real strategic positions permits nearby fallback aim points.
-    if (salvoTargets.Count > 0 && salvoTargets.Count < 4)
+    if (salvoTargets.Count > 0 && salvoTargets.Count < salvoCount)
     {
         Vector2 fallbackCenter = salvoTargets[0];
         Vector2[] fallbackOffsets =
@@ -10182,7 +10185,7 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
         foreach (Vector2 offset in fallbackOffsets)
         {
             TryAddNuclearSalvoTarget(salvoTargets, fallbackCenter + offset, minimumTargetSeparation);
-            if (salvoTargets.Count == 4)
+            if (salvoTargets.Count == salvoCount)
                 break;
         }
     }
@@ -10190,7 +10193,7 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
     if (salvoTargets.Count == 0)
         return false;
 
-    ownerCity.takeResource("gold", 160);
+    ownerCity.takeResource("gold", 240);
     Vector3 selfPos = caster.current_position;
     float primaryDistance = Vector2.Distance(selfPos, salvoTargets[0]);
     Vector3 salvoAnimationVector = Toolbox.getNewPoint(
@@ -10242,7 +10245,7 @@ private static bool TryAddNuclearSalvoTarget(List<Vector2> targets, Vector2 cand
     return true;
 }
 
-private static bool IsKingdomInNuclearLastResort(Kingdom kingdom)
+internal static bool IsKingdomInNuclearLastResort(Kingdom kingdom)
 {
     if (kingdom == null || !kingdom.hasEnemies() || !kingdom.hasKing() || kingdom.king == null || !kingdom.king.isAlive())
         return false;
