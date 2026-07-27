@@ -620,7 +620,7 @@ namespace ModernBox
             BuildUnitCategoryButton(hubTab, "modernbox_units_air", "Aire", "Abre las unidades aéreas.", "ModernBoxUnitsAir", 0, 1,
                 LoadUnitCategorySprite(new[] { "FighterJet_Human", "F55FighterJet", "Heli_Human" }, "ui/icons/F55", "ui/icons/warhamma", "ui/Icons/TabText"));
             BuildUnitCategoryButton(hubTab, "modernbox_units_naval", "Naval", "Abre las unidades navales.", "ModernBoxUnitsNaval", 1, 1,
-                LoadUnitCategorySprite(new[] { "Submarine_alliance", "CarrierVessel_alliance" }, "ui/icons/warhamma", "ui/icons/Industrial", "ui/Icons/TabText"));
+                LoadUnitCategorySprite(new[] { "Submarine_alliance", "aDestroyer_alliance" }, "ui/icons/warhamma", "ui/icons/Industrial", "ui/Icons/TabText"));
         }
 
         private static void BuildUnitCategoryButton(PowersTab hubTab, string buttonId, string title, string description,
@@ -682,6 +682,7 @@ namespace ModernBox
             {
                 if (unit == null || string.IsNullOrEmpty(unit.id) || !displayedUnitIds.Add(unit.id) ||
                     unit.id.StartsWith("trainbox_", StringComparison.OrdinalIgnoreCase) ||
+                    IsHiddenNavalUnit(unit.id) ||
                     !ModernCapPolicy.IsAllowedActor(unit.id))
                     continue;
 
@@ -726,9 +727,13 @@ namespace ModernBox
         private static bool IsNavalUnit(string id)
         {
             return NavalRoles.IsAnyModernSubmarine(id)
-                || id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase)
                 || id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase)
-                || id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase)
+                || id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsHiddenNavalUnit(string id)
+        {
+            return id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase)
                 || id.StartsWith("CargoShip_", StringComparison.OrdinalIgnoreCase)
                 || id.StartsWith("FishingBoat_", StringComparison.OrdinalIgnoreCase)
                 || id.StartsWith("Transporter_", StringComparison.OrdinalIgnoreCase);

@@ -767,12 +767,8 @@ namespace ModernBox
             {
                 "aDestroyer_" + faction,
                 "bDestroyer_" + faction,
-                "CarrierVessel_" + faction,
                 "Submarine_" + faction,
-                "SalvoSubmarine_" + faction,
-                "CargoShip_" + faction,
-                "FishingBoat_" + faction,
-                "Transporter_" + faction
+                "SalvoSubmarine_" + faction
             };
             foreach (string roleId in NavalRoles.GetRoleIds())
             {

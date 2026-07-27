@@ -18,20 +18,18 @@ namespace ModernBox
             "emp_submarine", "hammer_submarine", "ruin_submarine"
         };
 
-        private static readonly string[] RealisticBoatTypes = BuildRealisticBoatTypes();
-        private static readonly string[] CivilianBoatTypePrefixes =
-        {
-            "cargo", "fishing", "transporter"
-        };
+        // Legacy civilian/bomb boats stay registered for save compatibility, but
+        // ModernBox docks only produce missile-capable combat platforms.
+        private static readonly string[] MissileBoatTypes = BuildMissileBoatTypes();
         private static readonly string[] MilitaryBoatTypePrefixes =
         {
-            "destroyer_a", "destroyer_b", "carrier", "submarine", "hunter_submarine",
+            "destroyer_a", "destroyer_b", "submarine", "hunter_submarine",
             "arsenal_submarine", "trident_submarine", "neutron_submarine", "emp_submarine",
             "hammer_submarine", "ruin_submarine", "salvo_submarine"
         };
         private static readonly string[] NormalMilitaryBoatTypePrefixes =
         {
-            "destroyer_a", "destroyer_b", "carrier", "hunter_submarine"
+            "destroyer_a", "destroyer_b", "hunter_submarine"
         };
         private static readonly string[] StrategicBoatTypePrefixes =
         {
@@ -46,11 +44,9 @@ namespace ModernBox
                 if (asset?.id == null || asset.id.IndexOf("docks", StringComparison.OrdinalIgnoreCase) < 0)
                     continue;
 
-                asset.boat_types = (asset.boat_types ?? Array.Empty<string>())
-                    .Where(type => type.IndexOf("brawler", StringComparison.OrdinalIgnoreCase) < 0)
-                    .Concat(RealisticBoatTypes)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
+                // Replacing, not appending, prevents the native dock picker from
+                // reintroducing bomb/civilian hulls outside our production pool.
+                asset.boat_types = MissileBoatTypes;
             }
         }
 
@@ -107,17 +103,13 @@ namespace ModernBox
                 ShouldReplace(dock.building.asset, city);
         }
 
-        private static string[] BuildRealisticBoatTypes()
+        private static string[] BuildMissileBoatTypes()
         {
             List<string> types = new List<string>();
             foreach (string faction in Factions)
             {
-                types.Add("cargo_" + faction + "_boat");
-                types.Add("fishing_" + faction + "_boat");
-                types.Add("transporter_" + faction + "_boat");
                 types.Add("destroyer_a_" + faction + "_boat");
                 types.Add("destroyer_b_" + faction + "_boat");
-                types.Add("carrier_" + faction + "_boat");
                 types.Add("submarine_" + faction + "_boat");
                 types.Add("salvo_submarine_" + faction + "_boat");
                 foreach (string rolePrefix in RoleBoatPrefixes)
@@ -131,17 +123,15 @@ namespace ModernBox
             string faction = GetFaction(city);
             string[] ids =
             {
-                "aDestroyer_" + faction, "bDestroyer_" + faction, "CarrierVessel_" + faction,
+                "aDestroyer_" + faction, "bDestroyer_" + faction,
                 "HunterSubmarine_" + faction, "Submarine_" + faction,
                 "ArsenalSubmarine_" + faction, "TridentSubmarine_" + faction,
                 "NeutronSubmarine_" + faction, "EmpSubmarine_" + faction,
                 "HammerSubmarine_" + faction, "RuinSubmarine_" + faction,
-                "SalvoSubmarine_" + faction,
-                "CargoShip_" + faction, "FishingBoat_" + faction, "Transporter_" + faction
+                "SalvoSubmarine_" + faction
             };
 
-            int total = CountDockBoats(dock, faction, CivilianBoatTypePrefixes) +
-                CountDockBoats(dock, faction, MilitaryBoatTypePrefixes);
+            int total = CountDockBoats(dock, faction, MilitaryBoatTypePrefixes);
             int military = CountDockBoats(dock, faction, MilitaryBoatTypePrefixes);
             int normalMilitary = CountDockBoats(dock, faction, NormalMilitaryBoatTypePrefixes);
             int strategic = CountDockBoats(dock, faction, StrategicBoatTypePrefixes);
@@ -188,7 +178,6 @@ namespace ModernBox
                 return null;
 
             List<string> military = affordable.Where(IsMilitary).ToList();
-            List<string> civilian = affordable.Where(id => !IsMilitary(id)).ToList();
             List<string> strategic = military.Where(NavalRoles.IsStrategicSubmarine).ToList();
             List<string> normalMilitary = military.Where(id => !NavalRoles.IsStrategicSubmarine(id)).ToList();
 
@@ -212,12 +201,8 @@ namespace ModernBox
                     return hunter;
                 if (normalMilitary.Count > 0)
                     return normalMilitary[Randy.randomInt(0, normalMilitary.Count)];
-                if (civilian.Count > 0)
-                    return civilian[Randy.randomInt(0, civilian.Count)];
             }
 
-            if (civilian.Count > 0)
-                return civilian[Randy.randomInt(0, civilian.Count)];
             if (normalMilitary.Count > 0)
                 return normalMilitary[Randy.randomInt(0, normalMilitary.Count)];
             if (strategic.Count > 0)
