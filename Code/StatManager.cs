@@ -544,7 +544,7 @@ public class StatManager : MonoBehaviour
 
         sb.AppendLine($"<b>Tiempo de juego:</b> {FormatTime(timePlayed)}");
         sb.AppendLine($"<b>Era actual:</b> {GetLocalizedEraName(currentEra)}");
-        sb.AppendLine($"<b>Versión: 5.6.18</b>");
+        sb.AppendLine($"<b>Versión: 5.6.19</b>");
 
         if (typedBombs)
             sb.AppendLine($"<b>Bombas lanzadas:</b> {bombsDropped}");

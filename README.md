@@ -59,7 +59,9 @@ cuando alcanza 100 habitantes, tiene líder y reino válidos, la producción de
 vehículos está activa y puede pagar `9` madera, `7` piedra, `6` metal y `3` oro.
 No depende de la era visual.
 
-Los misiles usan su sprite completo y una marca visible desde la vista máxima.
+Los misiles conservan su tamaño físico original. Sólo su marcador seguidor se
+amplía y permanece visible desde la vista máxima, sin dejar copias del misil
+como estela.
 Los impactos convencionales se reproducen como audio no posicional para poder
 oírlos desde lejos, con el sonido pequeño original y sin duplicarlo localmente.
 

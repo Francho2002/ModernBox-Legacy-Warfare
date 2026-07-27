@@ -392,26 +392,35 @@ namespace ModernBox
             modernCapCzarBlast.bomb_action = null;
             AssetManager.terraform.add(modernCapCzarBlast);
 
-            // ProjectileAsset has no draw_boat_mark equivalent.  These lightweight,
-            // minimap-enabled afterimages reuse the complete missile sprites so the
-            // projectile remains legible from the highest camera view.
+            // Keep the physical projectile at its original scale.  This is only
+            // the small ember trail; MissileMapMarker owns the enlarged, persistent
+            // high-camera marker and follows each projectile without afterimages.
             EffectAsset modernCapMissileTrail = new EffectAsset();
             modernCapMissileTrail.id = "modern_cap_missile_trail";
             modernCapMissileTrail.use_basic_prefab = true;
             modernCapMissileTrail.sorting_layer_id = "EffectsTop";
-            modernCapMissileTrail.sprite_path = "effects/projectiles/missileartillery/0";
-            modernCapMissileTrail.show_on_mini_map = true;
-            modernCapMissileTrail.limit = 35;
+            modernCapMissileTrail.sprite_path = "effects/fx_trail_ember_t";
+            modernCapMissileTrail.show_on_mini_map = false;
+            modernCapMissileTrail.limit = 160;
             AssetManager.effects_library.add(modernCapMissileTrail);
 
-            EffectAsset modernCapNuclearMissileTrail = new EffectAsset();
-            modernCapNuclearMissileTrail.id = "modern_cap_nuclear_missile_trail";
-            modernCapNuclearMissileTrail.use_basic_prefab = true;
-            modernCapNuclearMissileTrail.sorting_layer_id = "EffectsTop";
-            modernCapNuclearMissileTrail.sprite_path = "effects/projectiles/NUKER/0";
-            modernCapNuclearMissileTrail.show_on_mini_map = true;
-            modernCapNuclearMissileTrail.limit = 20;
-            AssetManager.effects_library.add(modernCapNuclearMissileTrail);
+            EffectAsset modernCapMissileMarker = new EffectAsset();
+            modernCapMissileMarker.id = "modern_cap_missile_marker";
+            modernCapMissileMarker.use_basic_prefab = true;
+            modernCapMissileMarker.sorting_layer_id = "EffectsTop";
+            modernCapMissileMarker.sprite_path = "effects/projectiles/missileartillery/0";
+            modernCapMissileMarker.show_on_mini_map = true;
+            modernCapMissileMarker.limit = 256;
+            AssetManager.effects_library.add(modernCapMissileMarker);
+
+            EffectAsset modernCapNuclearMissileMarker = new EffectAsset();
+            modernCapNuclearMissileMarker.id = "modern_cap_nuclear_missile_marker";
+            modernCapNuclearMissileMarker.use_basic_prefab = true;
+            modernCapNuclearMissileMarker.sorting_layer_id = "EffectsTop";
+            modernCapNuclearMissileMarker.sprite_path = "effects/projectiles/NUKER/0";
+            modernCapNuclearMissileMarker.show_on_mini_map = true;
+            modernCapNuclearMissileMarker.limit = 96;
+            AssetManager.effects_library.add(modernCapNuclearMissileMarker);
 
 			ProjectileAsset missileartillery = new ProjectileAsset();
             missileartillery.id = "missileartillery";
@@ -426,10 +435,10 @@ namespace ModernBox
 			missileartillery.end_effect = "fx_firebomb_explosion";
 			missileartillery.trail_effect_enabled = true;
 			missileartillery.trail_effect_id = "modern_cap_missile_trail";
-			missileartillery.trail_effect_scale = 0.38f;
-			missileartillery.trail_effect_timer = 0.24f;
-			missileartillery.scale_start = 1.35f;
-			missileartillery.scale_target = 1.35f;
+			missileartillery.trail_effect_scale = 0.30f;
+			missileartillery.trail_effect_timer = 0.10f;
+			missileartillery.scale_start = 0.55f;
+			missileartillery.scale_target = 0.55f;
           missileartillery.can_be_left_on_ground = false;
           missileartillery.can_be_blocked = false;
           AssetManager.projectiles.add(missileartillery);
@@ -455,10 +464,10 @@ namespace ModernBox
 			fireboneartillery.end_effect = "fx_firebomb_explosion";
 			fireboneartillery.trail_effect_enabled = true;
 			fireboneartillery.trail_effect_id = "modern_cap_missile_trail";
-			fireboneartillery.trail_effect_scale = 0.38f;
-			fireboneartillery.trail_effect_timer = 0.24f;
-			fireboneartillery.scale_start = 1.35f;
-			fireboneartillery.scale_target = 1.35f;
+			fireboneartillery.trail_effect_scale = 0.30f;
+			fireboneartillery.trail_effect_timer = 0.10f;
+			fireboneartillery.scale_start = 0.55f;
+			fireboneartillery.scale_target = 0.55f;
           fireboneartillery.can_be_left_on_ground = false;
           fireboneartillery.can_be_blocked = false;
           AssetManager.projectiles.add(fireboneartillery);
@@ -484,10 +493,10 @@ namespace ModernBox
 			frostmissileartillery.end_effect = "fx_firebomb_explosion";
 			frostmissileartillery.trail_effect_enabled = true;
 			frostmissileartillery.trail_effect_id = "modern_cap_missile_trail";
-			frostmissileartillery.trail_effect_scale = 0.38f;
-			frostmissileartillery.trail_effect_timer = 0.24f;
-			frostmissileartillery.scale_start = 1.35f;
-			frostmissileartillery.scale_target = 1.35f;
+			frostmissileartillery.trail_effect_scale = 0.30f;
+			frostmissileartillery.trail_effect_timer = 0.10f;
+			frostmissileartillery.scale_start = 0.55f;
+			frostmissileartillery.scale_target = 0.55f;
 			frostmissileartillery.hit_freeze = false;
           frostmissileartillery.can_be_left_on_ground = false;
           frostmissileartillery.can_be_blocked = false;
@@ -514,10 +523,10 @@ namespace ModernBox
 			plantmissileartillery.end_effect = "fx_firebomb_explosion";
 			plantmissileartillery.trail_effect_enabled = true;
 			plantmissileartillery.trail_effect_id = "modern_cap_missile_trail";
-			plantmissileartillery.trail_effect_scale = 0.38f;
-			plantmissileartillery.trail_effect_timer = 0.24f;
-			plantmissileartillery.scale_start = 1.35f;
-			plantmissileartillery.scale_target = 1.35f;
+			plantmissileartillery.trail_effect_scale = 0.30f;
+			plantmissileartillery.trail_effect_timer = 0.10f;
+			plantmissileartillery.scale_start = 0.55f;
+			plantmissileartillery.scale_target = 0.55f;
           plantmissileartillery.can_be_left_on_ground = false;
           plantmissileartillery.can_be_blocked = false;
           AssetManager.projectiles.add(plantmissileartillery);
@@ -1401,11 +1410,11 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
 			NUKER.sound_impact = "event:/SFX/WEAPONS/WeaponFireballLand";
 			NUKER.end_effect = "fx_explosion_nuke_atomic";
 			NUKER.trail_effect_enabled = true;
-			NUKER.trail_effect_id = "modern_cap_nuclear_missile_trail";
-			NUKER.trail_effect_scale = 0.44f;
-			NUKER.trail_effect_timer = 0.28f;
-			NUKER.scale_start = 1.15f;
-			NUKER.scale_target = 1.15f;
+			NUKER.trail_effect_id = "modern_cap_missile_trail";
+			NUKER.trail_effect_scale = 0.30f;
+			NUKER.trail_effect_timer = 0.10f;
+			NUKER.scale_start = 0.55f;
+			NUKER.scale_target = 0.55f;
           NUKER.can_be_left_on_ground = false;
           NUKER.can_be_blocked = false;
 		  NUKER.world_actions = (AttackAction)Delegate.Combine(NUKER.world_actions, new AttackAction(ActionLibrary.burnTile));
@@ -1427,11 +1436,11 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
             SSBN_CZAR_WARHEAD.end_effect = "fx_explosion_huge";
             SSBN_CZAR_WARHEAD.end_effect_scale = 1.5f;
             SSBN_CZAR_WARHEAD.trail_effect_enabled = true;
-            SSBN_CZAR_WARHEAD.trail_effect_id = "modern_cap_nuclear_missile_trail";
-            SSBN_CZAR_WARHEAD.trail_effect_scale = 0.52f;
-            SSBN_CZAR_WARHEAD.trail_effect_timer = 0.30f;
-            SSBN_CZAR_WARHEAD.scale_start = 1.4f;
-            SSBN_CZAR_WARHEAD.scale_target = 1.4f;
+            SSBN_CZAR_WARHEAD.trail_effect_id = "modern_cap_missile_trail";
+            SSBN_CZAR_WARHEAD.trail_effect_scale = 0.30f;
+            SSBN_CZAR_WARHEAD.trail_effect_timer = 0.10f;
+            SSBN_CZAR_WARHEAD.scale_start = 0.8f;
+            SSBN_CZAR_WARHEAD.scale_target = 0.8f;
             SSBN_CZAR_WARHEAD.can_be_left_on_ground = false;
             SSBN_CZAR_WARHEAD.can_be_blocked = false;
             SSBN_CZAR_WARHEAD.world_actions = (AttackAction)Delegate.Combine(SSBN_CZAR_WARHEAD.world_actions, new AttackAction(ActionLibrary.burnTile));
