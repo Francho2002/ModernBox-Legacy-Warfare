@@ -49,11 +49,12 @@ namespace ModernBox
                 // heavy unit and does not bypass the artillery cap.
             }
             else if (NeedsDefensiveLauncher(city) &&
-                MilitaryDoctrineService.ShouldReserveDefensiveLauncher(city))
+                (ModernCapPolicy.CountMissileLaunchers(city, actor) == 0 ||
+                 MilitaryDoctrineService.ShouldReserveDefensiveLauncher(city)))
             {
-                // Keep this reserved chassis pending until the city can pay for
-                // its launcher for defensive/strategic doctrines; otherwise a
-                // cheaper vehicle could consume the one defensive slot forever.
+                // Every mature city gets its first launcher through either
+                // production path. The second remains doctrine-weighted, so
+                // this restores reliable coverage without flooding the map.
                 selected = SelectDefensiveLauncher(city);
                 if (selected == null)
                     return false;
@@ -176,6 +177,12 @@ namespace ModernBox
             Candidate helicopter = SelectDefensiveHelicopter(city);
             if (launcher == null && fixedWing == null && helicopter == null)
                 return false;
+
+            // A single launcher is the baseline defensive package. Airframes
+            // may compete only after the city has one; otherwise a busy air
+            // programme can postpone land missiles indefinitely.
+            if (launcher != null && ModernCapPolicy.CountMissileLaunchers(city) == 0)
+                return TryBuildDirectDefenseAsset(city, launcher, "lanzamisiles");
 
             Candidate selected;
             string role;
