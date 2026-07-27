@@ -161,25 +161,33 @@ namespace ModernBox
         }
 
         /// <summary>
-        /// The slow launcher scheduler chooses between the missing launcher and
-        /// the missing fixed-wing slot. The production rate does not increase:
-        /// one global cycle still creates at most one paid asset.
+        /// The slow launcher scheduler chooses between the missing launcher,
+        /// fixed-wing and rotary-wing slots. The production rate does not
+        /// increase: one global cycle still creates at most one paid asset.
+        /// A developed city can therefore field one fixed-wing aircraft and
+        /// one helicopter without either consuming its ordinary land quota.
         /// </summary>
         internal static bool TryBuildDefensiveOrAirAsset(City city)
         {
             Candidate launcher = SelectDefensiveLauncher(city);
-            Candidate aircraft = SelectDefensiveAirframe(city);
-            if (launcher == null && aircraft == null)
+            Candidate fixedWing = SelectDefensiveAirframe(city);
+            Candidate helicopter = SelectDefensiveHelicopter(city);
+            if (launcher == null && fixedWing == null && helicopter == null)
                 return false;
 
             Candidate selected;
             string role;
-            if (launcher == null)
+            if (launcher == null && helicopter == null)
             {
-                selected = aircraft;
-                role = "aeronave";
+                selected = fixedWing;
+                role = "aviaciÃ³n fija";
             }
-            else if (aircraft == null)
+            else if (launcher == null && fixedWing == null)
+            {
+                selected = helicopter;
+                role = "helicÃ³ptero";
+            }
+            else if (fixedWing == null && helicopter == null)
             {
                 selected = launcher;
                 role = "lanzamisiles";
@@ -187,10 +195,36 @@ namespace ModernBox
             else
             {
                 float launcherWeight = MilitaryDoctrineService.GetDefensiveLauncherPreference(city?.kingdom);
-                float airWeight = MilitaryDoctrineService.GetRoleWeight(city?.kingdom, "air");
-                bool chooseLauncher = UnityEngine.Random.Range(0f, launcherWeight + airWeight) < launcherWeight;
-                selected = chooseLauncher ? launcher : aircraft;
-                role = chooseLauncher ? "lanzamisiles" : "aeronave";
+                float fixedWingWeight = fixedWing == null ? 0f :
+                    MilitaryDoctrineService.GetRoleWeight(city?.kingdom, "air");
+                float helicopterWeight = helicopter == null ? 0f :
+                    Mathf.Max(0.75f, MilitaryDoctrineService.GetRoleWeight(city?.kingdom, "air") * 0.85f);
+
+                // A port already fielding missile submarines should answer a
+                // war with conventional bomber support as well. This only
+                // biases the empty fixed-wing slot; it neither spawns a free
+                // bomber nor removes the city's fighter/helicopter capacity.
+                if (fixedWing != null && IsBomber(fixedWing.id) && HasMissileFleetInWar(city))
+                    fixedWingWeight *= 1.75f;
+
+                float totalWeight = (launcher == null ? 0f : launcherWeight) +
+                    fixedWingWeight + helicopterWeight;
+                float roll = UnityEngine.Random.Range(0f, totalWeight);
+                if (launcher != null && (roll -= launcherWeight) < 0f)
+                {
+                    selected = launcher;
+                    role = "lanzamisiles";
+                }
+                else if (fixedWing != null && (roll -= fixedWingWeight) < 0f)
+                {
+                    selected = fixedWing;
+                    role = "aviaciÃ³n fija";
+                }
+                else
+                {
+                    selected = helicopter;
+                    role = "helicÃ³ptero";
+                }
             }
 
             return TryBuildDirectDefenseAsset(city, selected, role);
@@ -270,11 +304,15 @@ namespace ModernBox
                 .ToList();
 
             // Fighters remain the ordinary choice. Air/strategic doctrines make
-            // the more expensive bomber somewhat likelier, never dominant.
+            // the more expensive bomber somewhat likelier. A missile fleet at
+            // war raises that preference so sea-launched strikes are naturally
+            // accompanied by conventional bombing instead of replacing it.
             float bomberChance = Mathf.Clamp(
                 0.25f * MilitaryDoctrineService.GetRoleWeight(city.kingdom, "air"),
                 0.20f,
                 0.40f);
+            if (HasMissileFleetInWar(city))
+                bomberChance = Mathf.Max(bomberChance, 0.58f);
             List<Candidate> preferred = bombers.Count > 0 &&
                 (fighters.Count == 0 || UnityEngine.Random.value < bomberChance)
                     ? bombers
@@ -291,6 +329,57 @@ namespace ModernBox
                 !HasFixedWingAirframe(city, null);
         }
 
+        private static Candidate SelectDefensiveHelicopter(City city)
+        {
+            if (!NeedsHelicopterAirframe(city))
+                return null;
+
+            Actor leader = city.leader;
+            string species = leader.subspecies?.data?.species_id;
+            if (string.IsNullOrEmpty(species))
+                species = leader.asset?.id;
+
+            if (string.IsNullOrEmpty(species) ||
+                !Traits.CartTransformations.CartTransformationsModernRoles.TryGetValue(species, out var roles) ||
+                !roles.TryGetValue("air", out var ids))
+                return null;
+
+            List<Candidate> affordable = ids
+                .Where(IsHelicopter)
+                .Distinct()
+                .Select(id => new
+                {
+                    id,
+                    asset = AssetManager.actor_library.get(id),
+                    cost = GetCost(id, "modern")
+                })
+                .Where(entry => entry.asset != null &&
+                    !string.IsNullOrEmpty(entry.asset.default_attack) &&
+                    AssetManager.items.get(entry.asset.default_attack) != null &&
+                    city.hasEnoughResourcesFor(entry.cost))
+                .Select(entry => new Candidate
+                {
+                    id = entry.id,
+                    tier = "modern",
+                    cost = entry.cost
+                })
+                .ToList();
+            if (affordable.Count == 0)
+                return null;
+
+            return affordable[Randy.randomInt(0, affordable.Count)];
+        }
+
+        private static bool NeedsHelicopterAirframe(City city)
+        {
+            // Helicopters are the second, advanced air slot. They require the
+            // same population/infrastructure gate as general aviation, but do
+            // not share the fighter/bomber slot.
+            return IsValidLauncherCity(city) &&
+                MilitaryProgressionController.GetLevel(city) >= 4 &&
+                !HasHelicopterAirframe(city, null);
+        }
+
         private static bool HasFixedWingAirframe(City city, Actor transforming)
         {
             if (city?.units == null)
@@ -301,6 +390,21 @@ namespace ModernBox
                 if (unit == null || unit == transforming || !unit.isAlive())
                     continue;
                 if (IsFixedWingAircraft(unit.asset?.id))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool HasHelicopterAirframe(City city, Actor transforming)
+        {
+            if (city?.units == null)
+                return false;
+
+            foreach (Actor unit in city.units)
+            {
+                if (unit == null || unit == transforming || !unit.isAlive())
+                    continue;
+                if (IsHelicopter(unit.asset?.id))
                     return true;
             }
             return false;
@@ -323,9 +427,36 @@ namespace ModernBox
                  id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase));
         }
 
+        private static bool IsHelicopter(string id)
+        {
+            return !string.IsNullOrEmpty(id) &&
+                id.StartsWith("Heli_", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsBomber(string id)
+        {
+            return !string.IsNullOrEmpty(id) &&
+                id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool HasMissileFleetInWar(City city)
+        {
+            if (city?.kingdom == null || !city.kingdom.hasEnemies() || city.units == null)
+                return false;
+
+            foreach (Actor unit in city.units)
+            {
+                if (unit != null && unit.isAlive() &&
+                    NavalRoles.IsAnyModernSubmarine(unit.asset?.id))
+                    return true;
+            }
+            return false;
+        }
+
         internal static bool IsDedicatedDefenseSlot(string id)
         {
             return IsFixedWingAircraft(id) ||
+                IsHelicopter(id) ||
                 id?.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase) == true;
         }
 
@@ -552,6 +683,14 @@ namespace ModernBox
                 // makes air power visible without replacing WorldBox armies or
                 // filling every ordinary land-vehicle berth.
                 return !HasFixedWingAirframe(city, transforming);
+            }
+
+            if (IsHelicopter(candidateId))
+            {
+                // Rotary aircraft form a separate, one-per-city support slot.
+                // It is deliberately not counted as a land vehicle, so adding
+                // it does not crowd out normal WorldBox soldiers or artillery.
+                return !HasHelicopterAirframe(city, transforming);
             }
 
             if (ModernCapPolicy.IsConventionalArtillery(candidateId))

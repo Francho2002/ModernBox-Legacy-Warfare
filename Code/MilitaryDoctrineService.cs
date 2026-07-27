@@ -64,8 +64,9 @@ namespace ModernBox
         }
 
         /// <summary>
-        /// Returns a modest land-production multiplier. Naval doctrine is
-        /// deliberately neutral until naval production consumes this API.
+        /// Returns a modest land-production multiplier. Naval doctrine keeps
+        /// dock quotas unchanged, but grants its bounded air slots enough
+        /// preference to provide conventional cover for missile fleets.
         /// </summary>
         internal static float GetRoleWeight(Kingdom kingdom, string role)
         {
@@ -99,9 +100,13 @@ namespace ModernBox
                     if (role == "support") return 1.05f;
                     if (role == "offensive") return 0.85f;
                     break;
-                // Naval is intentionally neutral for land production.  Its
-                // ship/submarine preferences belong to the naval production pass.
                 case MilitaryDoctrine.Naval:
+                    // A maritime kingdom still needs conventional air cover.
+                    // The small bonus only affects its bounded aviation slots;
+                    // ship/submarine quotas continue to be decided by docks.
+                    if (role == "air") return 1.15f;
+                    if (role == "heavy") return 0.95f;
+                    break;
                 case MilitaryDoctrine.Balanced:
                 default:
                     break;
