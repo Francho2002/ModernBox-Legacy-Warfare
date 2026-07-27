@@ -384,9 +384,9 @@ namespace ModernBox
         {
             CreateProjectile(TorpedoProjectileId, "missileartillery", "modern_cap_missile_blast", 4, 62f,
                 0.42f, "fx_firebomb_explosion", false, 0.55f);
-            // El Arsenal usa una carga de crucero convencional, no un NUKER
-            // reciclado: explosión de fragmentación visible, daño moderado y
-            // sin cambio permanente de suelo.
+            // Retained only so an already-saved in-flight Arsenal projectile
+            // can still be resolved after upgrading. New Arsenal salvos use
+            // the exact faction conventional projectile below.
             CreateProjectile(ArsenalProjectileId, "missileartillery", "modernbox_arsenal_blast", 6, 74f,
                 0.50f, "fx_explosion_meteorite", false, 0.72f);
             // El Tridente emplea una cabeza MIRV propia: más amplia que la
@@ -475,7 +475,8 @@ namespace ModernBox
                 return false;
 
             SpendGold(caster.city, 25);
-            bool launched = LaunchAtAll(caster, targets, ArsenalProjectileId);
+            string projectileId = GetFactionConventionalProjectile(caster.asset?.id);
+            bool launched = LaunchAtAll(caster, targets, projectileId);
             if (launched)
                 MarkConventionalLaunch(caster, 90f);
             return launched;
