@@ -114,6 +114,9 @@ namespace ModernBox
             if (launcherCycleAircraft)
                 return level >= 3;
 
+            if (ModernCapPolicy.IsMissileLauncher(actorId))
+                return level >= 2;
+
             if (string.Equals(role, "air", StringComparison.OrdinalIgnoreCase) ||
                 ModernCapPolicy.IsAllowedAircraft(actorId))
                 return level >= 4;
@@ -140,7 +143,7 @@ namespace ModernBox
             // The city must be genuinely mature, but not keep a full resource
             // stockpile simply to retain a technology level. Production still
             // charges the full launcher cost when it is commissioned.
-            return city != null && city.getPopulationPeople() >= 75 && GetLevel(city) >= 3;
+            return city != null && city.getPopulationPeople() >= 75 && GetLevel(city) >= 2;
         }
 
         internal static void ResetSession()

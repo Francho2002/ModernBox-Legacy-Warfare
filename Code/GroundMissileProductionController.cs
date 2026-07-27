@@ -13,8 +13,10 @@ namespace ModernBox
         private const float MinimumInterval = 10f;
         private const float MaximumInterval = 16f;
         private const int CitiesPerCycle = 6;
+        private const int FirstLauncherCoverageCitiesPerCycle = 12;
         private float _nextScan;
         private int _cursor;
+        private int _firstLauncherCursor;
 
         private void Awake()
         {
@@ -42,6 +44,13 @@ namespace ModernBox
                 if (cities.Count == 0)
                     return;
 
+                // Give first launchers priority in a rotating city slice before
+                // allowing aviation or second launchers to use this cycle. The
+                // cursor advances independently, so every city is reached
+                // without a full-world scan or a per-frame update.
+                if (TryBuildFirstLauncherCoverage(cities))
+                    return;
+
                 if (_cursor >= cities.Count)
                     _cursor = 0;
 
@@ -59,6 +68,31 @@ namespace ModernBox
             {
                 ModernBoxLogger.Error("[MX.DefenseProduction] Exceptional production cycle failure: " + ex.Message);
             }
+        }
+
+        private bool TryBuildFirstLauncherCoverage(System.Collections.Generic.IList<City> cities)
+        {
+            if (cities == null || cities.Count == 0)
+                return false;
+
+            if (_firstLauncherCursor >= cities.Count)
+                _firstLauncherCursor = 0;
+
+            int attempts = Math.Min(FirstLauncherCoverageCitiesPerCycle, cities.Count);
+            for (int i = 0; i < attempts; i++)
+            {
+                if (_firstLauncherCursor >= cities.Count)
+                    _firstLauncherCursor = 0;
+
+                City city = cities[_firstLauncherCursor++];
+                if (city != null && ModernCapPolicy.CountMissileLaunchers(city) == 0 &&
+                    UnifiedMilitaryProduction.TryBuildDefensiveLauncher(city))
+                    return true;
+            }
+
+            if (_firstLauncherCursor >= cities.Count)
+                _firstLauncherCursor = 0;
+            return false;
         }
 
         private void ScheduleNextScan()
