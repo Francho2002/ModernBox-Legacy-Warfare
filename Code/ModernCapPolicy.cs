@@ -101,7 +101,28 @@ namespace ModernBox
         internal static bool IsConventionalArtillery(string actorId)
         {
             return IsArtillery(actorId) &&
-                !actorId.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase);
+                !IsMissileLauncher(actorId);
+        }
+
+        internal static bool IsMissileLauncher(string actorId)
+        {
+            return !string.IsNullOrEmpty(actorId) &&
+                actorId.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static int CountMissileLaunchers(City city, Actor excluded = null)
+        {
+            if (city?.units == null)
+                return 0;
+
+            int count = 0;
+            foreach (Actor unit in city.units)
+            {
+                if (unit != null && unit != excluded && unit.isAlive() &&
+                    IsMissileLauncher(unit.asset?.id))
+                    count++;
+            }
+            return count;
         }
 
         internal static bool IsAllowedAircraft(string actorId)
@@ -140,7 +161,9 @@ namespace ModernBox
         {
             if (!IsAllowedActor(actorId))
                 return false;
-            if (!IsArtillery(actorId))
+            if (IsMissileLauncher(actorId))
+                return CountMissileLaunchers(city) < MilitaryQuotaService.GetMissileLauncherCap(city);
+            if (!IsConventionalArtillery(actorId))
                 return true;
 
             int cap = string.Equals(eraKey, "modern", StringComparison.OrdinalIgnoreCase) ? 2 : 1;
@@ -149,7 +172,7 @@ namespace ModernBox
             {
                 foreach (Actor unit in city.units)
                 {
-                    if (unit != null && unit.isAlive() && IsArtillery(unit.asset?.id))
+                    if (unit != null && unit.isAlive() && IsConventionalArtillery(unit.asset?.id))
                         artillery++;
                 }
             }

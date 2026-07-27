@@ -138,7 +138,7 @@ namespace ModernBox
         {
             return IsValidLauncherCity(city) &&
                 MilitaryProgressionController.CanBuildDefensiveLauncher(city) &&
-                !HasMissileLauncher(city, null);
+                ModernCapPolicy.CountMissileLaunchers(city) < MilitaryQuotaService.GetMissileLauncherCap(city);
         }
 
         private static Candidate SelectDefensiveLauncher(City city)
@@ -457,7 +457,7 @@ namespace ModernBox
         {
             return IsFixedWingAircraft(id) ||
                 IsHelicopter(id) ||
-                id?.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase) == true;
+                ModernCapPolicy.IsMissileLauncher(id);
         }
 
         private static bool TryBuildDirectDefenseAsset(City city, Candidate candidate, string role)
@@ -670,11 +670,12 @@ namespace ModernBox
                     artillery++;
             }
 
-            if (candidateId.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase))
+            if (ModernCapPolicy.IsMissileLauncher(candidateId))
             {
-                // Launchers have their own strict one-per-city budget and must
+                // Launchers have their own two-per-city budget and must
                 // not consume the conventional howitzer/cannon slot.
-                return !HasMissileLauncher(city, transforming);
+                return ModernCapPolicy.CountMissileLaunchers(city, transforming) <
+                    MilitaryQuotaService.GetMissileLauncherCap(city);
             }
 
             if (IsFixedWingAircraft(candidateId))

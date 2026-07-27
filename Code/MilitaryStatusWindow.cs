@@ -549,6 +549,8 @@ namespace ModernBox
             int artillery,
             int artilleryCap)
         {
+            int launchers = ModernCapPolicy.CountMissileLaunchers(city);
+            int launcherCap = MilitaryQuotaService.GetMissileLauncherCap(city);
             if (!Traits.vehiclesAllowed)
             {
                 result.AppendLine("Producción: <color=#FF8888>vehículos desactivados.</color>");
@@ -564,6 +566,7 @@ namespace ModernBox
             List<ProductionCandidate> unlocked = candidates
                 .Where(candidate => MilitaryProgressionController.IsRoleUnlocked(city, candidate.tier, candidate.role, candidate.id))
                 .Where(candidate => !ModernCapPolicy.IsConventionalArtillery(candidate.id) || artillery < artilleryCap)
+                .Where(candidate => !ModernCapPolicy.IsMissileLauncher(candidate.id) || launchers < launcherCap)
                 .ToList();
             if (unlocked.Count == 0)
             {
@@ -586,9 +589,11 @@ namespace ModernBox
 
         private static void AppendCompactLauncherAvailability(StringBuilder result, City city, int population)
         {
-            if (HasMissileLauncher(city))
+            int launchers = ModernCapPolicy.CountMissileLaunchers(city);
+            int launcherCap = MilitaryQuotaService.GetMissileLauncherCap(city);
+            if (launchers >= launcherCap)
             {
-                result.AppendLine("Lanzamisiles: <color=#8FF0A4>operativo</color>.");
+                result.AppendLine("Lanzamisiles: <color=#8FF0A4>capacidad completa " + launchers + "/" + launcherCap + "</color>.");
                 return;
             }
             if (!Traits.vehiclesAllowed)
@@ -601,7 +606,8 @@ namespace ModernBox
                 result.AppendLine("Lanzamisiles: <color=#FFCC77>requiere 75 hab. y nivel 3.</color>");
                 return;
             }
-            result.AppendLine("Lanzamisiles: <color=#8FF0A4>elegible en el próximo ciclo.</color>");
+            result.AppendLine("Lanzamisiles: <color=#8FF0A4>" + launchers + "/" + launcherCap +
+                "; elegible en el próximo ciclo.</color>");
         }
 
         private static void AppendCompactNavalAvailability(StringBuilder result, City city)
@@ -731,10 +737,13 @@ namespace ModernBox
             int landCap = MilitaryQuotaService.GetLandUnitCap(city);
             int currentArtillery = CountArtillery(city);
             int artilleryCap = MilitaryQuotaService.GetArtilleryCap(city);
+            int currentLaunchers = ModernCapPolicy.CountMissileLaunchers(city);
+            int launcherCap = MilitaryQuotaService.GetMissileLauncherCap(city);
 
             string gate = GetLandGate(city, population, currentLand, landCap);
             result.AppendLine("    Tierra: " + gate + " | capacidad terrestre " + currentLand + "/" + landCap +
-                ", artillería convencional " + currentArtillery + "/" + artilleryCap + ".");
+                ", artillería convencional " + currentArtillery + "/" + artilleryCap +
+                ", lanzamisiles " + currentLaunchers + "/" + launcherCap + ".");
             result.AppendLine("      Perfil de ciudad: " + MilitaryQuotaService.GetCityQuotaLabel(city) + ".");
 
             List<ProductionCandidate> candidates = GetLandCandidates(city);
@@ -754,9 +763,15 @@ namespace ModernBox
                 .Where(candidate => ModernCapPolicy.IsConventionalArtillery(candidate.id) &&
                     currentArtillery >= artilleryCap)
                 .ToList();
+            List<ProductionCandidate> launcherBlocked = unlocked
+                .Where(candidate => ModernCapPolicy.IsMissileLauncher(candidate.id) &&
+                    currentLaunchers >= launcherCap)
+                .ToList();
             List<ProductionCandidate> productionEligible = unlocked
                 .Where(candidate => !ModernCapPolicy.IsConventionalArtillery(candidate.id) ||
                     currentArtillery < artilleryCap)
+                .Where(candidate => !ModernCapPolicy.IsMissileLauncher(candidate.id) ||
+                    currentLaunchers < launcherCap)
                 .ToList();
             List<ProductionCandidate> affordable = productionEligible
                 .Where(candidate => city.hasEnoughResourcesFor(candidate.cost))
@@ -776,6 +791,8 @@ namespace ModernBox
                 result.AppendLine("      Bloqueado por progreso militar: " + DescribeCandidates(progressionBlocked) + ".");
             if (artilleryBlocked.Count > 0)
                 result.AppendLine("      Bloqueado por cupo de artillería: " + DescribeCandidates(artilleryBlocked) + ".");
+            if (launcherBlocked.Count > 0)
+                result.AppendLine("      Bloqueado por cupo de lanzamisiles: " + DescribeCandidates(launcherBlocked) + ".");
 
             if (!Traits.vehiclesAllowed)
             {
@@ -808,10 +825,13 @@ namespace ModernBox
         {
             ProductionCandidate launcher = GetLandCandidates(city)
                 .FirstOrDefault(candidate => candidate.id.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase));
+            int launcherCount = ModernCapPolicy.CountMissileLaunchers(city);
+            int launcherCap = MilitaryQuotaService.GetMissileLauncherCap(city);
 
-            if (HasMissileLauncher(city))
+            if (launcherCount >= launcherCap)
             {
-                result.AppendLine("    Lanzamisiles terrestre: <color=#8FF0A4>ya posee uno</color> (máximo actual: 1 por ciudad).");
+                result.AppendLine("    Lanzamisiles terrestre: <color=#8FF0A4>capacidad completa</color> (" +
+                    launcherCount + "/" + launcherCap + " por ciudad).");
                 return;
             }
 
@@ -843,7 +863,8 @@ namespace ModernBox
             }
             else
             {
-                result.AppendLine("    Lanzamisiles terrestre: <color=#8FF0A4>elegible</color> — " + Escape(launcher.id) +
+                result.AppendLine("    Lanzamisiles terrestre: <color=#8FF0A4>elegible " + launcherCount + "/" + launcherCap +
+                    "</color> — " + Escape(launcher.id) +
                     " se construirá en el próximo ciclo de producción disponible (coste: " + launcher.costLabel + ").");
             }
         }

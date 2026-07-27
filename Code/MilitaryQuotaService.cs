@@ -108,6 +108,12 @@ namespace ModernBox
             return population >= quota.ArtilleryUpgradePopulation ? 2 : 1;
         }
 
+        // Launchers are a dedicated defensive asset, not conventional artillery.
+        internal static int GetMissileLauncherCap(City city)
+        {
+            return 2;
+        }
+
         /// <summary>
         /// Strategic submarines are limited across the whole kingdom, not only
         /// the dock that tried to commission one. The deterministic 1-2 range
@@ -171,7 +177,8 @@ namespace ModernBox
         {
             CityQuota quota = GetCityQuota(city);
             return GetLandUnitCap(city) + " terrestres, " + GetArtilleryCap(city) +
-                " artillería convencional (segunda desde población " + quota.ArtilleryUpgradePopulation + ")";
+                " artillería convencional (segunda desde población " + quota.ArtilleryUpgradePopulation + "), " +
+                GetMissileLauncherCap(city) + " lanzamisiles terrestres";
         }
 
         internal static string GetKingdomStrategicQuotaLabel(Kingdom kingdom)
