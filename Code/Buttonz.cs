@@ -148,7 +148,7 @@ namespace ModernBox
             .SetSprite(Resources.Load<Sprite>("ui/Icons/landTradeDecision"))
             .SetTitle("ABRIR CENTRO DIPLOMÁTICO")
             .SetDescription("Icono del carro con bandera. La IA gestiona automáticamente pactos, comercio, sanciones y crisis; este panel muestra el estado de cada reino.")
-            .SetPosition(1, 0)
+            .SetPosition(0, 1)
             .SetType(ButtonType.Click)
             .SetFunction(ModernDiplomacyWindow.Show)
             .SetTransform(tab.transform)
@@ -158,7 +158,7 @@ namespace ModernBox
             .SetSprite(Resources.Load<Sprite>("ui/icons/warhamma"))
             .SetTitle("Unidades de ModernBox")
             .SetDescription("Abre la pestaña de unidades.")
-            .SetPosition(2, 0)
+            .SetPosition(1, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(() => openModernBoxSubTab("ModernBoxUnits"))
@@ -168,7 +168,7 @@ namespace ModernBox
             .SetSprite(Resources.Load<Sprite>("ui/Icons/MIRV_nuke"))
             .SetTitle("ModernBox Nuclear")
             .SetDescription("Abre los controles estratégicos de guerra nuclear.")
-            .SetPosition(3, 0)
+            .SetPosition(1, 1)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(() => openModernBoxSubTab("ModernBoxBombs"))
@@ -178,7 +178,7 @@ namespace ModernBox
             .SetSprite(Resources.Load<Sprite>("ui/icons/Industrial"))
             .SetTitle("Eras de ModernBox")
             .SetDescription("Apariencia manual y conocimiento prohibido.")
-            .SetPosition(4, 0)
+            .SetPosition(2, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(() => openModernBoxSubTab("ModernBoxEras"))
@@ -186,9 +186,9 @@ namespace ModernBox
 
         new ButtonBuilder("modernbox_tab_items")
             .SetSprite(Resources.Load<Sprite>("ui/icons/firearm"))
-            .SetTitle("Objetos de ModernBox")
-            .SetDescription("Abre la pestaña de objetos.")
-            .SetPosition(5, 0)
+            .SetTitle("Reglas y objetos")
+            .SetDescription("Abre los ajustes de producción, defensa y objetos.")
+            .SetPosition(2, 1)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(() => openModernBoxSubTab("ModernBoxItems"))
@@ -198,7 +198,7 @@ namespace ModernBox
             .SetSprite(Resources.Load<Sprite>("ui/icons/orebox_tab_icon"))
             .SetTitle("Recursos")
             .SetDescription("Abre los generadores de recursos de OreBox.")
-            .SetPosition(0, 1)
+            .SetPosition(3, 0)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(() => openModernBoxSubTab("ModernBoxResources"))
@@ -208,7 +208,7 @@ namespace ModernBox
             .SetSprite(Resources.Load<Sprite>("ui/icons/Industrial"))
             .SetTitle("Trainbox")
             .SetDescription("Abre la pestaña de Trainbox.")
-            .SetPosition(1, 1)
+            .SetPosition(3, 1)
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(openTrainboxTab)
@@ -223,7 +223,7 @@ namespace ModernBox
                 .SetSprite(Resources.Load<Sprite>("ui/Icons/MIRV_nuke"))
                 .SetTitle("Permitir guerra nuclear")
                 .SetDescription("Activa o desactiva el uso de armas nucleares entre reinos.")
-                .SetPosition(11, 0) 
+                .SetPosition(0, 0)
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab3.transform)
                 .SetFunction(Vehicles.toggleNukes)
@@ -238,7 +238,7 @@ namespace ModernBox
                 .SetSprite(Resources.Load<Sprite>("actors/Heli_Human/new_helicopter1"))
                 .SetTitle("Permitir vehículos")
                 .SetDescription("Activa o desactiva la producción de vehículos de los reinos.")
-                .SetPosition(18, 1) 
+                .SetPosition(0, 0)
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab5.transform)
                 .SetFunction(Traits.toggleVehicles)
@@ -252,8 +252,8 @@ namespace ModernBox
             new ButtonBuilder("air_defense_toggle")
                 .SetSprite(Resources.Load<Sprite>("ui/icons/MIRV"))
                 .SetTitle("Defensa aérea y antimisiles")
-                .SetDescription("Permite que lanzamisiles y destructores intercepten aeronaves enemigas y algunos misiles en vuelo.")
-                .SetPosition(21, 1)
+                .SetDescription("Permite que lanzamisiles, portaviones y submarinos de defensa intercepten aeronaves enemigas y algunos misiles en vuelo.")
+                .SetPosition(0, 1)
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab5.transform)
                 .SetFunction(IntegratedAirDefense.Toggle)
@@ -270,10 +270,10 @@ namespace ModernBox
             new ButtonBuilder("nuketexttoggle")
                 .SetSprite(Resources.Load<Sprite>("ui/icons/Nuke"))
                 .SetTitle("Avisos nucleares")
-                .SetDescription("Activa o desactiva los avisos cuando una nación recibe un ataque nuclear.")
-                .SetPosition(12, 0)
+                .SetDescription("Avisa sólo cuando una ojiva nuclear está a pocos segundos de impactar.")
+                .SetPosition(1, 0)
                 .SetType(ButtonType.Toggle)
-                .SetTransform(tab5.transform)
+                .SetTransform(tab3.transform)
                 .SetFunction(Vehicles.toggleBalls)
                 .Build();
 
@@ -286,7 +286,7 @@ namespace ModernBox
                 .SetSprite(Resources.Load<Sprite>("weapons/AK"))
                 .SetTitle("Permitir armas de fuego")
                 .SetDescription("Activa o desactiva la producción de armas de fuego.")
-                .SetPosition(19, 0) 
+                .SetPosition(1, 0)
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab5.transform)
                 .SetFunction(CustomItemsList.toggleGuns)
@@ -301,7 +301,7 @@ namespace ModernBox
                 .SetSprite(Resources.Load<Sprite>("ui/icons/items/icon_STRONGMIRV"))
                 .SetTitle("Permitir MIRV")
                 .SetDescription("Activa o desactiva la producción de MIRV.")
-                .SetPosition(20, 1)
+                .SetPosition(2, 0)
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab5.transform)
                 .SetFunction(CustomItemsList.toggleMIRVs)
@@ -316,7 +316,7 @@ namespace ModernBox
                 .SetSprite(Resources.Load<Sprite>("ui/icons/items/icon_morphine"))
                 .SetTitle("Permitir drogas")
                 .SetDescription("Activa o desactiva la fabricación y el consumo de drogas.")
-                .SetPosition(20, 0)
+                .SetPosition(1, 1)
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab5.transform)
                 .SetFunction(CustomItemsList.toggleDrugs)
@@ -331,7 +331,7 @@ namespace ModernBox
                 .SetSprite(Resources.Load<Sprite>("ui/icons/XenoInfectionIcon"))
                 .SetTitle("Permitir armas químicas")
                 .SetDescription("Activa o desactiva la producción de armas químicas.")
-                .SetPosition(21, 0)
+                .SetPosition(3, 0)
                 .SetType(ButtonType.Toggle)
                 .SetTransform(tab5.transform)
                 .SetFunction(CustomItemsList.toggleMGL)
@@ -633,9 +633,14 @@ namespace ModernBox
         private static void BuildUnitSpawnerGrid(PowersTab targetTab, List<UnitTracker.TrackedUnit> units, int startPosition)
         {
             int position = startPosition;
-            for (int index = 0; index < units.Count; index++)
+            List<UnitTracker.TrackedUnit> orderedUnits = new List<UnitTracker.TrackedUnit>(units);
+            orderedUnits.Sort((left, right) => string.Compare(
+                GetUnitSpawnSortKey(left?.id),
+                GetUnitSpawnSortKey(right?.id),
+                StringComparison.OrdinalIgnoreCase));
+            for (int index = 0; index < orderedUnits.Count; index++)
             {
-                UnitTracker.TrackedUnit unit = units[index];
+                UnitTracker.TrackedUnit unit = orderedUnits[index];
                 if (unit.sprite == null)
                 {
                     ModernBoxLogger.Warning($"[M3] Skipping unit {unit.id} because sprite is null.");
@@ -653,6 +658,38 @@ namespace ModernBox
                     .Build();
                 position++;
             }
+        }
+
+        private static string GetUnitSpawnSortKey(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return "99|Sin facción|";
+            return GetUnitRoleOrder(id).ToString("D2") + "|" + GetUnitFactionLabel(id) + "|" + FormatUnitName(id);
+        }
+
+        private static int GetUnitRoleOrder(string id)
+        {
+            if (id.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase)) return 0;
+            if (id.StartsWith("howitzer_", StringComparison.OrdinalIgnoreCase)) return 1;
+            if (id.EndsWith("cannon", StringComparison.OrdinalIgnoreCase)) return 2;
+            if (id.IndexOf("catapulta", StringComparison.OrdinalIgnoreCase) >= 0) return 3;
+            if (id.StartsWith("Tank_", StringComparison.OrdinalIgnoreCase) || id.StartsWith("AbramTank", StringComparison.OrdinalIgnoreCase)) return 10;
+            if (id.StartsWith("wheeledtank_", StringComparison.OrdinalIgnoreCase)) return 11;
+            if (id.StartsWith("modernhumvee_", StringComparison.OrdinalIgnoreCase)) return 12;
+            if (id.StartsWith("supporttruck_", StringComparison.OrdinalIgnoreCase)) return 13;
+            if (id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "F55FighterJet", StringComparison.OrdinalIgnoreCase)) return 20;
+            if (id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "americanbomberww", StringComparison.OrdinalIgnoreCase)) return 21;
+            if (id.StartsWith("Heli_", StringComparison.OrdinalIgnoreCase)) return 22;
+            if (id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase)) return 30;
+            if (id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase)) return 31;
+            if (id.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase)) return 32;
+            if (id.StartsWith("TridentSubmarine_", StringComparison.OrdinalIgnoreCase)) return 33;
+            if (id.StartsWith("NeutronSubmarine_", StringComparison.OrdinalIgnoreCase)) return 34;
+            if (id.StartsWith("EmpSubmarine_", StringComparison.OrdinalIgnoreCase)) return 35;
+            if (id.StartsWith("HammerSubmarine_", StringComparison.OrdinalIgnoreCase)) return 36;
+            if (id.StartsWith("RuinSubmarine_", StringComparison.OrdinalIgnoreCase)) return 37;
+            if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase)) return 38;
+            return 90;
         }
 
         private static void GetUnitSpawnMetadata(string id, out string title, out string description)

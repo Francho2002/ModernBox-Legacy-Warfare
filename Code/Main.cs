@@ -270,7 +270,7 @@ namespace ModernBox{
 
         private static void BuildModernBoxTabsIfMissing()
         {
-            EnsureTabBuilt("ModernBoxTab", "ModernBox", "Eras, política, trenes y guerra convencional.", 128, false, true, null, "ui/icons/tabIconModernWarfare");
+            EnsureTabBuilt("ModernBoxTab", "ModernBox", "Centro compacto de comando, guerra y mundo.", 128, false, true, null, "ui/icons/tabIconModernWarfare");
             EnsureTabBuilt("ModernBoxUnits", "Unidades de ModernBox", "Unidades disponibles para invocar.", 200, true, false, "ModernBoxTab", "ui/icons/warhamma");
             EnsureTabBuilt("ModernBoxUnitsArtillery", "Artillería", "Unidades de artillería.", 200, true, false, "ModernBoxUnits", "ui/icons/MIRV");
             EnsureTabBuilt("ModernBoxUnitsGround", "Tierra", "Unidades terrestres.", 200, true, false, "ModernBoxUnits", "ui/icons/Industrial");
@@ -280,7 +280,7 @@ namespace ModernBox{
             // the realistic nuclear-strategy controls rather than God Powers.
             EnsureTabBuilt("ModernBoxBombs", "ModernBox Nuclear", "Controles estratégicos de guerra nuclear.", 200, true, false, "ModernBoxTab", "ui/Icons/MIRV_nuke");
             EnsureTabBuilt("ModernBoxEras", "Eras de ModernBox", "Controles manuales de apariencia y conocimiento prohibido persistente.", 200, true, false, "ModernBoxTab", "ui/icons/Industrial");
-            EnsureTabBuilt("ModernBoxItems", "Objetos de ModernBox", "Activa o desactiva tipos de objetos específicos.", 200, true, false, "ModernBoxTab", "ui/icons/firearm");
+            EnsureTabBuilt("ModernBoxItems", "Reglas y objetos", "Producción, defensa y objetos disponibles.", 200, true, false, "ModernBoxTab", "ui/icons/firearm");
             EnsureTabBuilt("ModernBoxResources", "Recursos", "Generadores de recursos de OreBox.", 200, true, false, "ModernBoxTab", "ui/icons/orebox_tab_icon");
         }
 
