@@ -24,7 +24,8 @@ namespace ModernBox
                 "fireboneartillery",
                 "frostmissileartillery",
                 "plantmissileartillery",
-                "modernbox_torpedo"
+                "modernbox_torpedo",
+                "modernbox_arsenal_warhead"
             };
 
         internal static void DrawOverviewMarkers(QuantumSpriteAsset spriteAsset)
@@ -102,6 +103,12 @@ namespace ModernBox
             if (string.Equals(projectileId, "NUKER", StringComparison.Ordinal))
             {
                 markerScale = 0.50f;
+                return true;
+            }
+
+            if (string.Equals(projectileId, "modernbox_baseline_ssbn_warhead", StringComparison.Ordinal))
+            {
+                markerScale = 0.48f;
                 return true;
             }
 

@@ -27,8 +27,11 @@ namespace ModernBox
             "frostmissileartillery",
             "plantmissileartillery",
             "NUKER",
+            "modernbox_baseline_ssbn_warhead",
             "SSBN_CZAR_WARHEAD",
             "modernbox_torpedo",
+            "modernbox_arsenal_warhead",
+            "modernbox_trident_warhead",
             "modernbox_neutron_warhead",
             "modernbox_emp_warhead",
             "modernbox_hammer_warhead",
@@ -41,7 +44,8 @@ namespace ModernBox
             "fireboneartillery",
             "frostmissileartillery",
             "plantmissileartillery",
-            "modernbox_torpedo"
+            "modernbox_torpedo",
+            "modernbox_arsenal_warhead"
         };
 
         private static readonly HashSet<string> HeavyConventionalMissiles = new HashSet<string>(StringComparer.Ordinal)
@@ -49,7 +53,8 @@ namespace ModernBox
             "missileartillery",
             "fireboneartillery",
             "frostmissileartillery",
-            "plantmissileartillery"
+            "plantmissileartillery",
+            "modernbox_arsenal_warhead"
         };
 
         private static readonly ConditionalWeakTable<Projectile, ProjectileData> ProjectileStates =
@@ -273,6 +278,8 @@ namespace ModernBox
         private static float GetInterceptChance(string projectileId)
         {
             if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.Ordinal))
+                return 0.25f;
+            if (string.Equals(projectileId, "modernbox_baseline_ssbn_warhead", StringComparison.Ordinal))
                 return 0.25f;
             if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.Ordinal))
                 return 0.12f;

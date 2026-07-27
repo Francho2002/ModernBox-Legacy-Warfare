@@ -71,7 +71,9 @@ namespace ModernBox
         private static bool IsNuclearWarhead(string projectileId)
         {
             return string.Equals(projectileId, "NUKER", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(projectileId, "modernbox_baseline_ssbn_warhead", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(projectileId, "modernbox_trident_warhead", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(projectileId, "modernbox_neutron_warhead", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(projectileId, "modernbox_ruin_warhead", StringComparison.OrdinalIgnoreCase);

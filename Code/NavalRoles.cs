@@ -23,6 +23,8 @@ namespace ModernBox
         private const string RuinDecisionId = "modernbox_sub_ruin_attack";
 
         private const string TorpedoProjectileId = "modernbox_torpedo";
+        private const string ArsenalProjectileId = "modernbox_arsenal_warhead";
+        private const string TridentProjectileId = "modernbox_trident_warhead";
         private const string NeutronProjectileId = "modernbox_neutron_warhead";
         private const string EmpProjectileId = "modernbox_emp_warhead";
         private const string HammerProjectileId = "modernbox_hammer_warhead";
@@ -159,6 +161,8 @@ namespace ModernBox
 
             if (actorId.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
                 return "SSBN Apocalipsis";
+            if (actorId.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase))
+                return "SSBN Tactico";
             foreach (RoleDefinition role in Roles)
             {
                 if (actorId.StartsWith(role.Prefix + "_", StringComparison.OrdinalIgnoreCase))
@@ -180,6 +184,10 @@ namespace ModernBox
             if (actorId.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
                 description = "Submarino de ataque. Lanza un torpedo convencional contra buques enemigos y una ráfaga de 2 misiles de crucero. No usa armas nucleares.";
+            }
+            else if (actorId.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase))
+            {
+                description = "SSBN tactico. Lanza una carga atomica compacta de radio estandar; no deja crateres, radiacion ni fuego persistente.";
             }
             else if (actorId.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
@@ -214,7 +222,8 @@ namespace ModernBox
 
         internal static bool IsHeavyWarhead(string projectileId)
         {
-            return string.Equals(projectileId, NeutronProjectileId, StringComparison.OrdinalIgnoreCase) ||
+            return string.Equals(projectileId, TridentProjectileId, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(projectileId, NeutronProjectileId, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(projectileId, HammerProjectileId, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(projectileId, RuinProjectileId, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(projectileId, EmpProjectileId, StringComparison.OrdinalIgnoreCase);
@@ -337,6 +346,8 @@ namespace ModernBox
 
         private static void CreateSafeBlasts()
         {
+            CreateSafeBlast("modernbox_arsenal_blast", 150, 5, true);
+            CreateSafeBlast("modernbox_trident_blast", 680, 15, true);
             CreateSafeBlast("modernbox_neutron_blast", 260, 6, false);
             CreateSafeBlast("modernbox_ruin_blast", 110, 4, false);
             CreateSafeBlast("modernbox_hammer_blast", 1100, 22, true);
@@ -372,19 +383,31 @@ namespace ModernBox
         private static void CreateProjectiles()
         {
             CreateProjectile(TorpedoProjectileId, "missileartillery", "modern_cap_missile_blast", 4, 62f,
-                0.42f, "fx_firebomb_explosion", false);
+                0.42f, "fx_firebomb_explosion", false, 0.55f);
+            // El Arsenal usa una carga de crucero convencional, no un NUKER
+            // reciclado: explosión de fragmentación visible, daño moderado y
+            // sin cambio permanente de suelo.
+            CreateProjectile(ArsenalProjectileId, "missileartillery", "modernbox_arsenal_blast", 6, 74f,
+                0.50f, "fx_explosion_meteorite", false, 0.72f);
+            // El Tridente emplea una cabeza MIRV propia: más amplia que la
+            // nuclear estándar pero por debajo del Martillo, sin cráteres ni
+            // bioma radiactivo.
+            CreateProjectile(TridentProjectileId, "NUKER", "modernbox_trident_blast", 16, 86f,
+                0.58f, "fx_explosion_nuke_atomic", true, 1.00f);
             CreateProjectile(NeutronProjectileId, "NUKER", "modernbox_neutron_blast", 7, 91f,
-                0.48f, "fx_explosion_nuke_atomic", true);
+                0.48f, "fx_explosion_nuke_atomic", true, 0.72f);
+            // The EMP detonates at altitude as a flash: it does not damage
+            // terrain and its disable effect applies only to hostile forces.
             CreateProjectile(EmpProjectileId, "NUKER", null, 0, 102f,
-                0.46f, "fx_explosion_nuke_atomic", true);
+                0.46f, "fx_nuke_flash", true, 1.30f);
             CreateProjectile(HammerProjectileId, "NUKER", "modernbox_hammer_blast", 34, 77f,
-                0.72f, "fx_explosion_huge", true);
+                0.72f, "fx_explosion_huge", true, 1.45f);
             CreateProjectile(RuinProjectileId, "NUKER", "modernbox_ruin_blast", 9, 88f,
-                0.50f, "fx_explosion_nuke_atomic", true);
+                0.50f, "fx_explosion_middle", true, 0.90f);
         }
 
         private static void CreateProjectile(string id, string texture, string terraformId, int terraformRange,
-            float speed, float scale, string effect, bool nuclearSound)
+            float speed, float scale, string effect, bool nuclearSound, float effectScale)
         {
             if (AssetManager.projectiles.get(id) != null)
                 return;
@@ -405,7 +428,7 @@ namespace ModernBox
                 ? "event:/SFX/WEAPONS/WeaponFireballLand"
                 : string.Empty;
             projectile.end_effect = effect;
-            projectile.end_effect_scale = nuclearSound ? 0.85f : 0.55f;
+            projectile.end_effect_scale = effectScale;
             projectile.trail_effect_enabled = true;
             projectile.trail_effect_id = "modern_cap_missile_trail";
             projectile.trail_effect_scale = 0.30f;
@@ -452,7 +475,7 @@ namespace ModernBox
                 return false;
 
             SpendGold(caster.city, 25);
-            bool launched = LaunchAtAll(caster, targets, "missileartillery");
+            bool launched = LaunchAtAll(caster, targets, ArsenalProjectileId);
             if (launched)
                 MarkConventionalLaunch(caster, 90f);
             return launched;
@@ -469,7 +492,7 @@ namespace ModernBox
                 return false;
 
             SpendGold(caster.city, 180);
-            return LaunchAtAll(caster, targets, "NUKER");
+            return LaunchAtAll(caster, targets, TridentProjectileId);
         }
 
         private static bool NeutronEffect(Actor caster)

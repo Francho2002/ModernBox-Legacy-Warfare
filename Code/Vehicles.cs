@@ -1442,6 +1442,33 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
 		  NUKER.world_actions = (AttackAction)Delegate.Combine(NUKER.world_actions, new AttackAction(ActionLibrary.burnTile));
           AssetManager.projectiles.add(NUKER);
 
+            // The original SSBN keeps a dedicated tactical atomic payload so
+            // its detonation is not visually identical to a land silo's NUKER.
+            // Reuse the terrain-safe Apocalipsis blast: no craters, radiation
+            // or lasting fire, while retaining a real nuclear damage profile.
+            ProjectileAsset baselineSSBNWarhead = new ProjectileAsset();
+            baselineSSBNWarhead.id = "modernbox_baseline_ssbn_warhead";
+            baselineSSBNWarhead.speed = 96f;
+            baselineSSBNWarhead.texture = "NUKER";
+            baselineSSBNWarhead.look_at_target = true;
+            baselineSSBNWarhead.texture_shadow = "shadows/projectiles/shadow_ball";
+            baselineSSBNWarhead.terraform_option = "modern_cap_apocalypse_blast";
+            baselineSSBNWarhead.terraform_range = 20;
+            baselineSSBNWarhead.draw_light_area = true;
+            baselineSSBNWarhead.sound_launch = "event:/SFX/WEAPONS/WeaponFireballStart";
+            baselineSSBNWarhead.sound_impact = "event:/SFX/WEAPONS/WeaponFireballLand";
+            baselineSSBNWarhead.end_effect = "fx_explosion_nuke_atomic";
+            baselineSSBNWarhead.end_effect_scale = 0.82f;
+            baselineSSBNWarhead.trail_effect_enabled = true;
+            baselineSSBNWarhead.trail_effect_id = "modern_cap_missile_trail";
+            baselineSSBNWarhead.trail_effect_scale = 0.30f;
+            baselineSSBNWarhead.trail_effect_timer = 0.10f;
+            baselineSSBNWarhead.scale_start = 0.50f;
+            baselineSSBNWarhead.scale_target = 0.50f;
+            baselineSSBNWarhead.can_be_left_on_ground = false;
+            baselineSSBNWarhead.can_be_blocked = false;
+            AssetManager.projectiles.add(baselineSSBNWarhead);
+
             ProjectileAsset SSBN_CZAR_WARHEAD = new ProjectileAsset();
             SSBN_CZAR_WARHEAD.id = "SSBN_CZAR_WARHEAD";
             SSBN_CZAR_WARHEAD.speed = 84f;
@@ -1456,7 +1483,7 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
             SSBN_CZAR_WARHEAD.sound_launch = "event:/SFX/WEAPONS/WeaponFireballStart";
             SSBN_CZAR_WARHEAD.sound_impact = "event:/SFX/WEAPONS/WeaponFireballLand";
             SSBN_CZAR_WARHEAD.end_effect = "fx_explosion_nuke_atomic";
-            SSBN_CZAR_WARHEAD.end_effect_scale = 1.10f;
+            SSBN_CZAR_WARHEAD.end_effect_scale = 1.20f;
             SSBN_CZAR_WARHEAD.trail_effect_enabled = true;
             SSBN_CZAR_WARHEAD.trail_effect_id = "modern_cap_missile_trail";
             SSBN_CZAR_WARHEAD.trail_effect_scale = 0.30f;
@@ -9802,11 +9829,21 @@ internal static float GetMissileBlastSafetyRadius(string projectileId)
 {
     if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.OrdinalIgnoreCase))
         return 24f;
-    if (!string.IsNullOrEmpty(projectileId) && projectileId.IndexOf("hammer", StringComparison.OrdinalIgnoreCase) >= 0)
-        return 34f;
-    if (string.Equals(projectileId, "NUKER", StringComparison.OrdinalIgnoreCase) ||
-        (!string.IsNullOrEmpty(projectileId) && projectileId.IndexOf("warhead", StringComparison.OrdinalIgnoreCase) >= 0))
+    if (string.Equals(projectileId, "modernbox_baseline_ssbn_warhead", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(projectileId, "NUKER", StringComparison.OrdinalIgnoreCase))
         return 20f;
+    if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.OrdinalIgnoreCase))
+        return 34f;
+    if (string.Equals(projectileId, "modernbox_trident_warhead", StringComparison.OrdinalIgnoreCase))
+        return 16f;
+    if (string.Equals(projectileId, "modernbox_ruin_warhead", StringComparison.OrdinalIgnoreCase))
+        return 11f;
+    if (string.Equals(projectileId, "modernbox_neutron_warhead", StringComparison.OrdinalIgnoreCase))
+        return 8f;
+    if (string.Equals(projectileId, "modernbox_arsenal_warhead", StringComparison.OrdinalIgnoreCase))
+        return 6f;
+    if (string.Equals(projectileId, "modernbox_emp_warhead", StringComparison.OrdinalIgnoreCase))
+        return 0f;
     return 4f;
 }
 
@@ -10233,7 +10270,10 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
                         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
                         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
                         startProjectile.y += 0.5f;
-                        World.world.projectiles.spawn(caster, null, "NUKER", startProjectile, attackVector);
+						string projectileId = caster.asset?.id?.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase) == true
+							? "modernbox_baseline_ssbn_warhead"
+							: "NUKER";
+                        World.world.projectiles.spawn(caster, null, projectileId, startProjectile, attackVector);
 						StatManager.Instance.SpawnUnit();
                         caster.punchTargetAnimation(attackVector, true, false, 45f);
                         return true;
