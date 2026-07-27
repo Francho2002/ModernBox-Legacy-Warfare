@@ -594,14 +594,14 @@ namespace ModernBox
 
         private static void TryAddTarget(List<Vector2> targets, Vector2? candidate, float minimumSeparation)
         {
-            if (candidate == null)
+            if (candidate == null || !Vehicles.TryResolveWorldTarget(candidate.Value, out Vector2 resolved))
                 return;
             foreach (Vector2 target in targets)
             {
-                if (Vector2.Distance(target, candidate.Value) < minimumSeparation)
+                if (Vector2.Distance(target, resolved) < minimumSeparation)
                     return;
             }
-            targets.Add(candidate.Value);
+            targets.Add(resolved);
         }
 
         private static bool LaunchAtAll(Actor caster, List<Vector2> targets, string projectileId)
@@ -614,7 +614,8 @@ namespace ModernBox
 
         private static bool LaunchAt(Actor caster, Vector2 target, string projectileId)
         {
-            if (caster == null || !caster.isAlive() || World.world?.projectiles == null)
+            if (caster == null || !caster.isAlive() || World.world?.projectiles == null ||
+                !Vehicles.TryResolveWorldTarget(target, out target))
                 return false;
 
             Vector3 position = caster.current_position;

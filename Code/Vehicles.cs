@@ -10247,12 +10247,34 @@ private static Vector2? GetNuclearSalvoCityTarget(City city)
 
 private static bool TryAddNuclearSalvoTarget(List<Vector2> targets, Vector2 candidate, float minimumSeparation)
 {
+    if (!TryResolveWorldTarget(candidate, out candidate))
+        return false;
+
     foreach (Vector2 existing in targets)
     {
         if (Vector2.Distance(existing, candidate) < minimumSeparation)
             return false;
     }
     targets.Add(candidate);
+    return true;
+}
+
+/// <summary>
+/// Converts an aiming point to a real tile before any missile uses it.  Salvo
+/// fallbacks deliberately offset an enemy city; near a map edge that offset
+/// can leave the playable world.  Rejecting it is safer than clamping every
+/// missile into one border tile.
+/// </summary>
+internal static bool TryResolveWorldTarget(Vector2 candidate, out Vector2 resolved)
+{
+    resolved = candidate;
+    WorldTile tile = World.world?.GetTile(
+        Mathf.RoundToInt(candidate.x),
+        Mathf.RoundToInt(candidate.y));
+    if (tile == null)
+        return false;
+
+    resolved = tile.pos;
     return true;
 }
 
