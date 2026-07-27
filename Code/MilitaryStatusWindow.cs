@@ -818,10 +818,14 @@ namespace ModernBox
         {
             ConstructionCost cost;
             string label;
-            if (id.StartsWith("howitzer_", StringComparison.OrdinalIgnoreCase) ||
+            if (id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase))
+            {
+                cost = new ConstructionCost(9, 8, 6, 3);
+                label = "9 madera, 8 piedra, 6 metal, 3 oro";
+            }
+            else if (id.StartsWith("howitzer_", StringComparison.OrdinalIgnoreCase) ||
                 id.StartsWith("Heli_", StringComparison.OrdinalIgnoreCase) ||
                 id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) ||
-                id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase) ||
                 id == "F55FighterJet" || id == "americanbomberww" || id == "biplane" ||
                 id == "fighterww" || id == "Zeppelin" || id == "EliteZeppelin" ||
                 id.StartsWith("Tank_", StringComparison.OrdinalIgnoreCase) ||
@@ -964,7 +968,9 @@ namespace ModernBox
                 if (unit == null || !unit.isAlive())
                     continue;
                 string id = unit.asset?.id;
-                if (id == "baseWarUnit" || ModernCapPolicy.IsLandMilitaryActor(id))
+                if (id == "baseWarUnit" ||
+                    (ModernCapPolicy.IsLandMilitaryActor(id) &&
+                     !UnifiedMilitaryProduction.IsDedicatedDefenseSlot(id)))
                     count++;
             }
             return count;

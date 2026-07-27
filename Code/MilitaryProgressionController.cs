@@ -108,6 +108,12 @@ namespace ModernBox
             if (level <= 0)
                 return false;
 
+            bool launcherCycleAircraft = !string.IsNullOrEmpty(actorId) &&
+                (actorId.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) ||
+                 actorId.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase));
+            if (launcherCycleAircraft)
+                return level >= 3;
+
             if (string.Equals(role, "air", StringComparison.OrdinalIgnoreCase) ||
                 ModernCapPolicy.IsAllowedAircraft(actorId))
                 return level >= 4;
@@ -120,8 +126,9 @@ namespace ModernBox
 
             if (string.Equals(tier, "modern", StringComparison.OrdinalIgnoreCase))
             {
-                // Tanks, artillery and missile systems are mature modern ground
-                // infrastructure. Air units remain level four by the rule above.
+                // Tanks, artillery and missile systems use mature city
+                // infrastructure rather than a visual-era gate. The dedicated
+                // launcher cycle admits its fighter/bomber pair at this level.
                 return level >= 3;
             }
 

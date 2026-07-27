@@ -4,8 +4,9 @@ using UnityEngine;
 namespace ModernBox
 {
     /// <summary>
-    /// Guarantees a slow, era-independent route to one defensive missile
-    /// launcher per sufficiently developed city.
+    /// Guarantees a slow, era-independent route to a compact defensive package:
+    /// at most one land launcher and one fixed-wing aircraft per developed city.
+    /// Each global cycle still commissions only one asset.
     /// </summary>
     internal sealed class GroundMissileProductionController : MonoBehaviour
     {
@@ -26,10 +27,11 @@ namespace ModernBox
                 return;
 
             ScheduleNextScan();
-            TryBuildOneLauncher();
+            if (World.world != null && !World.world.isPaused())
+                TryBuildOneDefenseAsset();
         }
 
-        private void TryBuildOneLauncher()
+        private void TryBuildOneDefenseAsset()
         {
             try
             {
@@ -49,7 +51,7 @@ namespace ModernBox
                     if (_cursor >= cities.Count)
                         _cursor = 0;
                     City city = cities[_cursor++];
-                    if (UnifiedMilitaryProduction.TryBuildDefensiveLauncher(city))
+                    if (UnifiedMilitaryProduction.TryBuildDefensiveOrAirAsset(city))
                         return;
                 }
             }

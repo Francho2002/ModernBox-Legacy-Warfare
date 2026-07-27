@@ -154,37 +154,46 @@ namespace ModernBox
             if (!TryGetDefensiveLauncher(city, out string launcherId, out ConstructionCost cost))
                 return false;
 
-            WorldTile spawnTile = FindSafeLandTile(city);
-            if (spawnTile == null)
+            return TryBuildDirectDefenseAsset(
+                city,
+                new Candidate { id = launcherId, tier = "modern", cost = cost },
+                "lanzamisiles");
+        }
+
+        /// <summary>
+        /// The slow launcher scheduler chooses between the missing launcher and
+        /// the missing fixed-wing slot. The production rate does not increase:
+        /// one global cycle still creates at most one paid asset.
+        /// </summary>
+        internal static bool TryBuildDefensiveOrAirAsset(City city)
+        {
+            Candidate launcher = SelectDefensiveLauncher(city);
+            Candidate aircraft = SelectDefensiveAirframe(city);
+            if (launcher == null && aircraft == null)
                 return false;
 
-            Actor produced;
-            try
+            Candidate selected;
+            string role;
+            if (launcher == null)
             {
-                produced = World.world.units.createNewUnit(
-                    launcherId, spawnTile, pMiracleSpawn: false, 0f, null, null,
-                    pSpawnWithItems: false);
+                selected = aircraft;
+                role = "aeronave";
             }
-            catch (Exception ex)
+            else if (aircraft == null)
             {
-                ModernBoxLogger.Error("[MX.DefenseProduction] Launcher spawn failed exceptionally: " + ex.Message);
-                return false;
+                selected = launcher;
+                role = "lanzamisiles";
+            }
+            else
+            {
+                float launcherWeight = MilitaryDoctrineService.GetDefensiveLauncherPreference(city?.kingdom);
+                float airWeight = MilitaryDoctrineService.GetRoleWeight(city?.kingdom, "air");
+                bool chooseLauncher = UnityEngine.Random.Range(0f, launcherWeight + airWeight) < launcherWeight;
+                selected = chooseLauncher ? launcher : aircraft;
+                role = chooseLauncher ? "lanzamisiles" : "aeronave";
             }
 
-            if (produced == null)
-            {
-                ModernBoxLogger.Warning("[MX.DefenseProduction] WorldBox rejected launcher spawn for " + launcherId + ".");
-                return false;
-            }
-
-            produced.setKingdom(city.kingdom);
-            produced.setCity(city);
-            city.spendResourcesForBuildingAsset(cost);
-            ModernDiplomacyController.ApplyArmsCredit(city);
-            EffectsLibrary.spawn("fx_spawn", produced.current_tile);
-            ModernBoxLogger.Log("[MX.DefenseProduction] Built " + launcherId +
-                " for a city with population " + city.getPopulationPeople() + ".");
-            return true;
+            return TryBuildDirectDefenseAsset(city, selected, role);
         }
 
         internal static bool TryGetDefensiveLauncher(City city, out string launcherId, out ConstructionCost cost)
@@ -213,6 +222,152 @@ namespace ModernBox
 
             cost = GetCost(launcherId, "modern");
             return city.hasEnoughResourcesFor(cost);
+        }
+
+        private static Candidate SelectDefensiveAirframe(City city)
+        {
+            if (!NeedsFixedWingAirframe(city))
+                return null;
+
+            Actor leader = city.leader;
+            string species = leader.subspecies?.data?.species_id;
+            if (string.IsNullOrEmpty(species))
+                species = leader.asset?.id;
+
+            if (string.IsNullOrEmpty(species) ||
+                !Traits.CartTransformations.CartTransformationsModernRoles.TryGetValue(species, out var roles) ||
+                !roles.TryGetValue("air", out var ids))
+                return null;
+
+            List<Candidate> affordable = ids
+                .Where(IsLauncherCycleAircraft)
+                .Distinct()
+                .Select(id => new
+                {
+                    id,
+                    asset = AssetManager.actor_library.get(id),
+                    cost = GetCost(id, "modern")
+                })
+                .Where(entry => entry.asset != null &&
+                    !string.IsNullOrEmpty(entry.asset.default_attack) &&
+                    AssetManager.items.get(entry.asset.default_attack) != null &&
+                    city.hasEnoughResourcesFor(entry.cost))
+                .Select(entry => new Candidate
+                {
+                    id = entry.id,
+                    tier = "modern",
+                    cost = entry.cost
+                })
+                .ToList();
+            if (affordable.Count == 0)
+                return null;
+
+            List<Candidate> fighters = affordable
+                .Where(candidate => candidate.id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            List<Candidate> bombers = affordable
+                .Where(candidate => candidate.id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            // Fighters remain the ordinary choice. Air/strategic doctrines make
+            // the more expensive bomber somewhat likelier, never dominant.
+            float bomberChance = Mathf.Clamp(
+                0.25f * MilitaryDoctrineService.GetRoleWeight(city.kingdom, "air"),
+                0.20f,
+                0.40f);
+            List<Candidate> preferred = bombers.Count > 0 &&
+                (fighters.Count == 0 || UnityEngine.Random.value < bomberChance)
+                    ? bombers
+                    : fighters;
+            if (preferred.Count == 0)
+                preferred = affordable;
+            return preferred[Randy.randomInt(0, preferred.Count)];
+        }
+
+        private static bool NeedsFixedWingAirframe(City city)
+        {
+            return IsValidLauncherCity(city) &&
+                MilitaryProgressionController.CanBuildDefensiveLauncher(city) &&
+                !HasFixedWingAirframe(city, null);
+        }
+
+        private static bool HasFixedWingAirframe(City city, Actor transforming)
+        {
+            if (city?.units == null)
+                return false;
+
+            foreach (Actor unit in city.units)
+            {
+                if (unit == null || unit == transforming || !unit.isAlive())
+                    continue;
+                if (IsFixedWingAircraft(unit.asset?.id))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool IsFixedWingAircraft(string id)
+        {
+            return !string.IsNullOrEmpty(id) &&
+                (IsLauncherCycleAircraft(id) ||
+                 id == "F55FighterJet" ||
+                 id == "americanbomberww" ||
+                 id == "biplane" ||
+                 id == "fighterww");
+        }
+
+        private static bool IsLauncherCycleAircraft(string id)
+        {
+            return !string.IsNullOrEmpty(id) &&
+                (id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) ||
+                 id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase));
+        }
+
+        internal static bool IsDedicatedDefenseSlot(string id)
+        {
+            return IsFixedWingAircraft(id) ||
+                id?.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase) == true;
+        }
+
+        private static bool TryBuildDirectDefenseAsset(City city, Candidate candidate, string role)
+        {
+            if (city == null || candidate == null || string.IsNullOrEmpty(candidate.id))
+                return false;
+
+            WorldTile spawnTile = FindSafeLandTile(city);
+            if (spawnTile == null)
+                return false;
+
+            Actor produced;
+            try
+            {
+                produced = World.world.units.createNewUnit(
+                    candidate.id, spawnTile, pMiracleSpawn: false, 0f, null, null,
+                    pSpawnWithItems: false);
+            }
+            catch (Exception ex)
+            {
+                ModernBoxLogger.Error("[MX.DefenseProduction] " + role +
+                    " spawn failed exceptionally: " + ex.Message);
+                return false;
+            }
+
+            if (produced == null)
+            {
+                ModernBoxLogger.Warning("[MX.DefenseProduction] WorldBox rejected " +
+                    role + " spawn for " + candidate.id + ".");
+                return false;
+            }
+
+            produced.setKingdom(city.kingdom);
+            produced.setCity(city);
+            city.spendResourcesForBuildingAsset(candidate.cost);
+            ModernDiplomacyController.ApplyArmsCredit(city);
+            EffectsLibrary.spawn("fx_spawn", produced.current_tile);
+            ModernBoxLogger.Log("[MX.DefenseProduction] Built " + candidate.id +
+                " (" + role + ") for a city with population " +
+                city.getPopulationPeople() + ".");
+            return true;
         }
 
         internal static bool HasMissileLauncher(City city, Actor transforming)
@@ -376,7 +531,9 @@ namespace ModernBox
                 if (unit == null || unit == transforming || !unit.isAlive())
                     continue;
                 string id = unit.asset?.id;
-                if (id == "baseWarUnit" || ModernCapPolicy.IsLandMilitaryActor(id))
+                bool dedicatedSlot = IsDedicatedDefenseSlot(id);
+                if (id == "baseWarUnit" ||
+                    (ModernCapPolicy.IsLandMilitaryActor(id) && !dedicatedSlot))
                     total++;
                 if (ModernCapPolicy.IsConventionalArtillery(id))
                     artillery++;
@@ -387,6 +544,14 @@ namespace ModernBox
                 // Launchers have their own strict one-per-city budget and must
                 // not consume the conventional howitzer/cannon slot.
                 return !HasMissileLauncher(city, transforming);
+            }
+
+            if (IsFixedWingAircraft(candidateId))
+            {
+                // Fighters and bombers share one dedicated city slot. This
+                // makes air power visible without replacing WorldBox armies or
+                // filling every ordinary land-vehicle berth.
+                return !HasFixedWingAirframe(city, transforming);
             }
 
             if (ModernCapPolicy.IsConventionalArtillery(candidateId))
@@ -409,10 +574,11 @@ namespace ModernBox
 
         private static ConstructionCost GetCost(string id, string tier)
         {
+            if (id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase))
+                return new ConstructionCost(9, 8, 6, 3);
             if (id.StartsWith("howitzer_", StringComparison.OrdinalIgnoreCase) ||
                 id.StartsWith("Heli_", StringComparison.OrdinalIgnoreCase) ||
                 id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) ||
-                id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase) ||
                 id == "F55FighterJet" || id == "americanbomberww" ||
                 id == "biplane" || id == "fighterww" || id == "Zeppelin" || id == "EliteZeppelin")
                 return new ConstructionCost(7, 6, 4, 2);

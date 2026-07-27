@@ -54,11 +54,14 @@ datos espaciales existentes.
 
 Los lanzamisiles terrestres y los destructores pueden derribar aeronaves enemigas con los cohetes ya existentes. También intentan interceptar una vez los misiles enemigos que pasan cerca: los convencionales son vulnerables, las bombas nucleares son difíciles de detener y la Bomba del Zar casi nunca puede ser interceptada.
 
-Cada 10–16 segundos se revisa por tandas la producción defensiva y se construye como máximo
-un lanzamisiles terrestre global por ciclo. Cada ciudad puede mantener uno
-cuando alcanza 75 habitantes, tiene líder y reino válidos, la producción de
-vehículos está activa y puede pagar `7` madera, `6` piedra, `4` metal y `2` oro.
-No depende de la era visual.
+Cada 10–16 segundos se revisa por tandas la producción defensiva y se construye
+como máximo un recurso global por ciclo: un lanzamisiles terrestre, un caza o
+un bombardero. Cada ciudad madura puede mantener un lanzamisiles y una aeronave
+de ala fija; la doctrina del reino decide cuál priorizar cuando faltan ambos.
+Se requieren 75 habitantes, líder y reino válidos, producción de vehículos
+activa y nivel militar 3, sin depender de la era visual. El lanzamisiles y el
+caza cuestan `7` madera, `6` piedra, `4` metal y `2` oro; el bombardero cuesta
+`9` madera, `8` piedra, `6` metal y `3` oro.
 
 La artillería y los demás vehículos se encargan desde un controlador civil
 escalonado, independiente de las ideologías fantásticas. Sólo examina cuatro
@@ -66,9 +69,9 @@ ciudades por ciclo, aplica 90 segundos de espera por ciudad y usa los mismos
 costes, niveles y cupos del sistema militar. El chasis temporal se elimina si
 no existe una transformación válida, por lo que no deja infantería gratuita.
 
-Los misiles conservan su tamaño físico original. Sólo su marcador seguidor se
-amplía y permanece visible desde la vista máxima, sin dejar copias del misil
-como estela.
+Los misiles conservan su tamaño físico original. Su marcador seguidor muestra
+el sprite completo a escala compacta y permanece visible desde la vista máxima,
+sin dejar copias del misil como estela.
 Los impactos convencionales se reproducen como audio no posicional para poder
 oírlos desde lejos, con el sonido pequeño original y sin duplicarlo localmente.
 
@@ -100,10 +103,12 @@ tres unidades de oro combinadas por ciclo; y un patrocinador proxy no entra
 automáticamente en la guerra. La evaluación rota entre pocos reinos cada ciclo
 y nunca recorre todas las relaciones en cada frame.
 
-El panel **Diplomacia moderna** muestra una civilización por página, la
-dirección de sus acuerdos, sus estados sujetos, su organización y el registro
-reciente. El sistema no cambia culturas, edificios, gobernantes ni fronteras
-para representar un estado títere.
+El botón **Centro diplomático**, representado por una caravana con bandera en
+la pestaña principal de ModernBox, abre el panel que muestra una civilización
+por página, la dirección de sus acuerdos, sus estados sujetos, su organización
+y el registro reciente. La IA negocia automáticamente: el panel informa, no
+obliga a activar cada pacto a mano. El sistema no cambia culturas, edificios,
+gobernantes ni fronteras para representar un estado títere.
 
 ## Flotas
 

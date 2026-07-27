@@ -139,9 +139,9 @@ namespace ModernBox
 
         internal static string PickLandRole(Kingdom kingdom, int militaryLevel)
         {
-            // A city without advanced logistics never wastes its base unit on an
-            // unavailable aircraft role. It still retains normal conventional
-            // roles, preserving WorldBox combat at every level.
+            // The ordinary chassis pool keeps broader air assets at level four.
+            // Fighter/bomber production at level three has its own bounded
+            // launcher-cycle route.
             float offensive = GetRoleWeight(kingdom, "offensive") * 5.5f;
             float heavy = GetRoleWeight(kingdom, "heavy") * (militaryLevel >= 2 ? 2.0f : 1.1f);
             float support = GetRoleWeight(kingdom, "support") * 1.15f;
