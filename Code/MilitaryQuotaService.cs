@@ -46,7 +46,11 @@ namespace ModernBox
         private static readonly Dictionary<long, int> KingdomStrategicProfiles =
             new Dictionary<long, int>();
 
-        /// <summary>Each port gets a stable 3-5 total / 1-2 military budget.</summary>
+        /// <summary>
+        /// Each port gets a stable but useful 6-8 berth budget.  This gives a
+        /// mature maritime kingdom room to assemble a mixed missile fleet over
+        /// time, without turning a single harbour into an unlimited shipyard.
+        /// </summary>
         internal static DockQuota GetDockQuota(Docks dock, City city)
         {
             return GetDockQuota(dock?.building, city);
@@ -63,11 +67,11 @@ namespace ModernBox
             if (DockProfiles.TryGetValue(key, out DockQuota quota))
                 return quota;
 
-            int total = 3 + Pick(key, 0, 3); // 3..5
-            int military = 1 + Pick(key, 1, 2); // 1..2
-            // A strategic hull remains scarce per port even if the kingdom has
-            // room for a second one at another port.
-            quota = new DockQuota(total, Math.Min(military, total), 1);
+            int total = 6 + Pick(key, 0, 3); // 6..8
+            int military = 4 + Pick(key, 1, 3); // 4..6
+            // A port can host a compact strategic detachment, while the
+            // kingdom-wide cap below still prevents a one-port missile flood.
+            quota = new DockQuota(total, Math.Min(military, total), 3);
             DockProfiles[key] = quota;
             return quota;
         }
@@ -116,8 +120,9 @@ namespace ModernBox
 
         /// <summary>
         /// Strategic submarines are limited across the whole kingdom, not only
-        /// the dock that tried to commission one. The deterministic 1-2 range
-        /// gives maritime kingdoms room for a second boat without a flood.
+        /// the dock that tried to commission one. A developed naval power can
+        /// field a mixed deterrent (rather than repeating one hull), but every
+        /// hull still has to be bought through the slow dock cycle.
         /// </summary>
         internal static int GetKingdomStrategicCap(Kingdom kingdom)
         {
@@ -127,7 +132,9 @@ namespace ModernBox
             if (KingdomStrategicProfiles.TryGetValue(key, out int cap))
                 return cap;
 
-            cap = 1 + Pick("kingdom:" + key, 0, 2); // 1..2
+            int cities = kingdom.cities?.Count ?? 1;
+            int developmentBonus = Math.Min(2, Math.Max(0, cities - 1));
+            cap = 4 + developmentBonus + Pick("kingdom:" + key, 0, 2); // 4..7
             KingdomStrategicProfiles[key] = cap;
             return cap;
         }

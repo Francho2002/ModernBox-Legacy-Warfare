@@ -164,8 +164,10 @@ namespace ModernBox
         /// The slow launcher scheduler chooses between the missing launcher,
         /// fixed-wing and rotary-wing slots. The production rate does not
         /// increase: one global cycle still creates at most one paid asset.
-        /// A developed city can therefore field one fixed-wing aircraft and
-        /// one helicopter without either consuming its ordinary land quota.
+        /// A developed kingdom works toward a mixed air arm: at least one
+        /// fighter and one bomber, distributed across its cities whenever
+        /// possible. A mature single-city kingdom may eventually keep both.
+        /// Neither consumes the ordinary land quota.
         /// </summary>
         internal static bool TryBuildDefensiveOrAirAsset(City city)
         {
@@ -285,6 +287,7 @@ namespace ModernBox
                 .Where(entry => entry.asset != null &&
                     !string.IsNullOrEmpty(entry.asset.default_attack) &&
                     AssetManager.items.get(entry.asset.default_attack) != null &&
+                    CanAddFixedWingAirframe(city, entry.id, null) &&
                     city.hasEnoughResourcesFor(entry.cost))
                 .Select(entry => new Candidate
                 {
@@ -302,6 +305,19 @@ namespace ModernBox
             List<Candidate> bombers = affordable
                 .Where(candidate => candidate.id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase))
                 .ToList();
+
+            bool kingdomNeedsFighter = !KingdomHasFixedWingRole(city.kingdom, true);
+            bool kingdomNeedsBomber = !KingdomHasFixedWingRole(city.kingdom, false);
+            if (kingdomNeedsFighter || kingdomNeedsBomber)
+            {
+                // A realm completes the missing part of its air arm before it
+                // starts duplicating airframes. The normal doctrine weights
+                // decide only when both roles are still absent.
+                if (kingdomNeedsFighter && !kingdomNeedsBomber && fighters.Count > 0)
+                    return fighters[Randy.randomInt(0, fighters.Count)];
+                if (kingdomNeedsBomber && !kingdomNeedsFighter && bombers.Count > 0)
+                    return bombers[Randy.randomInt(0, bombers.Count)];
+            }
 
             // Fighters remain the ordinary choice. Air/strategic doctrines make
             // the more expensive bomber somewhat likelier. A missile fleet at
@@ -324,9 +340,18 @@ namespace ModernBox
 
         private static bool NeedsFixedWingAirframe(City city)
         {
-            return IsValidLauncherCity(city) &&
-                MilitaryProgressionController.CanBuildDefensiveLauncher(city) &&
-                !HasFixedWingAirframe(city, null);
+            if (!IsValidLauncherCity(city) ||
+                !MilitaryProgressionController.CanBuildDefensiveLauncher(city))
+                return false;
+
+            if (!HasFixedWingAirframe(city, null))
+                return true;
+
+            // Let a mature one-city realm complete its bomber/fighter pair,
+            // but do not give every settlement a second fixed-wing slot.
+            return MilitaryProgressionController.GetLevel(city) >= 4 &&
+                ((!HasFixedWingRole(city, true, null) && !KingdomHasFixedWingRole(city.kingdom, true)) ||
+                 (!HasFixedWingRole(city, false, null) && !KingdomHasFixedWingRole(city.kingdom, false)));
         }
 
         private static Candidate SelectDefensiveHelicopter(City city)
@@ -395,6 +420,52 @@ namespace ModernBox
             return false;
         }
 
+        private static bool HasFixedWingRole(City city, bool fighter, Actor transforming)
+        {
+            if (city?.units == null)
+                return false;
+
+            foreach (Actor unit in city.units)
+            {
+                if (unit == null || unit == transforming || !unit.isAlive())
+                    continue;
+                string id = unit.asset?.id;
+                if (fighter ? IsFighter(id) : IsBomber(id))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool KingdomHasFixedWingRole(Kingdom kingdom, bool fighter)
+        {
+            if (kingdom?.cities == null)
+                return false;
+
+            foreach (City city in kingdom.cities)
+            {
+                if (HasFixedWingRole(city, fighter, null))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool CanAddFixedWingAirframe(City city, string id, Actor transforming)
+        {
+            bool fighter = IsFighter(id);
+            bool bomber = IsBomber(id);
+            if (!fighter && !bomber)
+                return false;
+            if (HasFixedWingRole(city, fighter, transforming))
+                return false;
+            if (!HasFixedWingAirframe(city, transforming))
+                return true;
+
+            // A second airframe is only the missing national role, and only
+            // for an advanced city when no sister city can provide it yet.
+            return MilitaryProgressionController.GetLevel(city) >= 4 &&
+                !KingdomHasFixedWingRole(city?.kingdom, fighter);
+        }
+
         private static bool HasHelicopterAirframe(City city, Actor transforming)
         {
             if (city?.units == null)
@@ -437,6 +508,15 @@ namespace ModernBox
         {
             return !string.IsNullOrEmpty(id) &&
                 id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsFighter(string id)
+        {
+            return !string.IsNullOrEmpty(id) &&
+                (id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(id, "F55FighterJet", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(id, "fighterww", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(id, "biplane", StringComparison.OrdinalIgnoreCase));
         }
 
         private static bool HasMissileFleetInWar(City city)
@@ -680,10 +760,7 @@ namespace ModernBox
 
             if (IsFixedWingAircraft(candidateId))
             {
-                // Fighters and bombers share one dedicated city slot. This
-                // makes air power visible without replacing WorldBox armies or
-                // filling every ordinary land-vehicle berth.
-                return !HasFixedWingAirframe(city, transforming);
+                return CanAddFixedWingAirframe(city, candidateId, transforming);
             }
 
             if (IsHelicopter(candidateId))
@@ -699,12 +776,32 @@ namespace ModernBox
                 // Every mature city can fit one expensive artillery platform
                 // even when its ordinary vehicle budget is full. A second one
                 // still needs both its population quota and spare normal room.
+                // More importantly, it waits until eligible sister cities have
+                // their first gun, so a rich capital cannot hoard artillery.
                 if (artillery >= artilleryCap)
+                    return false;
+                if (artillery > 0 && !AllEligibleKingdomCitiesHaveArtillery(city.kingdom))
                     return false;
                 return total < totalCap || artillery == 0;
             }
 
             return total < totalCap;
+        }
+
+        private static bool AllEligibleKingdomCitiesHaveArtillery(Kingdom kingdom)
+        {
+            if (kingdom?.cities == null)
+                return true;
+
+            foreach (City sibling in kingdom.cities)
+            {
+                if (sibling == null || !sibling.isAlive() || !sibling.hasLeader() ||
+                    MilitaryProgressionController.GetLevel(sibling) < 3)
+                    continue;
+                if (!HasConventionalArtillery(sibling, null))
+                    return false;
+            }
+            return true;
         }
 
         private static string PickRole(City city, int militaryLevel)

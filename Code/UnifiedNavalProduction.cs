@@ -156,11 +156,9 @@ namespace ModernBox
             int normalMilitary = CountDockBoats(dock, faction, NormalMilitaryBoatTypePrefixes);
             int strategic = CountDockBoats(dock, faction, StrategicBoatTypePrefixes);
             MilitaryQuotaService.DockQuota quota = MilitaryQuotaService.GetDockQuota(dock, city);
-            // A one-ship military budget made the first hunter block every
-            // strategic submarine at that port. A dock may now reserve a
-            // second military berth: one conventional hunter and one special
-            // submarine, never a fleet-wide flood.
-            int militaryLimit = Math.Max(2, quota.MilitaryBoats);
+            // The dock quota reserves room for an escort plus several costly
+            // strategic hulls. The kingdom cap below remains the hard ceiling.
+            int militaryLimit = quota.MilitaryBoats;
             int kingdomStrategic = MilitaryQuotaService.CountKingdomStrategicAssets(city?.kingdom);
             int kingdomStrategicCap = MilitaryQuotaService.GetKingdomStrategicCap(city?.kingdom);
             if (total >= quota.TotalBoats)
@@ -168,10 +166,15 @@ namespace ModernBox
 
             return ids.Where(id => AssetManager.actor_library.get(id) != null)
                 .Where(id => !IsMilitary(id) || military < militaryLimit)
+                // One conventional hunter is enough for a port. Extra berths
+                // are kept for distinct strategic hulls instead of a stack of
+                // identical escorts.
+                .Where(id => !id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase) ||
+                    normalMilitary < 1)
                 // A strategic hull first requires a normal escort/attack hull.
-                // No more than one strategic hull can belong to this port, and
-                // a kingdom's deterministic 1-2 strategic budget is respected
-                // across all of its ports.
+                // A compact strategic detachment can belong to this port, and
+                // the kingdom-wide deterministic budget is respected across
+                // all of its ports.
                 .Where(id => !NavalRoles.IsStrategicSubmarine(id) ||
                     (normalMilitary > 0 && strategic < quota.StrategicBoatsAtThisPort &&
                      kingdomStrategic < kingdomStrategicCap))
@@ -201,15 +204,38 @@ namespace ModernBox
             List<string> strategic = military.Where(NavalRoles.IsStrategicSubmarine).ToList();
             List<string> normalMilitary = military.Where(id => !NavalRoles.IsStrategicSubmarine(id)).ToList();
 
+            // Before repeating a hull, a kingdom deliberately fills gaps in
+            // its available fleet catalogue. This makes the nuclear/naval arm
+            // useful in play without making any single weapon the only answer.
+            List<string> missingVariants = military
+                .Where(id => !KingdomOwnsVariant(city?.kingdom, id))
+                .ToList();
+            if (missingVariants.Count > 0 && Randy.randomChance(.78f))
+            {
+                List<string> missingStrategic = missingVariants
+                    .Where(NavalRoles.IsStrategicSubmarine)
+                    .ToList();
+                if (missingStrategic.Count > 0 && Randy.randomChance(.70f))
+                {
+                    List<string> measured = missingStrategic
+                        .Where(id => !IsSalvoSubmarine(id) || Randy.randomChance(.40f))
+                        .ToList();
+                    if (measured.Count > 0)
+                        return measured[Randy.randomInt(0, measured.Count)];
+                }
+
+                return missingVariants[Randy.randomInt(0, missingVariants.Count)];
+            }
+
             if (Randy.randomChance(.70f))
             {
                 // Strategic assets are available together but do not all become
                 // production candidates at once: a port can commission one and
                 // reaches for it only after a normal warship exists.
-                if (strategic.Count > 0 && normalMilitary.Count > 0 && Randy.randomChance(.35f))
+                if (strategic.Count > 0 && normalMilitary.Count > 0 && Randy.randomChance(.55f))
                 {
                     List<string> nonApocalypse = strategic
-                        .Where(id => !IsSalvoSubmarine(id) || Randy.randomChance(.15f))
+                        .Where(id => !IsSalvoSubmarine(id) || Randy.randomChance(.30f))
                         .ToList();
                     if (nonApocalypse.Count > 0)
                         return nonApocalypse[Randy.randomInt(0, nonApocalypse.Count)];
@@ -228,6 +254,25 @@ namespace ModernBox
             if (strategic.Count > 0)
                 return strategic[Randy.randomInt(0, strategic.Count)];
             return null;
+        }
+
+        private static bool KingdomOwnsVariant(Kingdom kingdom, string assetId)
+        {
+            if (kingdom?.cities == null || string.IsNullOrEmpty(assetId))
+                return false;
+
+            foreach (City city in kingdom.cities)
+            {
+                if (city?.units == null)
+                    continue;
+                foreach (Actor unit in city.units)
+                {
+                    if (unit != null && unit.isAlive() &&
+                        string.Equals(unit.asset?.id, assetId, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+            return false;
         }
 
         private static string GetFaction(City city)

@@ -5,8 +5,8 @@ namespace ModernBox
 {
     /// <summary>
     /// Guarantees a slow, era-independent route to a compact defensive package:
-    /// up to two land launchers and one fixed-wing aircraft per developed city.
-    /// Each global cycle still commissions only one asset.
+    /// up to two land launchers and a deliberately mixed fixed-wing arm per
+    /// developed kingdom. Each global cycle still commissions only one asset.
     /// </summary>
     internal sealed class GroundMissileProductionController : MonoBehaviour
     {
