@@ -35,20 +35,26 @@ namespace ModernBox
             if (string.IsNullOrEmpty(species))
                 species = leader.asset.id;
 
+            int militaryLevel = MilitaryProgressionController.GetLevel(city);
             Candidate selected;
-            if (NeedsDefensiveLauncher(city))
+            if (NeedsDefensiveLauncher(city) &&
+                MilitaryDoctrineService.ShouldReserveDefensiveLauncher(city))
             {
                 // Keep this reserved chassis pending until the city can pay for
-                // its launcher; otherwise a cheaper vehicle could consume the
-                // one extra defensive slot forever.
+                // its launcher for defensive/strategic doctrines; otherwise a
+                // cheaper vehicle could consume the one defensive slot forever.
                 selected = SelectDefensiveLauncher(city);
                 if (selected == null)
                     return false;
             }
             else
             {
-                string role = PickRole();
-                List<Candidate> candidates = CollectCandidates(species, role, city, actor);
+                string role = PickRole(city, militaryLevel);
+                List<Candidate> candidates = CollectCandidates(species, role, city, actor, militaryLevel);
+                if (candidates.Count == 0 && role != "offensive")
+                    candidates = CollectCandidates(species, "offensive", city, actor, militaryLevel);
+                if (candidates.Count == 0 && role != "heavy")
+                    candidates = CollectCandidates(species, "heavy", city, actor, militaryLevel);
                 if (candidates.Count == 0)
                     return false;
                 selected = SelectWeightedAffordableCandidate(candidates, city);
@@ -75,7 +81,8 @@ namespace ModernBox
         internal static bool NeedsDefensiveLauncher(City city)
         {
             return IsValidLauncherCity(city) &&
-                city.getPopulationPeople() >= 100 && !HasMissileLauncher(city, null);
+                MilitaryProgressionController.CanBuildDefensiveLauncher(city) &&
+                !HasMissileLauncher(city, null);
         }
 
         private static Candidate SelectDefensiveLauncher(City city)
@@ -212,18 +219,24 @@ namespace ModernBox
                 !tile.Type.block && !tile.Type.ocean && !tile.Type.liquid;
         }
 
-        private static List<Candidate> CollectCandidates(string species, string role, City city, Actor transforming)
+        private static List<Candidate> CollectCandidates(
+            string species,
+            string role,
+            City city,
+            Actor transforming,
+            int militaryLevel)
         {
             var result = new List<Candidate>();
-            AddTier(result, Traits.CartTransformations.CartTransformationsModernRoles, "modern", species, role, city, transforming);
-            AddTier(result, Traits.CartTransformations.CartTransformationsRenaissanceRoles, "renaissance", species, role, city, transforming);
-            AddTier(result, Traits.CartTransformations.CartTransformationsMedievalRoles, "medieval", species, role, city, transforming);
+            AddTier(result, Traits.CartTransformations.CartTransformationsModernRoles, "modern", species, role, city, transforming, militaryLevel);
+            AddTier(result, Traits.CartTransformations.CartTransformationsRenaissanceRoles, "renaissance", species, role, city, transforming, militaryLevel);
+            AddTier(result, Traits.CartTransformations.CartTransformationsMedievalRoles, "medieval", species, role, city, transforming, militaryLevel);
             return result;
         }
 
         private static void AddTier(List<Candidate> result,
             Dictionary<string, Dictionary<string, List<string>>> table,
-            string tier, string species, string role, City city, Actor transforming)
+            string tier, string species, string role, City city, Actor transforming,
+            int militaryLevel)
         {
             if (table == null || !table.TryGetValue(species, out var roles) ||
                 !roles.TryGetValue(role, out var ids))
@@ -233,6 +246,7 @@ namespace ModernBox
             {
                 ActorAsset asset = AssetManager.actor_library.get(id);
                 if (!ModernCapPolicy.IsLandMilitaryActor(id) ||
+                    !MilitaryProgressionController.IsRoleUnlocked(militaryLevel, tier, role, id) ||
                     !WithinCityCaps(city, id, transforming) || asset == null ||
                     string.IsNullOrEmpty(asset.default_attack) ||
                     AssetManager.items.get(asset.default_attack) == null)
@@ -283,13 +297,9 @@ namespace ModernBox
             return total < totalCap && (!ModernCapPolicy.IsArtillery(candidateId) || artillery < artilleryCap);
         }
 
-        private static string PickRole()
+        private static string PickRole(City city, int militaryLevel)
         {
-            float roll = UnityEngine.Random.Range(0f, 1f);
-            if (roll < .10f) return "support";
-            if (roll < .20f) return "air";
-            if (roll < .35f) return "heavy";
-            return "offensive";
+            return MilitaryDoctrineService.PickLandRole(city?.kingdom, militaryLevel);
         }
 
         private static ConstructionCost GetCost(string id, string tier)
