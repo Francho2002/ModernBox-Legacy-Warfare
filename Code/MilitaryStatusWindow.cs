@@ -1,0 +1,917 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using NCMS.Utils;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace ModernBox
+{
+    /// <summary>
+    /// Read-only intelligence report.  It deliberately refreshes only when the
+    /// player opens the window or presses its button; it never polls the world
+    /// every frame.
+    /// </summary>
+    internal static class MilitaryStatusWindow
+    {
+        private const string WindowId = "MilitaryStatusWindow";
+        private const float WindowWidth = 560f;
+        private const float WindowHeight = 510f;
+
+        private static ScrollWindow window;
+        private static GameObject content;
+        private static Text reportText;
+        private static bool initialized;
+
+        private sealed class ProductionCandidate
+        {
+            internal string id;
+            internal string tier;
+            internal string role;
+            internal ConstructionCost cost;
+            internal string costLabel;
+        }
+
+        internal static void init()
+        {
+            if (initialized)
+                return;
+
+            try
+            {
+                window = Windows.CreateNewWindow(WindowId, "ModernBox");
+                if (window == null)
+                {
+                    ModernBoxLogger.Warning("[MX.Intel] No se pudo crear la ventana de estado militar.");
+                    return;
+                }
+
+                Transform background = window.transform.Find("Background");
+                Transform scrollTransform = background?.Find("Scroll View");
+                Transform viewport = scrollTransform?.Find("Viewport");
+                Transform contentTransform = viewport?.Find("Content");
+                if (background == null || scrollTransform == null || viewport == null || contentTransform == null)
+                {
+                    ModernBoxLogger.Warning("[MX.Intel] La plantilla de ventana de WorldBox no tiene la estructura esperada.");
+                    return;
+                }
+
+                RectTransform windowRect = window.GetComponent<RectTransform>();
+                if (windowRect != null)
+                    windowRect.sizeDelta = new Vector2(WindowWidth, WindowHeight);
+
+                GameObject scrollObject = scrollTransform.gameObject;
+                scrollObject.SetActive(true);
+                RectTransform viewportRect = viewport.GetComponent<RectTransform>();
+                if (viewportRect != null)
+                    viewportRect.sizeDelta = new Vector2(0f, 17f);
+
+                content = contentTransform.gameObject;
+                ConfigureTitle(background);
+                CreateReportText(contentTransform);
+                CreateRefreshButton(background);
+                initialized = true;
+                Refresh();
+            }
+            catch (Exception ex)
+            {
+                ModernBoxLogger.Error("[MX.Intel] Error al inicializar el estado militar: " + ex.Message);
+            }
+        }
+
+        internal static void Show()
+        {
+            init();
+            Refresh();
+            if (initialized)
+                Windows.ShowWindow(WindowId);
+        }
+
+        internal static void Refresh()
+        {
+            if (!initialized || reportText == null)
+                return;
+
+            try
+            {
+                reportText.text = BuildReport();
+                ResizeContent();
+            }
+            catch (Exception ex)
+            {
+                reportText.text = "<color=#FF7777>No se pudo actualizar el informe militar.</color>\n" +
+                    Escape(ex.Message);
+                ResizeContent();
+                ModernBoxLogger.Error("[MX.Intel] Error al actualizar estado militar: " + ex.Message);
+            }
+        }
+
+        private static void ConfigureTitle(Transform background)
+        {
+            GameObject nameObject = background.Find("Name")?.gameObject;
+            Text nameText = nameObject?.GetComponent<Text>();
+            if (nameText == null)
+                return;
+
+            nameText.text = "Estado militar";
+            nameText.color = new Color(0.94f, 0.84f, 0.55f, 1f);
+            nameText.fontSize = 15;
+            nameText.alignment = TextAnchor.MiddleCenter;
+            nameText.supportRichText = true;
+        }
+
+        private static void CreateReportText(Transform contentTransform)
+        {
+            GameObject reportObject = new GameObject("MilitaryStatusReport");
+            reportObject.transform.SetParent(contentTransform, false);
+
+            reportText = reportObject.AddComponent<Text>();
+            reportText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            reportText.fontSize = 11;
+            reportText.lineSpacing = 1.08f;
+            reportText.alignment = TextAnchor.UpperLeft;
+            reportText.color = new Color(0.95f, 0.95f, 0.90f, 1f);
+            reportText.supportRichText = true;
+            reportText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            reportText.verticalOverflow = VerticalWrapMode.Overflow;
+
+            RectTransform reportRect = reportObject.GetComponent<RectTransform>();
+            reportRect.anchorMin = new Vector2(0f, 1f);
+            reportRect.anchorMax = new Vector2(1f, 1f);
+            reportRect.pivot = new Vector2(0.5f, 1f);
+            reportRect.anchoredPosition = new Vector2(9f, -8f);
+            reportRect.sizeDelta = new Vector2(-18f, 500f);
+        }
+
+        private static void CreateRefreshButton(Transform background)
+        {
+            GameObject buttonObject = new GameObject("MilitaryStatusRefresh");
+            buttonObject.transform.SetParent(background, false);
+
+            Image image = buttonObject.AddComponent<Image>();
+            image.color = new Color(0.20f, 0.34f, 0.45f, 0.95f);
+            Button button = buttonObject.AddComponent<Button>();
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1f, 1f, 0.78f, 1f);
+            colors.pressedColor = new Color(0.72f, 0.88f, 1f, 1f);
+            button.colors = colors;
+            button.onClick.AddListener(Refresh);
+
+            RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
+            buttonRect.anchorMin = new Vector2(1f, 0f);
+            buttonRect.anchorMax = new Vector2(1f, 0f);
+            buttonRect.pivot = new Vector2(1f, 0f);
+            buttonRect.anchoredPosition = new Vector2(-18f, 11f);
+            buttonRect.sizeDelta = new Vector2(94f, 25f);
+
+            GameObject labelObject = new GameObject("Label");
+            labelObject.transform.SetParent(buttonObject.transform, false);
+            Text label = labelObject.AddComponent<Text>();
+            label.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            label.fontSize = 11;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = Color.white;
+            label.text = "Actualizar";
+
+            RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+        }
+
+        private static void ResizeContent()
+        {
+            if (content == null || reportText == null)
+                return;
+
+            RectTransform contentRect = content.GetComponent<RectTransform>();
+            RectTransform reportRect = reportText.GetComponent<RectTransform>();
+            if (contentRect == null || reportRect == null)
+                return;
+
+            float height = Mathf.Max(500f, reportText.preferredHeight + 20f);
+            reportRect.sizeDelta = new Vector2(-18f, height);
+            contentRect.sizeDelta = new Vector2(contentRect.sizeDelta.x, height + 12f);
+        }
+
+        private static string BuildReport()
+        {
+            StringBuilder result = new StringBuilder();
+            result.AppendLine("<color=#F5D66D><b>Informe de inteligencia militar</b></color>");
+            result.AppendLine("Actualización manual. El informe no consume recursos ni modifica a los reinos.");
+            result.AppendLine("<color=#AFC7D6>La disponibilidad indica los requisitos actuales; la IA sigue construyendo en ciclos, no de inmediato.</color>");
+            result.AppendLine();
+
+            if (World.world == null || World.world.kingdoms == null)
+            {
+                result.AppendLine("<color=#FFCC77>No hay un mundo de civilizaciones activo todavía.</color>");
+                return result.ToString();
+            }
+
+            List<Kingdom> kingdoms = new List<Kingdom>();
+            foreach (Kingdom kingdom in World.world.kingdoms)
+            {
+                if (kingdom != null && kingdom.isCiv())
+                    kingdoms.Add(kingdom);
+            }
+
+            if (kingdoms.Count == 0)
+            {
+                result.AppendLine("<color=#FFCC77>No hay civilizaciones activas para informar.</color>");
+                return result.ToString();
+            }
+
+            foreach (Kingdom kingdom in kingdoms.OrderBy(k => SafeName(k.name, "Reino sin nombre")))
+            {
+                AppendKingdomReport(result, kingdom);
+            }
+
+            return result.ToString();
+        }
+
+        private static void AppendKingdomReport(StringBuilder result, Kingdom kingdom)
+        {
+            List<City> cities = kingdom.cities == null
+                ? new List<City>()
+                : kingdom.cities.Where(city => city != null && city.isAlive()).ToList();
+
+            result.AppendLine("<color=#80D6FF><b>REINO: " + Escape(SafeName(kingdom.name, "Sin nombre")) + "</b></color>");
+            result.AppendLine("Doctrina: <color=#FFE08A>" + Escape(GetDoctrineLabel(kingdom)) + "</color>  |  Ciudades: " + cities.Count);
+            result.AppendLine("Inventario vinculado a ciudades: " + DescribeKingdomInventory(cities));
+
+            if (cities.Count == 0)
+            {
+                result.AppendLine("  <color=#FFCC77>Sin ciudades vivas: no puede fabricar unidades de ciudad.</color>");
+                result.AppendLine();
+                return;
+            }
+
+            foreach (City city in cities.OrderBy(c => SafeName(GetCityName(c), "Ciudad sin nombre")))
+            {
+                AppendCityReport(result, city);
+            }
+
+            result.AppendLine();
+        }
+
+        private static void AppendCityReport(StringBuilder result, City city)
+        {
+            int population = SafePopulation(city);
+            string progression = GetProgressionLabel(city);
+            string cityName = SafeName(GetCityName(city), "Ciudad sin nombre");
+            result.AppendLine("  <color=#FFFFFF><b>" + Escape(cityName) + "</b></color> — población " + population + " | progreso: " + Escape(progression));
+
+            AppendOwnedUnits(result, city);
+            AppendLandProduction(result, city, population);
+            AppendLauncherStatus(result, city, population);
+            AppendNavalProduction(result, city);
+        }
+
+        private static void AppendOwnedUnits(StringBuilder result, City city)
+        {
+            Dictionary<string, int> groups = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            if (city.units != null)
+            {
+                foreach (Actor unit in city.units)
+                {
+                    if (unit == null || !unit.isAlive() || string.IsNullOrEmpty(unit.asset?.id))
+                        continue;
+
+                    string group = GetActorCategory(unit.asset.id) + ": " + unit.asset.id;
+                    groups[group] = groups.TryGetValue(group, out int count) ? count + 1 : 1;
+                }
+            }
+
+            if (groups.Count == 0)
+            {
+                result.AppendLine("    Posee: <color=#BBBBBB>sin unidades registradas</color>");
+                return;
+            }
+
+            result.AppendLine("    Posee:");
+            foreach (KeyValuePair<string, int> group in groups.OrderBy(pair => pair.Key))
+            {
+                result.AppendLine("      • " + Escape(group.Key) + " ×" + group.Value);
+            }
+        }
+
+        private static void AppendLandProduction(StringBuilder result, City city, int population)
+        {
+            int currentLand = CountLandMilitary(city);
+            int landCap = MilitaryQuotaService.GetLandUnitCap(city);
+            int currentArtillery = CountArtillery(city);
+            int artilleryCap = MilitaryQuotaService.GetArtilleryCap(city);
+
+            string gate = GetLandGate(city, population, currentLand, landCap);
+            result.AppendLine("    Tierra: " + gate + " | capacidad terrestre " + currentLand + "/" + landCap +
+                ", artillería " + currentArtillery + "/" + artilleryCap + ".");
+            result.AppendLine("      Perfil de ciudad: " + MilitaryQuotaService.GetCityQuotaLabel(city) + ".");
+
+            List<ProductionCandidate> candidates = GetLandCandidates(city);
+            if (candidates.Count == 0)
+            {
+                result.AppendLine("      Catálogo terrestre: <color=#FFCC77>no hay activos válidos para la especie o faltan assets.</color>");
+                return;
+            }
+
+            List<ProductionCandidate> unlocked = candidates
+                .Where(candidate => MilitaryProgressionController.IsRoleUnlocked(city, candidate.tier, candidate.role, candidate.id))
+                .ToList();
+            List<ProductionCandidate> progressionBlocked = candidates
+                .Where(candidate => !MilitaryProgressionController.IsRoleUnlocked(city, candidate.tier, candidate.role, candidate.id))
+                .ToList();
+            List<ProductionCandidate> artilleryBlocked = unlocked
+                .Where(candidate => ModernCapPolicy.IsArtillery(candidate.id) && currentArtillery >= artilleryCap)
+                .ToList();
+            List<ProductionCandidate> productionEligible = unlocked
+                .Where(candidate => !ModernCapPolicy.IsArtillery(candidate.id) || currentArtillery < artilleryCap)
+                .ToList();
+            List<ProductionCandidate> affordable = productionEligible
+                .Where(candidate => city.hasEnoughResourcesFor(candidate.cost))
+                .ToList();
+
+            result.AppendLine("      Catálogo desbloqueado (cuando WorldBox cree una unidad-base):");
+            foreach (IGrouping<string, ProductionCandidate> group in unlocked
+                .GroupBy(candidate => candidate.tier + " / " + candidate.role)
+                .OrderBy(group => group.Key))
+            {
+                result.AppendLine("        " + Escape(group.Key) + ": " + DescribeCandidates(group));
+            }
+
+            if (unlocked.Count == 0)
+                result.AppendLine("        <color=#FFCC77>Ninguno: la ciudad aún no alcanzó el nivel militar requerido.</color>");
+            if (progressionBlocked.Count > 0)
+                result.AppendLine("      Bloqueado por progreso militar: " + DescribeCandidates(progressionBlocked) + ".");
+            if (artilleryBlocked.Count > 0)
+                result.AppendLine("      Bloqueado por cupo de artillería: " + DescribeCandidates(artilleryBlocked) + ".");
+
+            if (!Traits.vehiclesAllowed)
+            {
+                result.AppendLine("      Bloqueo: la opción <b>Permitir vehículos</b> está desactivada.");
+            }
+            else if (currentLand >= landCap)
+            {
+                result.AppendLine("      Bloqueo: la capacidad terrestre de esta ciudad está completa.");
+            }
+            else if (unlocked.Count == 0)
+            {
+                result.AppendLine("      Bloqueo: faltan progreso militar e infraestructura para desbloquear el catálogo.");
+            }
+            else if (productionEligible.Count == 0)
+            {
+                result.AppendLine("      Bloqueo: el cupo de artillería de esta ciudad está completo.");
+            }
+            else if (affordable.Count == 0)
+            {
+                result.AppendLine("      Bloqueo: faltan recursos para todos los candidatos del catálogo actual.");
+            }
+            else
+            {
+                result.AppendLine("      Con recursos ahora: " + DescribeCandidates(affordable) + ".");
+            }
+        }
+
+        private static void AppendLauncherStatus(StringBuilder result, City city, int population)
+        {
+            ProductionCandidate launcher = GetLandCandidates(city)
+                .FirstOrDefault(candidate => candidate.id.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase));
+
+            if (HasMissileLauncher(city))
+            {
+                result.AppendLine("    Lanzamisiles terrestre: <color=#8FF0A4>ya posee uno</color> (máximo actual: 1 por ciudad).");
+                return;
+            }
+
+            if (launcher == null)
+            {
+                result.AppendLine("    Lanzamisiles terrestre: <color=#FFCC77>no hay plataforma válida registrada para su especie.</color>");
+                return;
+            }
+
+            if (!Traits.vehiclesAllowed)
+            {
+                result.AppendLine("    Lanzamisiles terrestre: bloqueado — vehículos desactivados.");
+            }
+            else if (population < 100)
+            {
+                result.AppendLine("    Lanzamisiles terrestre: bloqueado — requiere 100 habitantes (actual: " + population + ").");
+            }
+            else if (!MilitaryProgressionController.CanBuildDefensiveLauncher(city))
+            {
+                result.AppendLine("    Lanzamisiles terrestre: bloqueado — requiere nivel militar 3 e infraestructura pesada.");
+            }
+            else if (!city.hasLeader())
+            {
+                result.AppendLine("    Lanzamisiles terrestre: bloqueado — la ciudad no tiene líder.");
+            }
+            else if (!city.hasEnoughResourcesFor(launcher.cost))
+            {
+                result.AppendLine("    Lanzamisiles terrestre: bloqueado — necesita " + launcher.costLabel + ".");
+            }
+            else
+            {
+                result.AppendLine("    Lanzamisiles terrestre: <color=#8FF0A4>elegible</color> — " + Escape(launcher.id) +
+                    " se construirá en el próximo ciclo de producción disponible (coste: " + launcher.costLabel + ").");
+            }
+        }
+
+        private static void AppendNavalProduction(StringBuilder result, City city)
+        {
+            List<Building> docks = GetDockBuildings(city);
+            int dockCount = docks.Count;
+            int currentBoats = CountBoats(city);
+            string faction = GetNavalFaction(city);
+            List<ProductionCandidate> candidates = GetNavalCandidates(faction);
+
+            if (!Traits.vehiclesAllowed)
+            {
+                result.AppendLine("    Naval: bloqueado — vehículos desactivados. Puertos: " + dockCount + ", embarcaciones vinculadas: " + currentBoats + ".");
+                return;
+            }
+
+            if (dockCount == 0)
+            {
+                result.AppendLine("    Naval: bloqueado — no hay puerto. Embarcaciones vinculadas: " + currentBoats + ".");
+                return;
+            }
+
+            result.AppendLine("    Naval: " + dockCount + " puerto(s), " + currentBoats + " embarcación(es) vinculada(s), flota " + Escape(faction) + ".");
+            for (int index = 0; index < docks.Count; index++)
+            {
+                result.AppendLine("      Puerto " + (index + 1) + ": " +
+                    MilitaryQuotaService.GetDockQuotaLabel(docks[index], city) + ".");
+            }
+            int kingdomStrategic = MilitaryQuotaService.CountKingdomStrategicAssets(city.kingdom);
+            int kingdomStrategicCap = MilitaryQuotaService.GetKingdomStrategicCap(city.kingdom);
+            result.AppendLine("      Estratégicos del reino: " + kingdomStrategic + "/" + kingdomStrategicCap + ".");
+            if (candidates.Count == 0)
+            {
+                result.AppendLine("      Catálogo naval: <color=#FFCC77>faltan assets navales registrados.</color>");
+                return;
+            }
+
+            List<ProductionCandidate> affordable = candidates
+                .Where(candidate => city.hasEnoughResourcesFor(candidate.cost))
+                .ToList();
+            result.AppendLine("      Catálogo naval por puerto: " + DescribeCandidates(candidates) + ".");
+            result.AppendLine("      Los submarinos estratégicos requieren antes una nave militar normal y espacio tanto en el puerto como en el reino.");
+
+            if (affordable.Count == 0)
+            {
+                result.AppendLine("      Bloqueo: faltan recursos para las embarcaciones disponibles.");
+            }
+            else
+            {
+                result.AppendLine("      Con recursos ahora: " + DescribeCandidates(affordable) +
+                    ". La IA los intentará fabricar en sus ciclos normales si queda cupo.");
+            }
+        }
+
+        private static string DescribeKingdomInventory(IEnumerable<City> cities)
+        {
+            int land = 0;
+            int launchers = 0;
+            int boats = 0;
+            int submarines = 0;
+            foreach (City city in cities)
+            {
+                if (city?.units == null)
+                    continue;
+                foreach (Actor unit in city.units)
+                {
+                    if (unit == null || !unit.isAlive())
+                        continue;
+                    string id = unit.asset?.id;
+                    if (string.IsNullOrEmpty(id))
+                        continue;
+                    if (id.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase)) launchers++;
+                    if (IsSubmarine(id)) submarines++;
+                    if (IsBoat(id)) boats++;
+                    if (ModernCapPolicy.IsLandMilitaryActor(id)) land++;
+                }
+            }
+            return "tierra " + land + ", lanzamisiles " + launchers + ", barcos " + boats + ", submarinos " + submarines;
+        }
+
+        private static string GetLandGate(City city, int population, int currentLand, int landCap)
+        {
+            if (!Traits.vehiclesAllowed) return "<color=#FF8888>bloqueada: vehículos desactivados</color>";
+            if (city == null || !city.isAlive()) return "<color=#FF8888>bloqueada: ciudad no válida</color>";
+            if (city.kingdom == null || !city.kingdom.isCiv()) return "<color=#FF8888>bloqueada: no pertenece a una civilización</color>";
+            if (!city.hasLeader()) return "<color=#FF8888>bloqueada: sin líder</color>";
+            if (!city.hasBuildingType("type_hall")) return "<color=#FF8888>bloqueada: sin ayuntamiento</color>";
+            if (population < 20) return "<color=#FF8888>bloqueada: requiere 20 habitantes</color>";
+            if (currentLand >= landCap) return "<color=#FF8888>bloqueada: cupo completo</color>";
+            return "<color=#8FF0A4>habilitada</color>";
+        }
+
+        private static List<ProductionCandidate> GetLandCandidates(City city)
+        {
+            List<ProductionCandidate> result = new List<ProductionCandidate>();
+            string species = GetSpecies(city);
+            if (string.IsNullOrEmpty(species))
+                return result;
+
+            AddLandCandidates(result, Traits.CartTransformations.CartTransformationsModernRoles, "moderno", species);
+            AddLandCandidates(result, Traits.CartTransformations.CartTransformationsRenaissanceRoles, "renacimiento", species);
+            AddLandCandidates(result, Traits.CartTransformations.CartTransformationsMedievalRoles, "medieval", species);
+
+            return result
+                .GroupBy(candidate => candidate.tier + "|" + candidate.role + "|" + candidate.id, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .OrderBy(candidate => candidate.tier)
+                .ThenBy(candidate => candidate.role)
+                .ThenBy(candidate => candidate.id)
+                .ToList();
+        }
+
+        private static void AddLandCandidates(
+            List<ProductionCandidate> result,
+            Dictionary<string, Dictionary<string, List<string>>> table,
+            string tier,
+            string species)
+        {
+            if (table == null || !table.TryGetValue(species, out Dictionary<string, List<string>> roles) || roles == null)
+                return;
+
+            foreach (KeyValuePair<string, List<string>> role in roles)
+            {
+                if (role.Value == null)
+                    continue;
+                foreach (string id in role.Value.Where(id => !string.IsNullOrEmpty(id)).Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    ActorAsset asset = AssetManager.actor_library.get(id);
+                    if (asset == null || !ModernCapPolicy.IsLandMilitaryActor(id) ||
+                        string.IsNullOrEmpty(asset.default_attack) || AssetManager.items.get(asset.default_attack) == null)
+                        continue;
+
+                    ProductionCandidate candidate = GetLandCandidate(id, tier, role.Key);
+                    result.Add(candidate);
+                }
+            }
+        }
+
+        private static ProductionCandidate GetLandCandidate(string id, string tier, string role)
+        {
+            ConstructionCost cost;
+            string label;
+            if (id.StartsWith("howitzer_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("Heli_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase) ||
+                id == "F55FighterJet" || id == "americanbomberww" || id == "biplane" ||
+                id == "fighterww" || id == "Zeppelin" || id == "EliteZeppelin" ||
+                id.StartsWith("Tank_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("wheeledtank_", StringComparison.OrdinalIgnoreCase) || id == "AbramTank")
+            {
+                cost = new ConstructionCost(9, 7, 6, 3);
+                label = "9 madera, 7 piedra, 6 metal, 3 oro";
+            }
+            else if (tier == "renacimiento")
+            {
+                cost = new ConstructionCost(5, 4, 2, 1);
+                label = "5 madera, 4 piedra, 2 metal, 1 oro";
+            }
+            else if (tier == "medieval")
+            {
+                cost = new ConstructionCost(4, 3, 0, 0);
+                label = "4 madera, 3 piedra";
+            }
+            else
+            {
+                cost = new ConstructionCost(6, 5, 3, 2);
+                label = "6 madera, 5 piedra, 3 metal, 2 oro";
+            }
+
+            return new ProductionCandidate { id = id, tier = tier, role = role, cost = cost, costLabel = label };
+        }
+
+        private static List<ProductionCandidate> GetNavalCandidates(string faction)
+        {
+            List<string> ids = new List<string>
+            {
+                "aDestroyer_" + faction,
+                "bDestroyer_" + faction,
+                "CarrierVessel_" + faction,
+                "Submarine_" + faction,
+                "SalvoSubmarine_" + faction,
+                "CargoShip_" + faction,
+                "FishingBoat_" + faction,
+                "Transporter_" + faction
+            };
+            foreach (string roleId in NavalRoles.GetRoleIds())
+            {
+                if (roleId.EndsWith("_" + faction, StringComparison.OrdinalIgnoreCase))
+                    ids.Add(roleId);
+            }
+
+            List<ProductionCandidate> result = new List<ProductionCandidate>();
+            foreach (string id in ids)
+            {
+                if (AssetManager.actor_library.get(id) == null)
+                    continue;
+
+                ConstructionCost cost;
+                string label;
+                if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
+                {
+                    cost = new ConstructionCost(18, 16, 14, 9);
+                    label = "18 madera, 16 piedra, 14 metal, 9 oro";
+                }
+                else if (id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase))
+                {
+                    cost = new ConstructionCost(8, 7, 6, 3);
+                    label = "8 madera, 7 piedra, 6 metal, 3 oro";
+                }
+                else if (id.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase))
+                {
+                    cost = new ConstructionCost(11, 9, 8, 4);
+                    label = "11 madera, 9 piedra, 8 metal, 4 oro";
+                }
+                else if (id.StartsWith("TridentSubmarine_", StringComparison.OrdinalIgnoreCase))
+                {
+                    cost = new ConstructionCost(15, 13, 12, 8);
+                    label = "15 madera, 13 piedra, 12 metal, 8 oro";
+                }
+                else if (id.StartsWith("NeutronSubmarine_", StringComparison.OrdinalIgnoreCase))
+                {
+                    cost = new ConstructionCost(13, 11, 10, 6);
+                    label = "13 madera, 11 piedra, 10 metal, 6 oro";
+                }
+                else if (id.StartsWith("EmpSubmarine_", StringComparison.OrdinalIgnoreCase))
+                {
+                    cost = new ConstructionCost(12, 10, 9, 5);
+                    label = "12 madera, 10 piedra, 9 metal, 5 oro";
+                }
+                else if (id.StartsWith("HammerSubmarine_", StringComparison.OrdinalIgnoreCase))
+                {
+                    cost = new ConstructionCost(16, 14, 13, 8);
+                    label = "16 madera, 14 piedra, 13 metal, 8 oro";
+                }
+                else if (id.StartsWith("RuinSubmarine_", StringComparison.OrdinalIgnoreCase))
+                {
+                    cost = new ConstructionCost(13, 11, 9, 5);
+                    label = "13 madera, 11 piedra, 9 metal, 5 oro";
+                }
+                else if (IsMilitaryBoat(id))
+                {
+                    cost = new ConstructionCost(6, 5, 4, 2);
+                    label = "6 madera, 5 piedra, 4 metal, 2 oro";
+                }
+                else if (id.StartsWith("CargoShip_", StringComparison.OrdinalIgnoreCase))
+                {
+                    cost = new ConstructionCost(7, 5, 3, 2);
+                    label = "7 madera, 5 piedra, 3 metal, 2 oro";
+                }
+                else
+                {
+                    cost = new ConstructionCost(4, 3, 1, 1);
+                    label = "4 madera, 3 piedra, 1 metal, 1 oro";
+                }
+
+                result.Add(new ProductionCandidate { id = id, tier = "naval", role = GetActorCategory(id), cost = cost, costLabel = label });
+            }
+            return result;
+        }
+
+        private static string DescribeCandidates(IEnumerable<ProductionCandidate> candidates)
+        {
+            List<ProductionCandidate> list = candidates.ToList();
+            if (list.Count == 0)
+                return "ninguno";
+
+            return string.Join(", ", list.Select(candidate =>
+                Escape(candidate.id) + " <color=#B9C9D8>(" + Escape(candidate.costLabel) + ")</color>"));
+        }
+
+        private static int CountLandMilitary(City city)
+        {
+            if (city?.units == null)
+                return 0;
+
+            int count = 0;
+            foreach (Actor unit in city.units)
+            {
+                if (unit == null || !unit.isAlive())
+                    continue;
+                string id = unit.asset?.id;
+                if (id == "baseWarUnit" || ModernCapPolicy.IsLandMilitaryActor(id))
+                    count++;
+            }
+            return count;
+        }
+
+        private static int CountArtillery(City city)
+        {
+            if (city?.units == null)
+                return 0;
+
+            int count = 0;
+            foreach (Actor unit in city.units)
+            {
+                if (unit != null && unit.isAlive() && ModernCapPolicy.IsArtillery(unit.asset?.id))
+                    count++;
+            }
+            return count;
+        }
+
+        private static bool HasMissileLauncher(City city)
+        {
+            if (city?.units == null)
+                return false;
+            return city.units.Any(unit => unit != null && unit.isAlive() &&
+                unit.asset?.id?.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase) == true);
+        }
+
+        private static List<Building> GetDockBuildings(City city)
+        {
+            if (city?.buildings == null)
+                return new List<Building>();
+            return city.buildings.Where(building =>
+                    building?.asset?.id?.IndexOf("docks", StringComparison.OrdinalIgnoreCase) >= 0)
+                .ToList();
+        }
+
+        private static int CountBoats(City city)
+        {
+            if (city?.units == null)
+                return 0;
+            return city.units.Count(unit => unit != null && unit.isAlive() && IsBoat(unit.asset?.id));
+        }
+
+        private static string GetSpecies(City city)
+        {
+            Actor leader = city?.leader;
+            string species = leader?.subspecies?.data?.species_id;
+            return string.IsNullOrEmpty(species) ? leader?.asset?.id : species;
+        }
+
+        private static string GetNavalFaction(City city)
+        {
+            string leader = city?.leader?.asset?.id ?? string.Empty;
+            if (leader == "dwarf" || leader.Contains("cold") || leader.Contains("penguin")) return "harden";
+            if (leader == "elf" || leader.Contains("druid") || leader.Contains("fairy")) return "gaia";
+            if (leader == "orc" || leader.Contains("necromancer") || leader.Contains("wolf")) return "horde";
+            return "alliance";
+        }
+
+        private static bool IsBoat(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return false;
+            return id.StartsWith("CargoShip_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("FishingBoat_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("Transporter_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase) ||
+                NavalRoles.IsAnyModernSubmarine(id);
+        }
+
+        private static bool IsMilitaryBoat(string id)
+        {
+            return id != null && (id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase) ||
+                NavalRoles.IsAnyModernSubmarine(id));
+        }
+
+        private static bool IsSubmarine(string id)
+        {
+            return id != null && NavalRoles.IsAnyModernSubmarine(id);
+        }
+
+        private static string GetActorCategory(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return "Desconocida";
+            if (id.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase)) return "Lanzamisiles terrestre";
+            string submarineRole = NavalRoles.GetRoleLabel(id);
+            if (!string.IsNullOrEmpty(submarineRole)) return submarineRole;
+            if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase)) return "Submarino estratégico de salva";
+            if (id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase)) return "Submarino";
+            if (id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) || id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase)) return "Destructor";
+            if (id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase)) return "Portaaviones";
+            if (id.StartsWith("CargoShip_", StringComparison.OrdinalIgnoreCase) || id.StartsWith("FishingBoat_", StringComparison.OrdinalIgnoreCase) || id.StartsWith("Transporter_", StringComparison.OrdinalIgnoreCase)) return "Buque";
+            if (ModernCapPolicy.IsAllowedAircraft(id)) return "Aeronave";
+            if (ModernCapPolicy.IsArtillery(id)) return "Artillería";
+            if (ModernCapPolicy.IsLandMilitaryActor(id)) return "Vehículo terrestre";
+            return "Unidad";
+        }
+
+        private static string GetDoctrineLabel(Kingdom kingdom)
+        {
+            try
+            {
+                string display = MilitaryDoctrineService.GetDisplayName(kingdom);
+                return string.IsNullOrEmpty(display) ? "En evaluación" : display;
+            }
+            catch
+            {
+                return "En evaluación";
+            }
+        }
+
+        private static string GetProgressionLabel(City city)
+        {
+            try
+            {
+                MilitaryProgressionStatus status = MilitaryProgressionController.GetStatus(city);
+                if (status == null)
+                    return "En evaluación";
+
+                StringBuilder label = new StringBuilder();
+                label.Append("nivel ").Append(status.Level);
+                label.Append(" — infraestructura ").Append(status.RelevantBuildings)
+                    .Append("/logística ").Append(status.AdvancedBuildings);
+                label.Append("; financiación renacimiento ").Append(FormatBoolean(status.CanFundRenaissance))
+                    .Append(", pesada ").Append(FormatBoolean(status.CanFundHeavy));
+                if (!IsNoBlockingReason(status.BlockingReason))
+                    label.Append("; ").Append(status.BlockingReason);
+                return label.ToString();
+            }
+            catch
+            {
+                return "En evaluación";
+            }
+        }
+
+        private static string FormatBoolean(bool value)
+        {
+            return value ? "sí" : "no";
+        }
+
+        private static bool IsNoBlockingReason(string reason)
+        {
+            return string.IsNullOrWhiteSpace(reason) ||
+                string.Equals(reason, "none", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(reason, "ninguno", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(reason, "null", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static int SafePopulation(City city)
+        {
+            try { return city?.getPopulationPeople() ?? 0; }
+            catch { return 0; }
+        }
+
+        private static string GetCityName(City city)
+        {
+            if (city == null)
+                return null;
+            try
+            {
+                Type type = city.GetType();
+                PropertyInfo property = type.GetProperty("name", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic) ??
+                    type.GetProperty("city_name", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                object value = property?.GetValue(city, null);
+                if (value != null)
+                    return value.ToString();
+
+                FieldInfo field = type.GetField("name", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic) ??
+                    type.GetField("city_name", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                value = field?.GetValue(city);
+                if (value != null)
+                    return value.ToString();
+
+                PropertyInfo dataProperty = type.GetProperty("data", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                object data = dataProperty?.GetValue(city, null);
+                if (data == null)
+                {
+                    FieldInfo dataField = type.GetField("data", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                    data = dataField?.GetValue(city);
+                }
+                if (data == null)
+                    return null;
+
+                Type dataType = data.GetType();
+                PropertyInfo nestedName = dataType.GetProperty("name", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic) ??
+                    dataType.GetProperty("city_name", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                value = nestedName?.GetValue(data, null);
+                if (value != null)
+                    return value.ToString();
+                FieldInfo nestedField = dataType.GetField("name", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic) ??
+                    dataType.GetField("city_name", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                return nestedField?.GetValue(data)?.ToString();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string SafeName(string value, string fallback)
+        {
+            return string.IsNullOrWhiteSpace(value) ? fallback : value;
+        }
+
+        private static string Escape(string value)
+        {
+            return string.IsNullOrEmpty(value) ? string.Empty : value.Replace("<", "&lt;").Replace(">", "&gt;");
+        }
+    }
+}

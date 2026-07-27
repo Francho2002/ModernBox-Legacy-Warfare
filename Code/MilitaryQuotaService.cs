@@ -49,7 +49,17 @@ namespace ModernBox
         /// <summary>Each port gets a stable 3-5 total / 1-2 military budget.</summary>
         internal static DockQuota GetDockQuota(Docks dock, City city)
         {
-            string key = GetDockKey(dock, city);
+            return GetDockQuota(dock?.building, city);
+        }
+
+        /// <summary>
+        /// Read-only variant used by the intelligence panel.  The quota derives
+        /// from the same dock building/tile key as production, so the UI never
+        /// shows a made-up generic value for a city's different ports.
+        /// </summary>
+        internal static DockQuota GetDockQuota(Building dockBuilding, City city)
+        {
+            string key = GetDockKey(dockBuilding, city);
             if (DockProfiles.TryGetValue(key, out DockQuota quota))
                 return quota;
 
@@ -142,6 +152,17 @@ namespace ModernBox
         internal static string GetDockQuotaLabel(Docks dock, City city)
         {
             DockQuota quota = GetDockQuota(dock, city);
+            return FormatDockQuota(quota);
+        }
+
+        internal static string GetDockQuotaLabel(Building dockBuilding, City city)
+        {
+            DockQuota quota = GetDockQuota(dockBuilding, city);
+            return FormatDockQuota(quota);
+        }
+
+        private static string FormatDockQuota(DockQuota quota)
+        {
             return quota.TotalBoats + " embarcaciones, " + quota.MilitaryBoats +
                 " militares, " + quota.StrategicBoatsAtThisPort + " estratégico por puerto";
         }
@@ -165,9 +186,9 @@ namespace ModernBox
             KingdomStrategicProfiles.Clear();
         }
 
-        private static string GetDockKey(Docks dock, City city)
+        private static string GetDockKey(Building dockBuilding, City city)
         {
-            WorldTile tile = dock?.building?.current_tile;
+            WorldTile tile = dockBuilding?.current_tile;
             if (tile != null)
                 return "dock:" + (city?.id ?? 0L) + ":" + tile.pos.x + ":" + tile.pos.y;
             return "dock:" + (city?.id ?? 0L) + ":unknown";

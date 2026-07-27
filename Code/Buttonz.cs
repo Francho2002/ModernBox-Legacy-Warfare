@@ -40,6 +40,10 @@ namespace ModernBox
                 return;
             }
 
+            // This window is initialized with the rest of the ModernBox UI so
+            // opening the report never needs a per-frame scene lookup.
+            MilitaryStatusWindow.init();
+
 			GameObject largeImageObject = new GameObject("LargeImage");
 			largeImageObject.transform.SetParent(tab.transform);
 			largeImageObject.transform.localPosition = new Vector3(396, 18, 0);
@@ -218,6 +222,16 @@ namespace ModernBox
             .SetType(ButtonType.Click)
             .SetTransform(tab.transform)
             .SetFunction(openInfiniteBoxWindow)
+            .Build();
+
+        new ButtonBuilder("modernbox_military_status")
+            .SetSprite(Resources.Load<Sprite>("ui/icons/MIRV"))
+            .SetTitle("Estado militar")
+            .SetDescription("Muestra por reino y ciudad las unidades, capacidades de fabricación y bloqueos actuales.")
+            .SetPosition(3, 0)
+            .SetType(ButtonType.Click)
+            .SetFunction(MilitaryStatusWindow.Show)
+            .SetTransform(tab.transform)
             .Build();
 
         new ButtonBuilder("resetbawls")
@@ -711,8 +725,7 @@ namespace ModernBox
 
         private static bool IsNavalUnit(string id)
         {
-            return id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase)
-                || id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase)
+            return NavalRoles.IsAnyModernSubmarine(id)
                 || id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase)
                 || id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase)
                 || id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase)
@@ -762,6 +775,8 @@ namespace ModernBox
         private static void GetUnitSpawnMetadata(string id, out string title, out string description)
         {
             string faction = GetUnitFactionLabel(id);
+            if (NavalRoles.TryGetSpawnMetadata(id, faction, out title, out description))
+                return;
             if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "SSBN de salva nuclear - " + faction;
