@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace ModernBox
 {
@@ -21,6 +22,13 @@ namespace ModernBox
         // Legacy civilian/bomb boats stay registered for save compatibility, but
         // ModernBox docks build only escorts and missile-capable combat platforms.
         private static readonly string[] CombatBoatTypes = BuildCombatBoatTypes();
+        private static readonly ConditionalWeakTable<City, DockRotationState> DockRotation =
+            new ConditionalWeakTable<City, DockRotationState>();
+
+        private sealed class DockRotationState
+        {
+            internal Docks LastDock;
+        }
 
         internal static void EnableAllDocks()
         {
@@ -41,17 +49,21 @@ namespace ModernBox
                 return false;
 
             result = null;
-            if (dock.tiles_ocean == null || dock.tiles_ocean.Count == 0)
+            Docks selectedDock = SelectNextCityDock(city, dock);
+            if (selectedDock == null)
+                return false;
+
+            if (selectedDock.tiles_ocean == null || selectedDock.tiles_ocean.Count == 0)
             {
-                dock.recalculateOceanTiles();
+                selectedDock.recalculateOceanTiles();
                 return false;
             }
 
-            string id = SelectAffordableId(dock, city);
+            string id = SelectAffordableId(selectedDock, city);
             if (string.IsNullOrEmpty(id))
                 return false;
 
-            WorldTile tile = dock.tiles_ocean.GetRandom();
+            WorldTile tile = selectedDock.tiles_ocean.GetRandom();
             if (tile?.region?.island == null || !tile.region.island.goodForDocks())
                 return false;
             Actor boat = World.world.units.createNewUnit(id, tile);
@@ -60,11 +72,40 @@ namespace ModernBox
 
             boat.setKingdom(city.kingdom);
             boat.setCity(city);
-            dock.addBoatToDock(boat);
+            selectedDock.addBoatToDock(boat);
             city.spendResourcesForBuildingAsset(GetCost(id));
             ModernDiplomacyController.ApplyArmsCredit(city);
             result = boat;
             return true;
+        }
+
+        private static Docks SelectNextCityDock(City city, Docks fallback)
+        {
+            List<Docks> docks = GetValidCityDocks(city);
+            if (docks.Count == 0)
+                return ShouldReplace(fallback, city) ? fallback : null;
+
+            DockRotationState state = DockRotation.GetValue(city, _ => new DockRotationState());
+            int lastIndex = state.LastDock == null ? -1 : docks.IndexOf(state.LastDock);
+            int nextIndex = lastIndex < 0 ? 0 : (lastIndex + 1) % docks.Count;
+            Docks selected = docks[nextIndex];
+            state.LastDock = selected;
+            return selected;
+        }
+
+        private static List<Docks> GetValidCityDocks(City city)
+        {
+            List<Docks> docks = new List<Docks>();
+            if (city?.buildings == null)
+                return docks;
+
+            foreach (Building building in city.buildings)
+            {
+                Docks candidate = building?.component_docks;
+                if (candidate != null && ShouldReplace(candidate, city) && !docks.Contains(candidate))
+                    docks.Add(candidate);
+            }
+            return docks;
         }
 
         internal static ActorAsset SelectAffordableAsset(BuildingAsset dockAsset, City city)
