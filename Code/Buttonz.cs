@@ -356,7 +356,9 @@ namespace ModernBox
                 .SetSprite(Resources.Load<Sprite>("ui/Icons/Pizza"))
                 .SetTitle("Pizza")
                 .SetDescription("Adelante, toma una porción.")
-                .SetPosition(4, 0) 
+                // Keep the main-row diplomacy entry visible. Pizza used to occupy
+                // the exact same cell and therefore captured its icon and clicks.
+                .SetPosition(5, 1)
                 .SetType(ButtonType.Click)
                 .SetTransform(tab.transform)
                 .SetFunction(PizzaManager.instance.ClickPizza)
