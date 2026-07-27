@@ -71,9 +71,11 @@ namespace ModernBox
             state.effect.transform.rotation = projectile.rotation;
             if (state.renderer != null)
             {
-                // The full-size image is a low-resolution overview marker, not a
-                // replacement for the physical projectile seen at normal zoom.
-                state.renderer.enabled = MapBox.isRenderMiniMap();
+                // WorldBox renders the high-camera map after Projectile.update().
+                // Disabling the renderer here therefore hid the marker precisely
+                // when the overview needed it.  The projectile itself remains at
+                // its original scale; this is the independent overview marker.
+                state.renderer.enabled = true;
             }
         }
 
