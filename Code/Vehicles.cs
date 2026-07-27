@@ -395,6 +395,8 @@ namespace ModernBox
             modernCapNuclearBlast.shake = false;
             modernCapNuclearBlast.transform_to_wasteland = false;
             modernCapNuclearBlast.explode_tile = false;
+            modernCapNuclearBlast.damage_buildings = true;
+            modernCapNuclearBlast.destroy_buildings = true;
             // The stock atomic callback can independently paint a broad
             // radioactive/terrain footprint. NuclearFallout adds the only
             // intended residue: a few controlled, superficial tiles.
@@ -409,6 +411,8 @@ namespace ModernBox
             modernCapApocalypseBlast.shake = false;
             modernCapApocalypseBlast.transform_to_wasteland = false;
             modernCapApocalypseBlast.explode_tile = false;
+            modernCapApocalypseBlast.damage_buildings = true;
+            modernCapApocalypseBlast.destroy_buildings = true;
             modernCapApocalypseBlast.set_fire = false;
             modernCapApocalypseBlast.explode_and_set_random_fire = false;
             modernCapApocalypseBlast.add_burned = false;
@@ -10827,7 +10831,6 @@ public static class Patch_ActorAnimationLoader_Fix
 				if (IsMissilePlatform(__instance) && __instance.has_attack_target && __instance.attack_target != null &&
 					!IsValidMissilePlatformDirectTarget(__instance, __instance.attack_target))
 				{
-					__instance.ignoreTarget(__instance.attack_target);
 					__instance.clearAttackTarget();
 				}
 
@@ -10927,7 +10930,6 @@ public static class Patch_ActorAnimationLoader_Fix
 				if (IsMissilePlatform(__instance) &&
 					!IsValidMissilePlatformDirectTarget(__instance, pAttackTarget))
 				{
-					__instance.ignoreTarget(pAttackTarget);
 					__instance.clearAttackTarget();
 					return false;
 				}
@@ -10974,7 +10976,6 @@ public static class Patch_ActorAnimationLoader_Fix
 
 				if (target != null)
 				{
-					__instance.ignoreTarget(target);
 					__instance.clearAttackTarget();
 				}
 

@@ -348,8 +348,8 @@ namespace ModernBox
         {
             CreateSafeBlast("modernbox_arsenal_blast", 150, 5, true);
             CreateSafeBlast("modernbox_trident_blast", 680, 15, true);
-            CreateSafeBlast("modernbox_neutron_blast", 260, 6, false);
-            CreateSafeBlast("modernbox_ruin_blast", 110, 4, false);
+            CreateSafeBlast("modernbox_neutron_blast", 260, 6, true);
+            CreateSafeBlast("modernbox_ruin_blast", 110, 4, true);
             CreateSafeBlast("modernbox_hammer_blast", 1100, 22, true);
         }
 
@@ -399,7 +399,7 @@ namespace ModernBox
             // The EMP detonates at altitude as a flash: it does not damage
             // terrain and its disable effect applies only to hostile forces.
             CreateProjectile(EmpProjectileId, "NUKER", null, 0, 102f,
-                0.46f, "fx_nuke_flash", true, 1.30f);
+                0.46f, "fx_explosion_middle", true, 0.80f);
             CreateProjectile(HammerProjectileId, "NUKER", "modernbox_hammer_blast", 34, 77f,
                 0.72f, "fx_explosion_huge", true, 1.45f);
             CreateProjectile(RuinProjectileId, "NUKER", "modernbox_ruin_blast", 9, 88f,
