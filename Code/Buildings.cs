@@ -2561,6 +2561,17 @@ public static class Patch_ArchitectureAsset_GetBuildingID
         {
             static bool Prefix(Docks __instance, City pCity, ref Actor __result)
             {
+                // Vehicle mode controls every dock path, including the legacy
+                // per-era selectors below.  Falling through here would allow
+                // retired destroyers to return whenever vehicles are disabled.
+                if (__instance?.building?.asset != null &&
+                    UnifiedNavalProduction.IsDockAsset(__instance.building.asset) &&
+                    !Traits.vehiclesAllowed)
+                {
+                    __result = null;
+                    return false;
+                }
+
                 if (UnifiedNavalProduction.TryBuild(__instance, pCity, ref __result))
                     return false;
                 if (UnifiedNavalProduction.ShouldReplace(__instance, pCity))
@@ -2839,6 +2850,15 @@ public static class Patch_ArchitectureAsset_GetBuildingID
         {
             static bool Prefix(BuildingAsset __instance, City pCity, ref ActorAsset __result)
             {
+                // This selector is also called by stock construction previews.
+                // Suppress it under disabled vehicle mode so no legacy dock
+                // branch can publish an obsolete destroyer candidate.
+                if (UnifiedNavalProduction.IsDockAsset(__instance) && !Traits.vehiclesAllowed)
+                {
+                    __result = null;
+                    return false;
+                }
+
                 // Docks are produced by the guarded Docks prefix above.  Do not
                 // let the legacy per-era selector bypass its shared resource caps.
                 if (UnifiedNavalProduction.ShouldReplace(__instance, pCity))
@@ -3145,6 +3165,14 @@ public static class Patch_ArchitectureAsset_GetBuildingID
         {
             static bool Prefix(string pSpeciesBoat, City pCity, ref string __result)
             {
+                // Keep old saves readable without allowing their retired boat
+                // type names to become new destroyer spawn candidates.
+                if (UnifiedNavalProduction.IsRetiredDestroyerBoatType(pSpeciesBoat))
+                {
+                    __result = null;
+                    return false;
+                }
+
                 switch (pSpeciesBoat)
                 {
                     case "cargo_alliance_boat":

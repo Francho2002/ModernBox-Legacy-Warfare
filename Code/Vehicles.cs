@@ -8119,10 +8119,10 @@ string[] unitNames = new string[]
     "Heli_Ork", "Bomber_Ork", "FighterJet_Ork", "Gunship", "Heli_Dwarf", "Bomber_Dwarf",
     "FighterJet_Dwarf", "Heli_Gaia", "Bomber_Gaia", "FighterJet_Gaia", "bigfaerydragon",
     "Bomber_Demon", "xenoUFObomber", "HumanTitan", "MA9000", "crusaderdreadnaught",
-    "Submarine_alliance", "SalvoSubmarine_alliance", "CarrierVessel_alliance", "aDestroyer_alliance", "bDestroyer_alliance", "CargoShip_alliance", "FishingBoat_alliance", "Transporter_alliance",
-    "Submarine_harden", "SalvoSubmarine_harden", "CarrierVessel_harden", "aDestroyer_harden", "bDestroyer_harden", "CargoShip_harden", "FishingBoat_harden", "Transporter_harden",
-    "Submarine_gaia", "SalvoSubmarine_gaia", "CarrierVessel_gaia", "aDestroyer_gaia", "bDestroyer_gaia", "CargoShip_gaia", "FishingBoat_gaia", "Transporter_gaia",
-    "Submarine_horde", "SalvoSubmarine_horde", "CarrierVessel_horde", "aDestroyer_horde", "bDestroyer_horde", "CargoShip_horde", "FishingBoat_horde", "Transporter_horde"
+    "Submarine_alliance", "SalvoSubmarine_alliance", "CarrierVessel_alliance", "CargoShip_alliance", "FishingBoat_alliance", "Transporter_alliance",
+    "Submarine_harden", "SalvoSubmarine_harden", "CarrierVessel_harden", "CargoShip_harden", "FishingBoat_harden", "Transporter_harden",
+    "Submarine_gaia", "SalvoSubmarine_gaia", "CarrierVessel_gaia", "CargoShip_gaia", "FishingBoat_gaia", "Transporter_gaia",
+    "Submarine_horde", "SalvoSubmarine_horde", "CarrierVessel_horde", "CargoShip_horde", "FishingBoat_horde", "Transporter_horde"
 };
 
 foreach (string unitName in unitNames)
@@ -8168,13 +8168,9 @@ NavalRoles.RegisterSpawnUnits();
 				SetDefaultAttack("wheeledtank_" + faction, "tankpew");
 				SetDefaultAttack("Bomber_" + faction, "BomberAttack");
 				SetDefaultAttack("FighterJet_" + faction, "fighterattack");
-				SetDefaultAttack("aDestroyer_" + navalFaction, "fighterattack");
-				SetDefaultAttack("bDestroyer_" + navalFaction, "fighterattack");
 				NormalizeMissilePlatform("MissileSystem_" + faction);
 				NormalizeMissilePlatform("Submarine_" + navalFaction);
 				IntegratedAirDefense.ConfigurePlatform(AssetManager.actor_library.get("MissileSystem_" + faction));
-				IntegratedAirDefense.ConfigurePlatform(AssetManager.actor_library.get("aDestroyer_" + navalFaction));
-				IntegratedAirDefense.ConfigurePlatform(AssetManager.actor_library.get("bDestroyer_" + navalFaction));
 			}
 		}
 

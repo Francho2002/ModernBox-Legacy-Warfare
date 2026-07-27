@@ -1037,8 +1037,6 @@ namespace ModernBox
         {
             List<string> ids = new List<string>
             {
-                "aDestroyer_" + faction,
-                "bDestroyer_" + faction,
                 "Submarine_" + faction,
                 "SalvoSubmarine_" + faction
             };

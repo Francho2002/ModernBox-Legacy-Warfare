@@ -86,8 +86,6 @@ namespace ModernBox
                 // Realistic surface combatants only. Cargo, fishing, transport,
                 // legacy brawlers and any fantasy ship stay out of this cache.
                 yield return "CarrierVessel_" + faction;
-                yield return "aDestroyer_" + faction;
-                yield return "bDestroyer_" + faction;
             }
 
             // Includes Hunter, Arsenal, Trident, Neutron, EMP, Hammer and Ruin

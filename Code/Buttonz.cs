@@ -497,8 +497,8 @@ namespace ModernBox
                 LoadUnitCategorySprite(new[] { "Tank_Human", "AbramTank" }, "ui/icons/Tank", "ui/icons/Industrial", "ui/Icons/TabText"));
             BuildUnitCategoryButton(hubTab, "modernbox_units_air", "Aire", "Abre las unidades aéreas.", "ModernBoxUnitsAir", 0, 1,
                 LoadUnitCategorySprite(new[] { "FighterJet_Human", "F55FighterJet", "Heli_Human" }, "ui/icons/F55", "ui/icons/warhamma", "ui/Icons/TabText"));
-            BuildUnitCategoryButton(hubTab, "modernbox_units_naval", "Naval", "Abre las unidades navales.", "ModernBoxUnitsNaval", 1, 1,
-                LoadUnitCategorySprite(new[] { "Submarine_alliance", "aDestroyer_alliance" }, "ui/icons/warhamma", "ui/icons/Industrial", "ui/Icons/TabText"));
+            BuildUnitCategoryButton(hubTab, "modernbox_units_naval", "Naval", "Abre submarinos y buques estratégicos.", "ModernBoxUnitsNaval", 1, 1,
+                LoadUnitCategorySprite(new[] { "Submarine_alliance", "SalvoSubmarine_alliance" }, "ui/icons/warhamma", "ui/icons/Industrial", "ui/Icons/TabText"));
         }
 
         private static void BuildUnitCategoryButton(PowersTab hubTab, string buttonId, string title, string description,
@@ -560,6 +560,7 @@ namespace ModernBox
             {
                 if (unit == null || string.IsNullOrEmpty(unit.id) || !displayedUnitIds.Add(unit.id) ||
                     unit.id.StartsWith("trainbox_", StringComparison.OrdinalIgnoreCase) ||
+                    IsRetiredDestroyer(unit.id) ||
                     IsHiddenNavalUnit(unit.id) ||
                     !ModernCapPolicy.IsAllowedActor(unit.id))
                     continue;
@@ -604,9 +605,13 @@ namespace ModernBox
 
         private static bool IsNavalUnit(string id)
         {
-            return NavalRoles.IsAnyModernSubmarine(id)
-                || id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase)
-                || id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase);
+            return NavalRoles.IsAnyModernSubmarine(id);
+        }
+
+        private static bool IsRetiredDestroyer(string id)
+        {
+            return id != null && (id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase));
         }
 
         private static bool IsHiddenNavalUnit(string id)
@@ -770,18 +775,6 @@ namespace ModernBox
             {
                 title = "Helicóptero - " + faction;
                 description = "Aeronave de combate de ala rotatoria.";
-                return;
-            }
-            if (id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase))
-            {
-                title = "Destructor A - " + faction;
-                description = "Ráfaga doble de cohetes guiados convencionales de corto alcance. No puede lanzar armas nucleares.";
-                return;
-            }
-            if (id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase))
-            {
-                title = "Destructor B - " + faction;
-                description = "Ráfaga doble de cohetes guiados convencionales de corto alcance. No puede lanzar armas nucleares.";
                 return;
             }
             if (id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase))

@@ -23,13 +23,13 @@ namespace ModernBox
         private static readonly string[] MissileBoatTypes = BuildMissileBoatTypes();
         private static readonly string[] MilitaryBoatTypePrefixes =
         {
-            "destroyer_a", "destroyer_b", "submarine", "hunter_submarine",
+            "submarine", "hunter_submarine",
             "arsenal_submarine", "trident_submarine", "neutron_submarine", "emp_submarine",
             "hammer_submarine", "ruin_submarine", "salvo_submarine"
         };
         private static readonly string[] NormalMilitaryBoatTypePrefixes =
         {
-            "destroyer_a", "destroyer_b", "hunter_submarine"
+            "hunter_submarine"
         };
         private static readonly string[] StrategicBoatTypePrefixes =
         {
@@ -40,7 +40,7 @@ namespace ModernBox
         // intentionally not part of the modern military quota or production pool.
         private static readonly string[] LegacyDockBoatTypePrefixes =
         {
-            "cargo", "fishing", "transporter", "carrier"
+            "cargo", "fishing", "transporter", "carrier", "destroyer_a", "destroyer_b"
         };
 
         internal static void EnableAllDocks()
@@ -100,8 +100,7 @@ namespace ModernBox
 
         internal static bool ShouldReplace(BuildingAsset asset, City city)
         {
-            return Traits.vehiclesAllowed && city != null && asset != null &&
-                asset.id != null && asset.id.IndexOf("docks", StringComparison.OrdinalIgnoreCase) >= 0;
+            return Traits.vehiclesAllowed && city != null && IsDockAsset(asset);
         }
 
         internal static bool ShouldReplace(Docks dock, City city)
@@ -110,13 +109,27 @@ namespace ModernBox
                 ShouldReplace(dock.building.asset, city);
         }
 
+        // All dock entry points use this single test.  The legacy patches in
+        // Buildings.cs contain old era-specific pickers; they must never be
+        // allowed to reintroduce retired hulls when the unified system is off.
+        internal static bool IsDockAsset(BuildingAsset asset)
+        {
+            return asset?.id != null &&
+                asset.id.IndexOf("docks", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        internal static bool IsRetiredDestroyerBoatType(string boatType)
+        {
+            return !string.IsNullOrEmpty(boatType) &&
+                (boatType.StartsWith("destroyer_a_", StringComparison.OrdinalIgnoreCase) ||
+                 boatType.StartsWith("destroyer_b_", StringComparison.OrdinalIgnoreCase));
+        }
+
         private static string[] BuildMissileBoatTypes()
         {
             List<string> types = new List<string>();
             foreach (string faction in Factions)
             {
-                types.Add("destroyer_a_" + faction + "_boat");
-                types.Add("destroyer_b_" + faction + "_boat");
                 types.Add("submarine_" + faction + "_boat");
                 types.Add("salvo_submarine_" + faction + "_boat");
                 foreach (string rolePrefix in RoleBoatPrefixes)
@@ -130,7 +143,6 @@ namespace ModernBox
             string faction = GetFaction(city);
             string[] ids =
             {
-                "aDestroyer_" + faction, "bDestroyer_" + faction,
                 "HunterSubmarine_" + faction, "Submarine_" + faction,
                 "ArsenalSubmarine_" + faction, "TridentSubmarine_" + faction,
                 "NeutronSubmarine_" + faction, "EmpSubmarine_" + faction,
@@ -144,9 +156,9 @@ namespace ModernBox
             int normalMilitary = CountDockBoats(dock, faction, NormalMilitaryBoatTypePrefixes);
             int strategic = CountDockBoats(dock, faction, StrategicBoatTypePrefixes);
             MilitaryQuotaService.DockQuota quota = MilitaryQuotaService.GetDockQuota(dock, city);
-            // A one-ship military budget made the first destroyer/hunter block
-            // every strategic submarine at that port. A dock may now reserve a
-            // second military berth: one conventional escort and one special
+            // A one-ship military budget made the first hunter block every
+            // strategic submarine at that port. A dock may now reserve a
+            // second military berth: one conventional hunter and one special
             // submarine, never a fleet-wide flood.
             int militaryLimit = Math.Max(2, quota.MilitaryBoats);
             int kingdomStrategic = MilitaryQuotaService.CountKingdomStrategicAssets(city?.kingdom);
@@ -229,7 +241,7 @@ namespace ModernBox
 
         private static bool IsMilitary(string id)
         {
-            return !string.IsNullOrEmpty(id) && (id.Contains("Destroyer_") || id.Contains("Vessel_") ||
+            return !string.IsNullOrEmpty(id) && (id.Contains("Vessel_") ||
                 NavalRoles.IsAnyModernSubmarine(id) || id.Contains("brawler_"));
         }
 
