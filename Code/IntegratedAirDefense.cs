@@ -30,6 +30,14 @@ namespace ModernBox
             "SSBN_CZAR_WARHEAD"
         };
 
+        private static readonly HashSet<string> ConventionalMissiles = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "missileartillery",
+            "fireboneartillery",
+            "frostmissileartillery",
+            "plantmissileartillery"
+        };
+
         private static readonly ConditionalWeakTable<Projectile, ProjectileData> ProjectileStates =
             new ConditionalWeakTable<Projectile, ProjectileData>();
         private static readonly ConditionalWeakTable<Actor, CooldownData> DefenderCooldowns =
@@ -43,6 +51,7 @@ namespace ModernBox
             internal float age;
             internal float nextCheck;
             internal bool attempted;
+            internal bool impactSoundPlayed;
         }
 
         private sealed class CooldownData
@@ -159,6 +168,21 @@ namespace ModernBox
                 ProjectileStates.Remove(projectile);
         }
 
+        internal static void PlayConventionalImpactSound(Projectile projectile)
+        {
+            if (projectile?.asset == null || !ConventionalMissiles.Contains(projectile.asset.id))
+                return;
+
+            ProjectileData state = ProjectileStates.GetOrCreateValue(projectile);
+            if (state.impactSoundPlayed)
+                return;
+
+            state.impactSoundPlayed = true;
+            // Coordinates outside the map use WorldBox's non-positional path:
+            // the impact remains audible at maximum zoom without nuclear volume.
+            MusicBox.playSound("event:/SFX/EXPLOSIONS/ExplosionSmall", -1f, -1f, true, false);
+        }
+
         private static Actor FindDefender(WorldTile missileTile, Kingdom missileKingdom)
         {
             if (missileTile == null || World.world?.units == null)
@@ -257,6 +281,13 @@ namespace ModernBox
         private static void ResetPostfix(Projectile __instance)
         {
             IntegratedAirDefense.Forget(__instance);
+        }
+
+        [HarmonyPatch(typeof(Projectile), "targetReached")]
+        [HarmonyPrefix]
+        private static void TargetReachedPrefix(Projectile __instance)
+        {
+            IntegratedAirDefense.PlayConventionalImpactSound(__instance);
         }
     }
 }

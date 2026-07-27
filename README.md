@@ -51,7 +51,17 @@ datos espaciales existentes.
 
 ## Defensa aérea y antimisiles
 
-Los lanzamisiles terrestres y los destructores pueden derribar aeronaves enemigas con los cohetes ya existentes. También intentan interceptar una vez los misiles enemigos que pasan cerca: los convencionales son vulnerables, las bombas nucleares son difíciles de detener y la Bomba del Zar casi nunca puede ser interceptada. Una ciudad de al menos 100 habitantes reserva una plaza defensiva para un lanzamisiles, siempre que pueda pagar su coste pesado y la producción de vehículos esté activada.
+Los lanzamisiles terrestres y los destructores pueden derribar aeronaves enemigas con los cohetes ya existentes. También intentan interceptar una vez los misiles enemigos que pasan cerca: los convencionales son vulnerables, las bombas nucleares son difíciles de detener y la Bomba del Zar casi nunca puede ser interceptada.
+
+Cada 8–12 segundos se revisa la producción defensiva y se construye como máximo
+un lanzamisiles terrestre global por ciclo. Cada ciudad puede mantener uno
+cuando alcanza 100 habitantes, tiene líder y reino válidos, la producción de
+vehículos está activa y puede pagar `9` madera, `7` piedra, `6` metal y `3` oro.
+No depende de la era visual.
+
+Los misiles usan su sprite completo y una marca visible desde la vista máxima.
+Los impactos convencionales se reproducen como audio no posicional para poder
+oírlos desde lejos, con el sonido pequeño original y sin duplicarlo localmente.
 
 ## Recursos OreBox integrados
 

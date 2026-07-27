@@ -122,6 +122,7 @@ namespace ModernBox{
                   ModernBoxLogger.Log("[M2] Space Manager set to lazy-load.");
         		AchievementManager = gameObject.AddComponent<AchievementManager>();
         		StatManager = gameObject.AddComponent<StatManager>();
+                gameObject.AddComponent<GroundMissileProductionController>();
                 gameObject.AddComponent<ForbiddenKnowledgeKeeper>();
                 if (EnableRuntimeUiEffects)
                 {

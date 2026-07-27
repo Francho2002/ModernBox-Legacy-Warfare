@@ -41,7 +41,7 @@ namespace ModernBox
                 // Keep this reserved chassis pending until the city can pay for
                 // its launcher; otherwise a cheaper vehicle could consume the
                 // one extra defensive slot forever.
-                selected = SelectDefensiveLauncher(species, city, actor);
+                selected = SelectDefensiveLauncher(city);
                 if (selected == null)
                     return false;
             }
@@ -74,33 +74,84 @@ namespace ModernBox
 
         internal static bool NeedsDefensiveLauncher(City city)
         {
-            return Traits.vehiclesAllowed && city != null &&
+            return IsValidLauncherCity(city) &&
                 city.getPopulationPeople() >= 100 && !HasMissileLauncher(city, null);
         }
 
-        private static Candidate SelectDefensiveLauncher(string species, City city, Actor transforming)
+        private static Candidate SelectDefensiveLauncher(City city)
         {
+            if (!TryGetDefensiveLauncher(city, out string launcherId, out ConstructionCost cost))
+                return null;
+
+            return new Candidate { id = launcherId, tier = "modern", cost = cost };
+        }
+
+        internal static bool TryBuildDefensiveLauncher(City city)
+        {
+            if (!TryGetDefensiveLauncher(city, out string launcherId, out ConstructionCost cost))
+                return false;
+
+            WorldTile spawnTile = FindSafeLandTile(city);
+            if (spawnTile == null)
+                return false;
+
+            Actor produced;
+            try
+            {
+                produced = World.world.units.createNewUnit(
+                    launcherId, spawnTile, pMiracleSpawn: false, 0f, null, null,
+                    pSpawnWithItems: false);
+            }
+            catch (Exception ex)
+            {
+                ModernBoxLogger.Error("[MX.DefenseProduction] Launcher spawn failed exceptionally: " + ex.Message);
+                return false;
+            }
+
+            if (produced == null)
+            {
+                ModernBoxLogger.Warning("[MX.DefenseProduction] WorldBox rejected launcher spawn for " + launcherId + ".");
+                return false;
+            }
+
+            produced.setKingdom(city.kingdom);
+            produced.setCity(city);
+            city.spendResourcesForBuildingAsset(cost);
+            EffectsLibrary.spawn("fx_spawn", produced.current_tile);
+            ModernBoxLogger.Log("[MX.DefenseProduction] Built " + launcherId +
+                " for a city with population " + city.getPopulationPeople() + ".");
+            return true;
+        }
+
+        internal static bool TryGetDefensiveLauncher(City city, out string launcherId, out ConstructionCost cost)
+        {
+            launcherId = null;
+            cost = default(ConstructionCost);
             if (!NeedsDefensiveLauncher(city))
-                return null;
+                return false;
 
-            if (!Traits.CartTransformations.CartTransformationsModernRoles.TryGetValue(species, out var roles) ||
+            Actor leader = city.leader;
+            string species = leader.subspecies?.data?.species_id;
+            if (string.IsNullOrEmpty(species))
+                species = leader.asset?.id;
+
+            if (string.IsNullOrEmpty(species) ||
+                !Traits.CartTransformations.CartTransformationsModernRoles.TryGetValue(species, out var roles) ||
                 !roles.TryGetValue("heavy", out var ids))
-                return null;
+                return false;
 
-            string launcherId = ids.FirstOrDefault(id =>
+            launcherId = ids.FirstOrDefault(id =>
                 !string.IsNullOrEmpty(id) && id.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase));
             ActorAsset launcher = AssetManager.actor_library.get(launcherId);
             if (launcher == null || string.IsNullOrEmpty(launcher.default_attack) ||
                 AssetManager.items.get(launcher.default_attack) == null)
-                return null;
+                return false;
 
-            ConstructionCost cost = GetCost(launcherId, "modern");
-            return city.hasEnoughResourcesFor(cost)
-                ? new Candidate { id = launcherId, tier = "modern", cost = cost }
-                : null;
+            cost = GetCost(launcherId, "modern");
+            return city.hasEnoughResourcesFor(cost);
         }
 
-        private static bool HasMissileLauncher(City city, Actor transforming)
+        internal static bool HasMissileLauncher(City city, Actor transforming)
         {
             foreach (Actor unit in city.units)
             {
@@ -110,6 +161,55 @@ namespace ModernBox
                     return true;
             }
             return false;
+        }
+
+        private static bool IsValidLauncherCity(City city)
+        {
+            if (!Traits.vehiclesAllowed || city == null || !city.isAlive() ||
+                city.kingdom == null || !city.kingdom.isCiv() || !city.hasLeader())
+                return false;
+
+            Actor leader = city.leader;
+            return leader != null && leader.isAlive() && leader.asset != null &&
+                World.world?.units != null;
+        }
+
+        private static WorldTile FindSafeLandTile(City city)
+        {
+            WorldTile center = city.getTile();
+            if (IsSafeLandTile(center))
+                return center;
+
+            WorldTile leaderTile = city.leader?.current_tile;
+            if (IsSafeLandTile(leaderTile))
+                return leaderTile;
+
+            if (city.buildings != null)
+            {
+                foreach (Building building in city.buildings)
+                {
+                    if (IsSafeLandTile(building?.current_tile))
+                        return building.current_tile;
+                }
+            }
+
+            if (center?.region?.tiles != null)
+            {
+                for (int attempt = 0; attempt < 16; attempt++)
+                {
+                    WorldTile candidate = center.region.tiles.GetRandom();
+                    if (IsSafeLandTile(candidate))
+                        return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsSafeLandTile(WorldTile tile)
+        {
+            return tile?.Type != null && tile.Type.ground &&
+                !tile.Type.block && !tile.Type.ocean && !tile.Type.liquid;
         }
 
         private static List<Candidate> CollectCandidates(string species, string role, City city, Actor transforming)
