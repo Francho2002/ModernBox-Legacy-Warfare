@@ -26,7 +26,6 @@ namespace ModernBox
         // still making every city available through the page controls.
         private const int MaximumUnitGroupsPerCity = 10;
         private const int MaximumCandidatesPerLine = 8;
-        private const int MaximumDockLinesPerCity = 4;
 
         private static ScrollWindow window;
         private static GameObject content;
@@ -874,6 +873,7 @@ namespace ModernBox
             List<Building> docks = GetDockBuildings(city);
             int dockCount = docks.Count;
             int currentBoats = CountBoats(city);
+            const string navalCapacityNote = "Puertos sin cupo individual: recursos y ciclos de construcción determinan la flota.";
             string faction = GetNavalFaction(city);
             List<ProductionCandidate> candidates = GetNavalCandidates(faction);
 
@@ -890,19 +890,8 @@ namespace ModernBox
             }
 
             result.AppendLine("    Naval: " + dockCount + " puerto(s), " + currentBoats + " embarcación(es) vinculada(s), flota " + Escape(faction) + ".");
-            int shownDocks = Math.Min(MaximumDockLinesPerCity, docks.Count);
-            for (int index = 0; index < shownDocks; index++)
-            {
-                MilitaryQuotaService.DockQuota quota = MilitaryQuotaService.GetDockQuota(docks[index], city);
-                int militaryLimit = Math.Max(2, quota.MilitaryBoats);
-                result.AppendLine("      Puerto " + (index + 1) + ": " +
-                    MilitaryQuotaService.GetDockQuotaLabel(docks[index], city) +
-                    "; capacidad militar operativa " + militaryLimit +
-                    " (escolta + submarino especial).");
-            }
-            if (docks.Count > shownDocks)
-                result.AppendLine("      + " + (docks.Count - shownDocks) + " puertos más (cupo aplicado individualmente).");
             int kingdomStrategic = MilitaryQuotaService.CountKingdomStrategicAssets(city.kingdom);
+            result.AppendLine("      " + navalCapacityNote);
             int kingdomStrategicCap = MilitaryQuotaService.GetKingdomStrategicCap(city.kingdom);
             result.AppendLine("      Estratégicos del reino: " + kingdomStrategic + "/" + kingdomStrategicCap + ".");
             if (candidates.Count == 0)
@@ -914,8 +903,8 @@ namespace ModernBox
             List<ProductionCandidate> affordable = candidates
                 .Where(candidate => city.hasEnoughResourcesFor(candidate.cost))
                 .ToList();
-            result.AppendLine("      Catálogo naval por puerto: " + DescribeCandidates(candidates) + ".");
-            result.AppendLine("      Los submarinos estratégicos requieren antes una nave militar normal y espacio tanto en el puerto como en el reino.");
+            result.AppendLine("      Catálogo naval: " + DescribeCandidates(candidates) + ".");
+            result.AppendLine("      Los puertos no tienen cupo individual; solo los submarinos estratégicos respetan el límite global del reino.");
 
             if (affordable.Count == 0)
             {
@@ -924,7 +913,7 @@ namespace ModernBox
             else
             {
                 result.AppendLine("      Con recursos ahora: " + DescribeCandidates(affordable) +
-                    ". La IA los intentará fabricar en sus ciclos normales si queda cupo.");
+                    ". La IA los intentará fabricar en sus ciclos normales.");
             }
         }
 
@@ -1058,6 +1047,8 @@ namespace ModernBox
         {
             List<string> ids = new List<string>
             {
+                "aDestroyer_" + faction,
+                "bDestroyer_" + faction,
                 "Submarine_" + faction,
                 "SalvoSubmarine_" + faction
             };
@@ -1075,7 +1066,13 @@ namespace ModernBox
 
                 ConstructionCost cost;
                 string label;
-                if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
+                if (id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) ||
+                    id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase))
+                {
+                    cost = new ConstructionCost(7, 6, 4, 2);
+                    label = "7 madera, 6 piedra, 4 metal, 2 oro";
+                }
+                else if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
                 {
                     cost = new ConstructionCost(15, 13, 11, 6);
                     label = "15 madera, 13 piedra, 11 metal, 6 oro";

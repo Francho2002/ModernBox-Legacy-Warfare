@@ -5,9 +5,9 @@ using System.Linq;
 namespace ModernBox
 {
     /// <summary>
-    /// Common dock production for all visual eras. Each dock receives a
-    /// deterministic small quota from MilitaryQuotaService, while strategic
-    /// submarines are additionally constrained at kingdom level.
+    /// Common dock production for all visual eras. Docks have no artificial
+    /// berth quota: costs and normal construction cadence control fleet growth,
+    /// while strategic submarines retain a kingdom-wide stability ceiling.
     /// </summary>
     internal static class UnifiedNavalProduction
     {
@@ -19,29 +19,8 @@ namespace ModernBox
         };
 
         // Legacy civilian/bomb boats stay registered for save compatibility, but
-        // ModernBox docks only produce missile-capable combat platforms.
-        private static readonly string[] MissileBoatTypes = BuildMissileBoatTypes();
-        private static readonly string[] MilitaryBoatTypePrefixes =
-        {
-            "submarine", "hunter_submarine",
-            "arsenal_submarine", "trident_submarine", "neutron_submarine", "emp_submarine",
-            "hammer_submarine", "ruin_submarine", "salvo_submarine"
-        };
-        private static readonly string[] NormalMilitaryBoatTypePrefixes =
-        {
-            "hunter_submarine"
-        };
-        private static readonly string[] StrategicBoatTypePrefixes =
-        {
-            "submarine", "arsenal_submarine", "trident_submarine", "neutron_submarine",
-            "emp_submarine", "hammer_submarine", "ruin_submarine", "salvo_submarine"
-        };
-        // These hulls can remain in old saves. They occupy a berth, but are
-        // intentionally not part of the modern military quota or production pool.
-        private static readonly string[] LegacyDockBoatTypePrefixes =
-        {
-            "cargo", "fishing", "transporter", "carrier", "destroyer_a", "destroyer_b"
-        };
+        // ModernBox docks build only escorts and missile-capable combat platforms.
+        private static readonly string[] CombatBoatTypes = BuildCombatBoatTypes();
 
         internal static void EnableAllDocks()
         {
@@ -52,7 +31,7 @@ namespace ModernBox
 
                 // Replacing, not appending, prevents the native dock picker from
                 // reintroducing bomb/civilian hulls outside our production pool.
-                asset.boat_types = MissileBoatTypes;
+                asset.boat_types = CombatBoatTypes;
             }
         }
 
@@ -93,8 +72,8 @@ namespace ModernBox
             if (!ShouldReplace(dockAsset, city))
                 return null;
 
-            // The callback lacks a Docks component. Quotas are therefore owned
-            // exclusively by TryBuild, which can bind the created boat to port.
+            // The callback lacks a Docks component. Direct construction remains
+            // exclusively in TryBuild, which can bind the created boat to port.
             return null;
         }
 
@@ -109,27 +88,22 @@ namespace ModernBox
                 ShouldReplace(dock.building.asset, city);
         }
 
-        // All dock entry points use this single test.  The legacy patches in
-        // Buildings.cs contain old era-specific pickers; they must never be
-        // allowed to reintroduce retired hulls when the unified system is off.
+        // All dock entry points use this single test. The legacy patches in
+        // Buildings.cs contain era-specific pickers; the unified system owns
+        // their production while vehicle mode is enabled.
         internal static bool IsDockAsset(BuildingAsset asset)
         {
             return asset?.id != null &&
                 asset.id.IndexOf("docks", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        internal static bool IsRetiredDestroyerBoatType(string boatType)
-        {
-            return !string.IsNullOrEmpty(boatType) &&
-                (boatType.StartsWith("destroyer_a_", StringComparison.OrdinalIgnoreCase) ||
-                 boatType.StartsWith("destroyer_b_", StringComparison.OrdinalIgnoreCase));
-        }
-
-        private static string[] BuildMissileBoatTypes()
+        private static string[] BuildCombatBoatTypes()
         {
             List<string> types = new List<string>();
             foreach (string faction in Factions)
             {
+                types.Add("destroyer_a_" + faction + "_boat");
+                types.Add("destroyer_b_" + faction + "_boat");
                 types.Add("submarine_" + faction + "_boat");
                 types.Add("salvo_submarine_" + faction + "_boat");
                 foreach (string rolePrefix in RoleBoatPrefixes)
@@ -143,6 +117,7 @@ namespace ModernBox
             string faction = GetFaction(city);
             string[] ids =
             {
+                "aDestroyer_" + faction, "bDestroyer_" + faction,
                 "HunterSubmarine_" + faction, "Submarine_" + faction,
                 "ArsenalSubmarine_" + faction, "TridentSubmarine_" + faction,
                 "NeutronSubmarine_" + faction, "EmpSubmarine_" + faction,
@@ -150,46 +125,16 @@ namespace ModernBox
                 "SalvoSubmarine_" + faction
             };
 
-            int total = CountDockBoats(dock, faction, MilitaryBoatTypePrefixes) +
-                CountDockBoats(dock, faction, LegacyDockBoatTypePrefixes);
-            int military = CountDockBoats(dock, faction, MilitaryBoatTypePrefixes);
-            int normalMilitary = CountDockBoats(dock, faction, NormalMilitaryBoatTypePrefixes);
-            int strategic = CountDockBoats(dock, faction, StrategicBoatTypePrefixes);
-            MilitaryQuotaService.DockQuota quota = MilitaryQuotaService.GetDockQuota(dock, city);
-            // The dock quota reserves room for an escort plus several costly
-            // strategic hulls. The kingdom cap below remains the hard ceiling.
-            int militaryLimit = quota.MilitaryBoats;
             int kingdomStrategic = MilitaryQuotaService.CountKingdomStrategicAssets(city?.kingdom);
             int kingdomStrategicCap = MilitaryQuotaService.GetKingdomStrategicCap(city?.kingdom);
-            if (total >= quota.TotalBoats)
-                return new List<string>();
 
             return ids.Where(id => AssetManager.actor_library.get(id) != null)
-                .Where(id => !IsMilitary(id) || military < militaryLimit)
-                // One conventional hunter is enough for a port. Extra berths
-                // are kept for distinct strategic hulls instead of a stack of
-                // identical escorts.
-                .Where(id => !id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase) ||
-                    normalMilitary < 1)
-                // A strategic hull first requires a normal escort/attack hull.
-                // A compact strategic detachment can belong to this port, and
-                // the kingdom-wide deterministic budget is respected across
-                // all of its ports.
+                // There is intentionally no per-port berth, military or
+                // strategic quota. A kingdom-wide deterrent ceiling is enough
+                // to protect stability while any coastal city can expand a dock.
                 .Where(id => !NavalRoles.IsStrategicSubmarine(id) ||
-                    (normalMilitary > 0 && strategic < quota.StrategicBoatsAtThisPort &&
-                     kingdomStrategic < kingdomStrategicCap))
+                    kingdomStrategic < kingdomStrategicCap)
                 .ToList();
-        }
-
-        private static int CountDockBoats(Docks dock, string faction, IEnumerable<string> typePrefixes)
-        {
-            if (dock == null || string.IsNullOrEmpty(faction))
-                return 0;
-
-            int total = 0;
-            foreach (string prefix in typePrefixes)
-                total += dock.countBoatTypes(prefix + "_" + faction + "_boat");
-            return total;
         }
 
         private static string SelectAffordableId(Docks dock, City city)
@@ -203,6 +148,13 @@ namespace ModernBox
             List<string> military = affordable.Where(IsMilitary).ToList();
             List<string> strategic = military.Where(NavalRoles.IsStrategicSubmarine).ToList();
             List<string> normalMilitary = military.Where(id => !NavalRoles.IsStrategicSubmarine(id)).ToList();
+            List<string> escorts = normalMilitary.Where(IsEscortDestroyer).ToList();
+
+            // Put an escort into a young fleet early. It remains a short-range
+            // anti-submarine ship; it never uses the retired bomb-boat attack.
+            List<string> missingEscorts = escorts.Where(id => !KingdomOwnsVariant(city?.kingdom, id)).ToList();
+            if (missingEscorts.Count > 0 && Randy.randomChance(.65f))
+                return missingEscorts[Randy.randomInt(0, missingEscorts.Count)];
 
             // Before repeating a hull, a kingdom deliberately fills gaps in
             // its available fleet catalogue. This makes the nuclear/naval arm
@@ -230,9 +182,9 @@ namespace ModernBox
             if (Randy.randomChance(.70f))
             {
                 // Strategic assets are available together but do not all become
-                // production candidates at once: a port can commission one and
-                // reaches for it only after a normal warship exists.
-                if (strategic.Count > 0 && normalMilitary.Count > 0 && Randy.randomChance(.55f))
+                // production candidates at once. The kingdom-wide cap remains
+                // the only fleet-size gate; ports themselves are unrestricted.
+                if (strategic.Count > 0 && Randy.randomChance(.55f))
                 {
                     List<string> nonApocalypse = strategic
                         .Where(id => !IsSalvoSubmarine(id) || Randy.randomChance(.30f))
@@ -241,10 +193,8 @@ namespace ModernBox
                         return nonApocalypse[Randy.randomInt(0, nonApocalypse.Count)];
                 }
 
-                string hunter = normalMilitary.FirstOrDefault(
-                    id => id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase));
-                if (!string.IsNullOrEmpty(hunter) && Randy.randomChance(.45f))
-                    return hunter;
+                if (escorts.Count > 0 && Randy.randomChance(.45f))
+                    return escorts[Randy.randomInt(0, escorts.Count)];
                 if (normalMilitary.Count > 0)
                     return normalMilitary[Randy.randomInt(0, normalMilitary.Count)];
             }
@@ -287,7 +237,14 @@ namespace ModernBox
         private static bool IsMilitary(string id)
         {
             return !string.IsNullOrEmpty(id) && (id.Contains("Vessel_") ||
-                NavalRoles.IsAnyModernSubmarine(id) || id.Contains("brawler_"));
+                NavalRoles.IsAnyModernSubmarine(id) || IsEscortDestroyer(id) || id.Contains("brawler_"));
+        }
+
+        private static bool IsEscortDestroyer(string id)
+        {
+            return !string.IsNullOrEmpty(id) &&
+                (id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) ||
+                 id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase));
         }
 
         private static bool IsSalvoSubmarine(string id)
@@ -297,6 +254,7 @@ namespace ModernBox
 
         private static ConstructionCost GetCost(string id)
         {
+            if (IsEscortDestroyer(id)) return new ConstructionCost(7, 6, 4, 2);
             if (id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(6, 5, 3, 1);
             if (id.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(8, 7, 5, 2);
             if (id.StartsWith("TridentSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(12, 10, 8, 4);

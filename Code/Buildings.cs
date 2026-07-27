@@ -605,7 +605,7 @@ allianceorder.requirements_types = AssetLibrary<CityBuildOrderAsset>.a<string>("
 allianceBuild.addUpgrade("order_mine");
 allianceorder = allianceBuild.list.Last();
 allianceorder.requirements_orders = AssetLibrary<CityBuildOrderAsset>.a<string>("order_bonfire_modern_alliance");
-allianceorder = allianceBuild.addBuilding("order_docks_0", 1, 0, 0);
+allianceorder = allianceBuild.addBuilding("order_docks_0", 2, 0, 0);
 allianceorder.requirements_types = AssetLibrary<CityBuildOrderAsset>.a<string>("type_house");
 allianceBuild.addUpgrade("order_docks_0");
 allianceorder = allianceBuild.list.Last();
@@ -1167,7 +1167,7 @@ hardenorder.requirements_types = AssetLibrary<CityBuildOrderAsset>.a<string>("ty
 hardenBuild.addUpgrade("order_mine");
 hardenorder = hardenBuild.list.Last();
 hardenorder.requirements_orders = AssetLibrary<CityBuildOrderAsset>.a<string>("order_bonfire_modern_harden");
-hardenorder = hardenBuild.addBuilding("order_docks_0", 1, 0, 0);
+hardenorder = hardenBuild.addBuilding("order_docks_0", 2, 0, 0);
 hardenorder.requirements_types = AssetLibrary<CityBuildOrderAsset>.a<string>("type_house");
 hardenBuild.addUpgrade("order_docks_0");
 hardenorder = hardenBuild.list.Last();
@@ -1730,7 +1730,7 @@ gaiaorder.requirements_types = AssetLibrary<CityBuildOrderAsset>.a<string>("type
 gaiaBuild.addUpgrade("order_mine");
 gaiaorder = gaiaBuild.list.Last();
 gaiaorder.requirements_orders = AssetLibrary<CityBuildOrderAsset>.a<string>("order_bonfire_modern_gaia");
-gaiaorder = gaiaBuild.addBuilding("order_docks_0", 1, 0, 0);
+gaiaorder = gaiaBuild.addBuilding("order_docks_0", 2, 0, 0);
 gaiaorder.requirements_types = AssetLibrary<CityBuildOrderAsset>.a<string>("type_house");
 gaiaBuild.addUpgrade("order_docks_0");
 gaiaorder = gaiaBuild.list.Last();
@@ -2293,7 +2293,7 @@ string[] hordecivs = new string[] { "orc", "necromancer", "civ_fox", "civ_wolf",
     hordeBuild.addUpgrade("order_mine");
     hordeorder = hordeBuild.list.Last();
     hordeorder.requirements_orders = AssetLibrary<CityBuildOrderAsset>.a<string>("order_bonfire_modern_horde");
-    hordeorder = hordeBuild.addBuilding("order_docks_0", 1, 0, 0);
+    hordeorder = hordeBuild.addBuilding("order_docks_0", 2, 0, 0);
     hordeorder.requirements_types = AssetLibrary<CityBuildOrderAsset>.a<string>("type_house");
     hordeBuild.addUpgrade("order_docks_0");
     hordeorder = hordeBuild.list.Last();
@@ -2562,8 +2562,8 @@ public static class Patch_ArchitectureAsset_GetBuildingID
             static bool Prefix(Docks __instance, City pCity, ref Actor __result)
             {
                 // Vehicle mode controls every dock path, including the legacy
-                // per-era selectors below.  Falling through here would allow
-                // retired destroyers to return whenever vehicles are disabled.
+                // per-era selectors below. The unified naval pool owns all
+                // modern production while vehicles are enabled.
                 if (__instance?.building?.asset != null &&
                     UnifiedNavalProduction.IsDockAsset(__instance.building.asset) &&
                     !Traits.vehiclesAllowed)
@@ -2852,7 +2852,7 @@ public static class Patch_ArchitectureAsset_GetBuildingID
             {
                 // This selector is also called by stock construction previews.
                 // Suppress it under disabled vehicle mode so no legacy dock
-                // branch can publish an obsolete destroyer candidate.
+                // branch can publish a vehicle candidate.
                 if (UnifiedNavalProduction.IsDockAsset(__instance) && !Traits.vehiclesAllowed)
                 {
                     __result = null;
@@ -3165,14 +3165,6 @@ public static class Patch_ArchitectureAsset_GetBuildingID
         {
             static bool Prefix(string pSpeciesBoat, City pCity, ref string __result)
             {
-                // Keep old saves readable without allowing their retired boat
-                // type names to become new destroyer spawn candidates.
-                if (UnifiedNavalProduction.IsRetiredDestroyerBoatType(pSpeciesBoat))
-                {
-                    __result = null;
-                    return false;
-                }
-
                 switch (pSpeciesBoat)
                 {
                     case "cargo_alliance_boat":

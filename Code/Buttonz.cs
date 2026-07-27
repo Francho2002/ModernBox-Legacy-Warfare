@@ -545,7 +545,6 @@ namespace ModernBox
             {
                 if (unit == null || string.IsNullOrEmpty(unit.id) || !displayedUnitIds.Add(unit.id) ||
                     unit.id.StartsWith("trainbox_", StringComparison.OrdinalIgnoreCase) ||
-                    IsRetiredDestroyer(unit.id) ||
                     IsHiddenNavalUnit(unit.id) ||
                     !ModernCapPolicy.IsAllowedActor(unit.id))
                     continue;
@@ -590,13 +589,9 @@ namespace ModernBox
 
         private static bool IsNavalUnit(string id)
         {
-            return NavalRoles.IsAnyModernSubmarine(id);
-        }
-
-        private static bool IsRetiredDestroyer(string id)
-        {
-            return id != null && (id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) ||
-                id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase));
+            return NavalRoles.IsAnyModernSubmarine(id) ||
+                id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsHiddenNavalUnit(string id)
@@ -669,6 +664,8 @@ namespace ModernBox
             if (id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "F55FighterJet", StringComparison.OrdinalIgnoreCase)) return 20;
             if (id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "americanbomberww", StringComparison.OrdinalIgnoreCase)) return 21;
             if (id.StartsWith("Heli_", StringComparison.OrdinalIgnoreCase)) return 22;
+            if (id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase)) return 28;
+            if (id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase)) return 29;
             if (id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase)) return 30;
             if (id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase)) return 31;
             if (id.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase)) return 32;
@@ -690,6 +687,13 @@ namespace ModernBox
             {
                 title = "SSBN de salva nuclear - " + faction;
                 description = "SSBN de último recurso. Conserva misiles convencionales; su salva de 4 a 6 cargas nucleares se autoriza cuando el reino conserva 1 o 2 ciudades y sufre una derrota extrema. Cada carga es apenas mayor que una nuclear normal y no altera el terreno. Requiere Guerra nuclear y 240 de oro; recarga: 600 s.";
+                return;
+            }
+            if (id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) ||
+                id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase))
+            {
+                title = "Destructor de escolta - " + faction;
+                description = "Buque de combate cercano: protege la flota contra barcos y submarinos con cañones y torpedos. No usa las antiguas bombas ni misiles estratégicos.";
                 return;
             }
             if (id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase))

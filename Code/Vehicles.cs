@@ -8190,10 +8190,10 @@ string[] unitNames = new string[]
     "Heli_Ork", "Bomber_Ork", "FighterJet_Ork", "Gunship", "Heli_Dwarf", "Bomber_Dwarf",
     "FighterJet_Dwarf", "Heli_Gaia", "Bomber_Gaia", "FighterJet_Gaia", "bigfaerydragon",
     "Bomber_Demon", "xenoUFObomber", "HumanTitan", "MA9000", "crusaderdreadnaught",
-    "Submarine_alliance", "SalvoSubmarine_alliance", "CarrierVessel_alliance", "CargoShip_alliance", "FishingBoat_alliance", "Transporter_alliance",
-    "Submarine_harden", "SalvoSubmarine_harden", "CarrierVessel_harden", "CargoShip_harden", "FishingBoat_harden", "Transporter_harden",
-    "Submarine_gaia", "SalvoSubmarine_gaia", "CarrierVessel_gaia", "CargoShip_gaia", "FishingBoat_gaia", "Transporter_gaia",
-    "Submarine_horde", "SalvoSubmarine_horde", "CarrierVessel_horde", "CargoShip_horde", "FishingBoat_horde", "Transporter_horde"
+    "aDestroyer_alliance", "bDestroyer_alliance", "Submarine_alliance", "SalvoSubmarine_alliance", "CarrierVessel_alliance", "CargoShip_alliance", "FishingBoat_alliance", "Transporter_alliance",
+    "aDestroyer_harden", "bDestroyer_harden", "Submarine_harden", "SalvoSubmarine_harden", "CarrierVessel_harden", "CargoShip_harden", "FishingBoat_harden", "Transporter_harden",
+    "aDestroyer_gaia", "bDestroyer_gaia", "Submarine_gaia", "SalvoSubmarine_gaia", "CarrierVessel_gaia", "CargoShip_gaia", "FishingBoat_gaia", "Transporter_gaia",
+    "aDestroyer_horde", "bDestroyer_horde", "Submarine_horde", "SalvoSubmarine_horde", "CarrierVessel_horde", "CargoShip_horde", "FishingBoat_horde", "Transporter_horde"
 };
 
 foreach (string unitName in unitNames)
@@ -8239,6 +8239,11 @@ NavalRoles.RegisterSpawnUnits();
 				SetDefaultAttack("wheeledtank_" + faction, "tankpew");
 				SetDefaultAttack("Bomber_" + faction, "BomberAttack");
 				SetDefaultAttack("FighterJet_" + faction, "fighterattack");
+				// Destroyers are close-range escorts. Their old twin-rocket attack
+				// was the unwanted bomb-boat behaviour, so use a conventional naval
+				// cannon while FleetOrganization supplies anti-submarine torpedoes.
+				SetDefaultAttack("aDestroyer_" + navalFaction, "boat_cannonball");
+				SetDefaultAttack("bDestroyer_" + navalFaction, "boat_cannonball");
 				NormalizeMissilePlatform("MissileSystem_" + faction);
 				NormalizeMissilePlatform("Submarine_" + navalFaction);
 				IntegratedAirDefense.ConfigurePlatform(AssetManager.actor_library.get("MissileSystem_" + faction));
