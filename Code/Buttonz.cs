@@ -693,7 +693,7 @@ namespace ModernBox
                 id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Destructor de escolta - " + faction;
-                description = "Buque de combate cercano: protege la flota contra barcos y submarinos con cañones y torpedos. No usa las antiguas bombas ni misiles estratégicos.";
+                description = "Buque de combate cercano y transporte anfibio: protege la flota contra barcos y submarinos con cañones y torpedos, y puede embarcar hasta 100 soldados. No usa las antiguas bombas ni misiles estratégicos.";
                 return;
             }
             if (id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase))
