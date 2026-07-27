@@ -395,9 +395,11 @@ namespace ModernBox
             AssetManager.terraform.add(modernCapNuclearBlast);
 
             var modernCapCzarBlast = AssetManager.terraform.clone("modern_cap_czar_blast", "czar_bomba");
-            modernCapCzarBlast.shake = false;
-            modernCapCzarBlast.transform_to_wasteland = false;
-            modernCapCzarBlast.explode_tile = false;
+			modernCapCzarBlast.shake = false;
+			modernCapCzarBlast.transform_to_wasteland = false;
+			modernCapCzarBlast.explode_tile = false;
+			modernCapCzarBlast.set_fire = false;
+			modernCapCzarBlast.explode_and_set_random_fire = false;
             // Czar's stock action refers to its static asset, which would restore wasteland.
             modernCapCzarBlast.bomb_action = null;
             AssetManager.terraform.add(modernCapCzarBlast);
@@ -1459,7 +1461,9 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
             SSBN_CZAR_WARHEAD.scale_target = 0.8f;
             SSBN_CZAR_WARHEAD.can_be_left_on_ground = false;
             SSBN_CZAR_WARHEAD.can_be_blocked = false;
-            SSBN_CZAR_WARHEAD.world_actions = (AttackAction)Delegate.Combine(SSBN_CZAR_WARHEAD.world_actions, new AttackAction(ActionLibrary.burnTile));
+			// SalvoSubmarine_* is the SSBN Apocalipsis.  It keeps the Czar-scale
+			// damage/range above, but its warhead has no terrain action: no craters,
+			// biome conversion, radiation or post-impact fire.
             AssetManager.projectiles.add(SSBN_CZAR_WARHEAD);
 
 
