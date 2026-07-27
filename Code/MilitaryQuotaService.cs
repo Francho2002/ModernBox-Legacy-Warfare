@@ -43,8 +43,8 @@ namespace ModernBox
             new Dictionary<string, DockQuota>(StringComparer.Ordinal);
         private static readonly Dictionary<long, CityQuota> CityProfiles =
             new Dictionary<long, CityQuota>();
-        private static readonly Dictionary<string, int> KingdomStrategicProfiles =
-            new Dictionary<string, int>(StringComparer.Ordinal);
+        private static readonly Dictionary<long, int> KingdomStrategicProfiles =
+            new Dictionary<long, int>();
 
         /// <summary>Each port gets a stable 3-5 total / 1-2 military budget.</summary>
         internal static DockQuota GetDockQuota(Docks dock, City city)
@@ -115,9 +115,9 @@ namespace ModernBox
         /// </summary>
         internal static int GetKingdomStrategicCap(Kingdom kingdom)
         {
-            string key = kingdom?.id ?? "";
-            if (string.IsNullOrEmpty(key))
+            if (kingdom == null)
                 return 1;
+            long key = kingdom.id;
             if (KingdomStrategicProfiles.TryGetValue(key, out int cap))
                 return cap;
 

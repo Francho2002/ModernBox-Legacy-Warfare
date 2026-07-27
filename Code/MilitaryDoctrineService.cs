@@ -23,12 +23,12 @@ namespace ModernBox
         // This cache intentionally lives only for the running game.  A doctrine
         // is derived from the stable kingdom id, so re-reading it is deterministic
         // without writing PlayerPrefs or touching saves.
-        private static readonly Dictionary<string, MilitaryDoctrine> SessionDoctrines =
-            new Dictionary<string, MilitaryDoctrine>(StringComparer.Ordinal);
+        private static readonly Dictionary<long, MilitaryDoctrine> SessionDoctrines =
+            new Dictionary<long, MilitaryDoctrine>();
 
         internal static MilitaryDoctrine GetDoctrine(Kingdom kingdom)
         {
-            if (kingdom == null || string.IsNullOrEmpty(kingdom.id))
+            if (kingdom == null)
                 return MilitaryDoctrine.Balanced;
 
             if (SessionDoctrines.TryGetValue(kingdom.id, out MilitaryDoctrine doctrine))
@@ -160,15 +160,17 @@ namespace ModernBox
             SessionDoctrines.Clear();
         }
 
-        private static int StableHash(string value)
+        private static int StableHash(long value)
         {
             unchecked
             {
                 uint hash = 2166136261u;
-                for (int i = 0; i < value.Length; i++)
+                ulong bits = (ulong)value;
+                for (int i = 0; i < 8; i++)
                 {
-                    hash ^= value[i];
+                    hash ^= (byte)(bits & 0xff);
                     hash *= 16777619u;
+                    bits >>= 8;
                 }
                 return (int)(hash & 0x7fffffffu);
             }
