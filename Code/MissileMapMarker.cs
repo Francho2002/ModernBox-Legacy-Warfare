@@ -63,8 +63,9 @@ namespace ModernBox
                 Vector3 position = new Vector3(transformedPosition.x, transformedPosition.y, 0f);
                 marker.setSprite(sprite);
                 // Constant map-space scale: the actual projectile stays at its
-                // normal size, while this separate aerial silhouette remains
-                // readable even from WorldBox's maximum camera distance.
+                // normal size. Marker scales are deliberately below 1 because
+                // the source sprites are 38-83 pixels wide; multiplying them
+                // made the overview icon larger than whole cities.
                 marker.set(ref position, markerScale);
                 marker.transform.rotation = projectile.rotation;
 
@@ -94,31 +95,31 @@ namespace ModernBox
 
             if (ConventionalProjectiles.Contains(projectileId))
             {
-                markerScale = 5.5f;
+                markerScale = 0.85f;
                 return true;
             }
 
             if (string.Equals(projectileId, "NUKER", StringComparison.Ordinal))
             {
-                markerScale = 6.5f;
+                markerScale = 0.50f;
                 return true;
             }
 
             if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.Ordinal))
             {
-                markerScale = 7.5f;
+                markerScale = 0.65f;
                 return true;
             }
 
             if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.Ordinal))
             {
-                markerScale = 7.0f;
+                markerScale = 0.60f;
                 return true;
             }
 
             if (NavalRoles.IsHeavyWarhead(projectileId))
             {
-                markerScale = 6.5f;
+                markerScale = 0.55f;
                 return true;
             }
 
