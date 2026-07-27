@@ -8141,6 +8141,7 @@ foreach (string unitName in unitNames)
 
 		private static void NormalizeRealisticCombatEffects()
 		{
+			IntegratedAirDefense.EnsureDecisionAsset();
 			// Faction sprites and all actor statistics remain untouched. Only the
 			// shared attack assets are normalized to non-elemental counterparts.
 			SetDefaultAttack("orccannon", "boat_cannonball");
@@ -8164,6 +8165,9 @@ foreach (string unitName in unitNames)
 				SetDefaultAttack("bDestroyer_" + navalFaction, "fighterattack");
 				NormalizeMissilePlatform("MissileSystem_" + faction);
 				NormalizeMissilePlatform("Submarine_" + navalFaction);
+				IntegratedAirDefense.ConfigurePlatform(AssetManager.actor_library.get("MissileSystem_" + faction));
+				IntegratedAirDefense.ConfigurePlatform(AssetManager.actor_library.get("aDestroyer_" + navalFaction));
+				IntegratedAirDefense.ConfigurePlatform(AssetManager.actor_library.get("bDestroyer_" + navalFaction));
 			}
 		}
 

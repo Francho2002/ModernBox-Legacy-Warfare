@@ -1209,6 +1209,8 @@ namespace ModernBox {
         return false;
 
       int vehicleLimit = city.getPopulationPeople() < 80 ? 3 : 6;
+      if (UnifiedMilitaryProduction.NeedsDefensiveLauncher(city))
+        vehicleLimit++;
       int currentVehicles = 0;
       foreach (Actor unit in city.units) {
         if (unit != null && (string.Equals(unit.asset?.id, "baseWarUnit", StringComparison.OrdinalIgnoreCase)

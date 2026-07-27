@@ -67,6 +67,7 @@ namespace ModernBox
 			{"SpaceMarineOption",  true},
 			{"PersistenceOption",  true},
 			{"AutoForbiddenKnowledgeOption",  true},
+			{"AirDefenseOption",  true},
         };
 	}
 	

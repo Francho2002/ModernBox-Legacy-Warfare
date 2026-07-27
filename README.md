@@ -49,6 +49,10 @@ generan planetas. Tampoco se ejecuta la limpieza de datos ModernBox ni la
 persistencia/autoguardado espacial, por lo que la compuerta no borra ni escribe
 datos espaciales existentes.
 
+## Defensa aérea y antimisiles
+
+Los lanzamisiles terrestres y los destructores pueden derribar aeronaves enemigas con los cohetes ya existentes. También intentan interceptar una vez los misiles enemigos que pasan cerca: los convencionales son vulnerables, las bombas nucleares son difíciles de detener y la Bomba del Zar casi nunca puede ser interceptada. Una ciudad de al menos 100 habitantes reserva una plaza defensiva para un lanzamisiles, siempre que pueda pagar su coste pesado y la producción de vehículos esté activada.
+
 ## Flotas
 
 Cada puerto puede mantener cuatro embarcaciones automáticas, con un máximo de

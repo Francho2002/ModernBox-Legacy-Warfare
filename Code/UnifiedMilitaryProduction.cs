@@ -23,7 +23,7 @@ namespace ModernBox
         {
             if (actor?.asset == null || actor.asset.id != "baseWarUnit" ||
                 !actor.inMapBorder() || actor.kingdom == null || actor.city == null ||
-                !actor.city.hasLeader())
+                !actor.city.hasLeader() || !Traits.vehiclesAllowed)
                 return false;
 
             Actor leader = actor.city.leader;
@@ -35,12 +35,24 @@ namespace ModernBox
             if (string.IsNullOrEmpty(species))
                 species = leader.asset.id;
 
-            string role = PickRole();
-            List<Candidate> candidates = CollectCandidates(species, role, city, actor);
-            if (candidates.Count == 0)
-                return false;
-
-            Candidate selected = SelectWeightedAffordableCandidate(candidates, city);
+            Candidate selected;
+            if (NeedsDefensiveLauncher(city))
+            {
+                // Keep this reserved chassis pending until the city can pay for
+                // its launcher; otherwise a cheaper vehicle could consume the
+                // one extra defensive slot forever.
+                selected = SelectDefensiveLauncher(species, city, actor);
+                if (selected == null)
+                    return false;
+            }
+            else
+            {
+                string role = PickRole();
+                List<Candidate> candidates = CollectCandidates(species, role, city, actor);
+                if (candidates.Count == 0)
+                    return false;
+                selected = SelectWeightedAffordableCandidate(candidates, city);
+            }
             if (selected == null)
                 return false;
 
@@ -58,6 +70,46 @@ namespace ModernBox
             ActionLibrary.removeUnit(actor);
             actor.setTransformed();
             return true;
+        }
+
+        internal static bool NeedsDefensiveLauncher(City city)
+        {
+            return Traits.vehiclesAllowed && city != null &&
+                city.getPopulationPeople() >= 100 && !HasMissileLauncher(city, null);
+        }
+
+        private static Candidate SelectDefensiveLauncher(string species, City city, Actor transforming)
+        {
+            if (!NeedsDefensiveLauncher(city))
+                return null;
+
+            if (!Traits.CartTransformations.CartTransformationsModernRoles.TryGetValue(species, out var roles) ||
+                !roles.TryGetValue("heavy", out var ids))
+                return null;
+
+            string launcherId = ids.FirstOrDefault(id =>
+                !string.IsNullOrEmpty(id) && id.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase));
+            ActorAsset launcher = AssetManager.actor_library.get(launcherId);
+            if (launcher == null || string.IsNullOrEmpty(launcher.default_attack) ||
+                AssetManager.items.get(launcher.default_attack) == null)
+                return null;
+
+            ConstructionCost cost = GetCost(launcherId, "modern");
+            return city.hasEnoughResourcesFor(cost)
+                ? new Candidate { id = launcherId, tier = "modern", cost = cost }
+                : null;
+        }
+
+        private static bool HasMissileLauncher(City city, Actor transforming)
+        {
+            foreach (Actor unit in city.units)
+            {
+                if (unit == null || unit == transforming || !unit.isAlive())
+                    continue;
+                if (unit.asset?.id?.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase) == true)
+                    return true;
+            }
+            return false;
         }
 
         private static List<Candidate> CollectCandidates(string species, string role, City city, Actor transforming)

@@ -157,7 +157,8 @@ namespace ModernBox
             "fireboneartillery",
             "frostmissileartillery",
             "plantmissileartillery",
-            "NUKER"
+            "NUKER",
+            "SSBN_CZAR_WARHEAD"
         };
 
         private sealed class ProjectileLifetime

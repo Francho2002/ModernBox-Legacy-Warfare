@@ -96,7 +96,23 @@ namespace ModernBox
                 || actorId.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(actorId, "catapulta", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(actorId, "orcatapulta", StringComparison.OrdinalIgnoreCase)
-                || actorId.IndexOf("cannon", StringComparison.OrdinalIgnoreCase) >= 0;
+                 || actorId.IndexOf("cannon", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        internal static bool IsAllowedAircraft(string actorId)
+        {
+            if (string.IsNullOrEmpty(actorId) || !IsAllowedActor(actorId))
+                return false;
+
+            return actorId.StartsWith("Heli_", StringComparison.OrdinalIgnoreCase)
+                || actorId.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase)
+                || actorId.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(actorId, "F55FighterJet", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(actorId, "americanbomberww", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(actorId, "biplane", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(actorId, "fighterww", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(actorId, "Zeppelin", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(actorId, "EliteZeppelin", StringComparison.OrdinalIgnoreCase);
         }
 
         // The transformation tables describe land warfare.  Trains and ships are

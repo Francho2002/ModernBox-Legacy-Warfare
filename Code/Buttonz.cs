@@ -340,6 +340,24 @@ namespace ModernBox
                 Traits.toggleVehicles();
             }
 
+            new ButtonBuilder("air_defense_toggle")
+                .SetSprite(Resources.Load<Sprite>("ui/icons/MIRV"))
+                .SetTitle("Defensa aérea y antimisiles")
+                .SetDescription("Permite que lanzamisiles y destructores intercepten aeronaves enemigas y algunos misiles en vuelo.")
+                .SetPosition(21, 1)
+                .SetType(ButtonType.Toggle)
+                .SetTransform(tab5.transform)
+                .SetFunction(IntegratedAirDefense.Toggle)
+                .Build();
+
+            if (Main.savedSettings.boolOptions["AirDefenseOption"]) {
+                PowerButtons.ToggleButton("air_defense_toggle");
+                IntegratedAirDefense.SetEnabled(true);
+            }
+            else {
+                IntegratedAirDefense.SetEnabled(false);
+            }
+
             new ButtonBuilder("nuketexttoggle")
                 .SetSprite(Resources.Load<Sprite>("ui/icons/Nuke"))
                 .SetTitle("Avisos nucleares")
