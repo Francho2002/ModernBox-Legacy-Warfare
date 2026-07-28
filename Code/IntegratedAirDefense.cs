@@ -70,11 +70,9 @@ namespace ModernBox
 
         internal static bool Enabled { get; private set; } = true;
 
-        // WorldBox normally lets nearby actors collide with a projectile.  That
-        // is suitable for arrows and stones, but it makes an ICBM look as if a
-        // sword or a rifle round can shoot it down.  ModernBox missile defence
-        // is intentionally handled only by TryInterceptMissile below, which
-        // launches and resolves an actual interceptor missile.
+        // Strategic missiles keep their normal native flight/render path, but
+        // ordinary actors must not be able to treat an ICBM as a sword-sized
+        // collision target. Dedicated missile interception is handled below.
         internal static bool IsProtectedMissile(Projectile projectile)
         {
             return projectile?.asset != null && InterceptableMissiles.Contains(projectile.asset.id);
@@ -482,6 +480,20 @@ namespace ModernBox
         }
     }
 
+    [HarmonyPatch(typeof(Projectile), "canBeCollided")]
+    internal static class StrategicMissileCollisionPatch
+    {
+        [HarmonyPrefix]
+        private static bool Prefix(Projectile __instance, ref bool __result)
+        {
+            if (!IntegratedAirDefense.IsProtectedMissile(__instance))
+                return true;
+
+            __result = false;
+            return false;
+        }
+    }
+
     [HarmonyPatch(typeof(Projectile), "checkHitOnNearbyUnits")]
     internal static class StrategicMissileNearbyHitPatch
     {
@@ -491,7 +503,11 @@ namespace ModernBox
             if (!IntegratedAirDefense.IsProtectedMissile(__instance))
                 return true;
 
-            __result = default(AttackDataResult);
+            // `default(AttackDataResult)` means Hit in WorldBox, which makes
+            // Projectile.update remove the missile before its flight sprite is
+            // drawn. Continue rejects ordinary nearby attacks but preserves the
+            // native movement and render loop.
+            __result = AttackDataResult.Continue;
             return false;
         }
     }
@@ -505,4 +521,5 @@ namespace ModernBox
             return !IntegratedAirDefense.IsProtectedMissile(__instance);
         }
     }
+
 }
