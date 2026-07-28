@@ -125,6 +125,27 @@ namespace ModernBox
 		private const string BomberFireTickKey = "bj_bomber_fire_tick";
 		private const string BomberNavTickKey = "bj_bomber_nav_tick";
 		private const string BomberTargetRefreshTickKey = "bj_bomber_target_refresh_tick";
+		private const string AirMissionActiveKey = "mb_air_mission_active";
+		private const string AirMissionPhaseKey = "mb_air_mission_phase";
+		private const string AirMissionTargetXKey = "mb_air_mission_target_x";
+		private const string AirMissionTargetYKey = "mb_air_mission_target_y";
+		private const string AirMissionTimeoutKey = "mb_air_mission_timeout";
+		private const string AirMissionAttackWindowKey = "mb_air_mission_attack_window";
+		private const string AirMissionCooldownKey = "mb_air_mission_cooldown";
+		private const float BomberMissionSpeed = 105f;
+		private const float FighterMissionSpeed = 135f;
+		private const float AirMissionApproachDistance = 10f;
+		private const float AirMissionAttackWindowSeconds = 3.5f;
+		private const float AirMissionTimeoutSeconds = 46f;
+		private const float AirMissionRefitSeconds = 18f;
+
+		private enum AirMissionPhase
+		{
+			Idle = 0,
+			Outbound = 1,
+			Attack = 2,
+			Returning = 3
+		}
 		internal const string CarrierHomeIdKey = "mb_carrier_home_id";
 		internal const string CarrierAircraftKey = "mb_carrier_aircraft";
 		internal const string CarrierRecoveryReadyKey = "mb_carrier_recovery_ready";
@@ -2859,7 +2880,7 @@ supporttruck_Human.addDecision("swim_to_island");
         Bomber_Human.base_stats["size"] = 1f;
 		Bomber_Human.base_stats["mass"] = 1000f;
         Bomber_Human.base_stats["health"] = 400f;
-		Bomber_Human.base_stats["speed"] = 46f;
+		Bomber_Human.base_stats["speed"] = BomberMissionSpeed;
 		Bomber_Human.base_stats["armor"] = 0f;
 		Bomber_Human.base_stats["attack_speed"] = 5f;
 		Bomber_Human.base_stats["damage"] = 200f;
@@ -2907,7 +2928,7 @@ supporttruck_Human.addDecision("swim_to_island");
         FighterJet_Human.base_stats["size"] = 1f;
 		FighterJet_Human.base_stats["mass"] = 1000f;
         FighterJet_Human.base_stats["health"] = 400f;
-		FighterJet_Human.base_stats["speed"] = 58f;
+		FighterJet_Human.base_stats["speed"] = FighterMissionSpeed;
 		FighterJet_Human.base_stats["armor"] = 0f;
 		FighterJet_Human.base_stats["attack_speed"] = 0.3f;
 		FighterJet_Human.base_stats["damage"] = 100f;
@@ -2948,7 +2969,7 @@ supporttruck_Human.addDecision("swim_to_island");
         F55FighterJet.base_stats["size"] = 1f;
 		F55FighterJet.base_stats["mass"] = 1000f;
         F55FighterJet.base_stats["health"] = 400f;
-		F55FighterJet.base_stats["speed"] = 58f;
+		F55FighterJet.base_stats["speed"] = FighterMissionSpeed;
 		F55FighterJet.base_stats["armor"] = 0f;
 		F55FighterJet.base_stats["attack_speed"] = 0.3f;
 		F55FighterJet.base_stats["damage"] = 200f;
@@ -3267,7 +3288,7 @@ supporttruck_Ork.addDecision("swim_to_island");
         Bomber_Ork.base_stats["size"] = 1f;
 		Bomber_Ork.base_stats["mass"] = 1000f;
         Bomber_Ork.base_stats["health"] = 400f;
-		Bomber_Ork.base_stats["speed"] = 46f;
+		Bomber_Ork.base_stats["speed"] = BomberMissionSpeed;
 		Bomber_Ork.base_stats["armor"] = 0f;
 		Bomber_Ork.base_stats["attack_speed"] = 5f;
 		Bomber_Ork.base_stats["damage"] = 200f;
@@ -3307,7 +3328,7 @@ supporttruck_Ork.addDecision("swim_to_island");
         FighterJet_Ork.base_stats["size"] = 1f;
 		FighterJet_Ork.base_stats["mass"] = 1000f;
         FighterJet_Ork.base_stats["health"] = 400f;
-		FighterJet_Ork.base_stats["speed"] = 58f;
+		FighterJet_Ork.base_stats["speed"] = FighterMissionSpeed;
 		FighterJet_Ork.base_stats["armor"] = 0f;
 		FighterJet_Ork.base_stats["attack_speed"] = 0.3f;
 		FighterJet_Ork.base_stats["damage"] = 100f;
@@ -3558,7 +3579,7 @@ supporttruck_Dwarf.addDecision("swim_to_island");
         Bomber_Dwarf.base_stats["size"] = 1f;
 		Bomber_Dwarf.base_stats["mass"] = 1000f;
         Bomber_Dwarf.base_stats["health"] = 400f;
-		Bomber_Dwarf.base_stats["speed"] = 46f;
+		Bomber_Dwarf.base_stats["speed"] = BomberMissionSpeed;
 		Bomber_Dwarf.base_stats["armor"] = 0f;
 		Bomber_Dwarf.base_stats["attack_speed"] = 5f;
 		Bomber_Dwarf.base_stats["damage"] = 200f;
@@ -3598,7 +3619,7 @@ supporttruck_Dwarf.addDecision("swim_to_island");
         FighterJet_Dwarf.base_stats["size"] = 1f;
 		FighterJet_Dwarf.base_stats["mass"] = 1000f;
         FighterJet_Dwarf.base_stats["health"] = 400f;
-		FighterJet_Dwarf.base_stats["speed"] = 58f;
+		FighterJet_Dwarf.base_stats["speed"] = FighterMissionSpeed;
 		FighterJet_Dwarf.base_stats["armor"] = 0f;
 		FighterJet_Dwarf.base_stats["attack_speed"] = 0.3f;
 		FighterJet_Dwarf.base_stats["damage"] = 100f;
@@ -3985,7 +4006,7 @@ supporttruck_Gaia.addDecision("swim_to_island");
         Bomber_Gaia.base_stats["size"] = 1f;
 		Bomber_Gaia.base_stats["mass"] = 1000f;
         Bomber_Gaia.base_stats["health"] = 400f;
-		Bomber_Gaia.base_stats["speed"] = 46f;
+		Bomber_Gaia.base_stats["speed"] = BomberMissionSpeed;
 		Bomber_Gaia.base_stats["armor"] = 0f;
 		Bomber_Gaia.base_stats["attack_speed"] = 5f;
 		Bomber_Gaia.base_stats["damage"] = 200f;
@@ -4025,7 +4046,7 @@ supporttruck_Gaia.addDecision("swim_to_island");
         FighterJet_Gaia.base_stats["size"] = 1f;
 		FighterJet_Gaia.base_stats["mass"] = 1000f;
         FighterJet_Gaia.base_stats["health"] = 400f;
-		FighterJet_Gaia.base_stats["speed"] = 58f;
+		FighterJet_Gaia.base_stats["speed"] = FighterMissionSpeed;
 		FighterJet_Gaia.base_stats["armor"] = 0f;
 		FighterJet_Gaia.base_stats["attack_speed"] = 0.3f;
 		FighterJet_Gaia.base_stats["damage"] = 100f;
@@ -8808,6 +8829,18 @@ private static void EnsureBomberState(Actor actor)
 	{
 		actor.data.set(BomberTargetRefreshTickKey, 0);
 	}
+
+	actor.data.get(AirMissionActiveKey, out bool missionActive, pDefault: false);
+	actor.data.get(AirMissionPhaseKey, out int missionPhase, -1);
+	if (missionPhase < (int)AirMissionPhase.Idle || missionPhase > (int)AirMissionPhase.Returning)
+	{
+		actor.data.set(AirMissionActiveKey, false);
+		actor.data.set(AirMissionPhaseKey, (int)AirMissionPhase.Idle);
+		actor.data.set(AirMissionTimeoutKey, 0f);
+		actor.data.set(AirMissionAttackWindowKey, 0f);
+	}
+	if (!missionActive)
+		actor.data.set(AirMissionPhaseKey, (int)AirMissionPhase.Idle);
 }
 
 private static bool AdvanceReloadTimer(Actor actor, string timerKey, float pElapsed, float durationSeconds)
@@ -8900,6 +8933,15 @@ private static void ApplyAirVehicleDecisionProfiles()
 		if (asset == null)
 		{
 			continue;
+		}
+		if (entry.Key.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase))
+		{
+			asset.base_stats["speed"] = BomberMissionSpeed;
+		}
+		else if (entry.Key.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(entry.Key, "F55FighterJet", StringComparison.OrdinalIgnoreCase))
+		{
+			asset.base_stats["speed"] = FighterMissionSpeed;
 		}
 
 		asset.decision_ids = new List<string>();
@@ -9096,6 +9138,146 @@ internal static void RegisterCarrier(Actor carrier)
 	{
 		CarrierHomeCache[carrier.getID()] = carrier;
 	}
+}
+
+// Fixed-wing aircraft are deliberately vulnerable only while carrying out
+// their short attack pass.  Transit and RTB are navigation phases, not a
+// circling dogfight over hostile territory.
+internal static bool IsAircraftInAttackWindow(Actor actor)
+{
+	if (!IsFixedWingMissionAircraft(actor))
+		return false;
+	actor.data.get(AirMissionActiveKey, out bool active, pDefault: false);
+	actor.data.get(AirMissionPhaseKey, out int phase, (int)AirMissionPhase.Idle);
+	actor.data.get(AirMissionAttackWindowKey, out float until, 0f);
+	return active && phase == (int)AirMissionPhase.Attack && Time.time < until;
+}
+
+internal static bool IsFixedWingMissionAircraft(Actor actor)
+{
+	string id = actor?.asset?.id;
+	return !string.IsNullOrEmpty(id) &&
+		(id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) ||
+		 id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase) ||
+		 string.Equals(id, "F55FighterJet", StringComparison.OrdinalIgnoreCase));
+}
+
+internal static void AssignAirMission(Actor aircraft, WorldTile target)
+{
+	if (aircraft == null || target == null || !TryGetAirVehicleProfile(aircraft, out _))
+		return;
+	EnsureBomberState(aircraft);
+	aircraft.data.set(AirMissionTargetXKey, target.x);
+	aircraft.data.set(AirMissionTargetYKey, target.y);
+	aircraft.data.set(AirMissionTimeoutKey, Time.time + AirMissionTimeoutSeconds);
+	aircraft.data.set(AirMissionAttackWindowKey, 0f);
+	aircraft.data.set(AirMissionPhaseKey, (int)AirMissionPhase.Outbound);
+	aircraft.data.set(AirMissionActiveKey, true);
+	aircraft.clearAttackTarget();
+}
+
+private static void SetAirMissionSpeed(Actor actor)
+{
+	if (!IsFixedWingMissionAircraft(actor))
+		return;
+	string id = actor.asset.id;
+	float speed = id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase)
+		? BomberMissionSpeed
+		: FighterMissionSpeed;
+	actor.stats["speed"] = speed;
+}
+
+private static bool TryReadAirMissionTarget(Actor actor, out WorldTile target)
+{
+	target = null;
+	actor.data.get(AirMissionTargetXKey, out int x, int.MinValue);
+	actor.data.get(AirMissionTargetYKey, out int y, int.MinValue);
+	if (x == int.MinValue || y == int.MinValue || World.world == null)
+		return false;
+	target = World.world.GetTile(x, y);
+	return target != null;
+}
+
+private static void CompleteAirMission(Actor actor)
+{
+	actor.data.set(AirMissionActiveKey, false);
+	actor.data.set(AirMissionPhaseKey, (int)AirMissionPhase.Idle);
+	actor.data.set(AirMissionAttackWindowKey, 0f);
+	actor.data.set(AirMissionCooldownKey, Time.time + AirMissionRefitSeconds);
+	SetBomberBool(actor, BomberForceRtbKey, true);
+	actor.clearAttackTarget();
+}
+
+private static bool UpdateAirMissionRuntime(Actor actor, AirVehicleProfile profile)
+{
+	if (!IsFixedWingMissionAircraft(actor))
+		return false;
+
+	SetAirMissionSpeed(actor);
+	actor.data.get(AirMissionActiveKey, out bool active, pDefault: false);
+	if (!active)
+	{
+		actor.data.get(AirMissionCooldownKey, out float readyAt, 0f);
+		if (Time.time < readyAt || GetBomberBool(actor, BomberForceRtbKey) || actor.kingdom == null || !actor.kingdom.hasEnemies())
+			return false;
+		City targetCity = FindNearestEnemyCity(actor);
+		WorldTile targetTile = targetCity?.getTile();
+		if (targetTile == null)
+			return false;
+		AssignAirMission(actor, targetTile);
+		active = true;
+	}
+
+	actor.data.get(AirMissionTimeoutKey, out float timeout, 0f);
+	actor.data.get(AirMissionPhaseKey, out int rawPhase, (int)AirMissionPhase.Idle);
+	AirMissionPhase phase = (AirMissionPhase)rawPhase;
+	if (timeout <= Time.time || !TryReadAirMissionTarget(actor, out WorldTile target))
+	{
+		CompleteAirMission(actor);
+		return false;
+	}
+
+	WorldTile baseTile = FindBomberBaseTile(actor);
+	actor.setFlying(true);
+	SetBomberBool(actor, BomberLandedKey, false);
+	if (phase == AirMissionPhase.Outbound)
+	{
+		actor.clearAttackTarget();
+		if (IsNearTile(actor, target, AirMissionApproachDistance))
+		{
+			actor.data.set(AirMissionPhaseKey, (int)AirMissionPhase.Attack);
+			actor.data.set(AirMissionAttackWindowKey, Time.time + AirMissionAttackWindowSeconds);
+		}
+		else if (AdvanceBomberTick(actor, BomberNavTickKey, 1))
+		{
+			actor.goTo(target, pPathOnWater: true, pWalkOnBlocks: true, pWalkOnLava: false, pLimitPathfindingRegions: 12);
+		}
+		return true;
+	}
+
+	if (phase == AirMissionPhase.Attack)
+	{
+		actor.data.get(AirMissionAttackWindowKey, out float attackUntil, 0f);
+		if (Time.time >= attackUntil)
+		{
+			actor.data.set(AirMissionPhaseKey, (int)AirMissionPhase.Returning);
+			actor.clearAttackTarget();
+			return true;
+		}
+		BaseSimObject targetObject = AcquireAirEngageTarget(actor, target, AirMissionApproachDistance + 8f);
+		ApplyAirEngageLock(actor, targetObject);
+		return true;
+	}
+
+	actor.clearAttackTarget();
+	if (baseTile == null || IsNearTile(actor, baseTile, profile.landingDistance))
+	{
+		CompleteAirMission(actor);
+		return false;
+	}
+	if (AdvanceBomberTick(actor, BomberNavTickKey, 1))
+		actor.goTo(baseTile, pPathOnWater: true, pWalkOnBlocks: true, pWalkOnLava: false, pLimitPathfindingRegions: 12);
+	return true;
 }
 
 internal static void ResetCarrierCache()
@@ -9793,6 +9975,10 @@ private static void UpdateBomberHumanRuntime(Actor actor, float pElapsed)
 	}
 
 	EnsureBomberState(actor);
+	if (UpdateAirMissionRuntime(actor, profile))
+	{
+		return;
+	}
 
 	int ammo = GetBomberAmmo(actor);
 	bool forceRtb = GetBomberBool(actor, BomberForceRtbKey) || ammo <= 0;
@@ -11036,6 +11222,13 @@ public static class Patch_ActorAnimationLoader_Fix
 
 					ammo--;
 					SetBomberAmmo(__instance, ammo);
+					if (IsAircraftInAttackWindow(__instance))
+					{
+						// A sortie is one deliberate pass, not a loitering attack.
+						// Return immediately after its first delivered strike.
+						CompleteAirMission(__instance);
+						return;
+					}
 					if (ammo <= 0)
 					{
 						SetBomberBool(__instance, BomberForceRtbKey, true);

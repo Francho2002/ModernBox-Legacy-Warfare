@@ -333,7 +333,8 @@ namespace ModernBox
 
             foreach (Actor unit in World.world.units)
             {
-                if (unit == null || !unit.isAlive() || unit.kingdom != kingdom || !IsFixedWingAircraft(unit.asset?.id))
+                if (unit == null || !unit.isAlive() || unit.kingdom != kingdom || !IsFixedWingAircraft(unit.asset?.id) ||
+                    (Vehicles.IsFixedWingMissionAircraft(unit) && !Vehicles.IsAircraftInAttackWindow(unit)))
                     continue;
                 return true;
             }

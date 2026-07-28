@@ -248,7 +248,8 @@ namespace ModernBox
                 !candidate.isFlying())
                 return false;
 
-            return ModernCapPolicy.IsAllowedAircraft(candidate.asset.id);
+            return ModernCapPolicy.IsAllowedAircraft(candidate.asset.id) &&
+                   (!Vehicles.IsFixedWingMissionAircraft(candidate) || Vehicles.IsAircraftInAttackWindow(candidate));
         }
 
         private static bool IsReady(Actor defender)

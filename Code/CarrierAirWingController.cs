@@ -231,10 +231,11 @@ namespace ModernBox
             SetLossCount(carrier, BomberLossCountKey, 0);
             state.fighters.AddRange(deployedFighters);
             state.bombers.AddRange(deployedBombers);
+            HashSet<Actor> assignedTargets = new HashSet<Actor>();
             foreach (Actor fighter in deployedFighters)
-                AssignEnemyTarget(carrier, fighter);
+                AssignEnemyTarget(carrier, fighter, assignedTargets);
             foreach (Actor bomber in deployedBombers)
-                AssignEnemyTarget(carrier, bomber);
+                AssignEnemyTarget(carrier, bomber, assignedTargets);
             return true;
         }
 
@@ -262,13 +263,13 @@ namespace ModernBox
             return aircraft;
         }
 
-        private static void AssignEnemyTarget(Actor carrier, Actor aircraft)
+        private static void AssignEnemyTarget(Actor carrier, Actor aircraft, HashSet<Actor> assignedTargets)
         {
-            Actor target = FindNearestEnemy(carrier);
+            Actor target = FindNearestEnemy(carrier, assignedTargets) ?? FindNearestEnemy(carrier);
             if (target?.current_tile == null || aircraft == null || !aircraft.isAlive())
                 return;
-            aircraft.setTileTarget(target.current_tile);
-            aircraft.tryToAttack(target);
+            assignedTargets?.Add(target);
+            Vehicles.AssignAirMission(aircraft, target.current_tile);
         }
 
         private static void ReturnToCarrier(Actor carrier, WingState state)
@@ -378,7 +379,7 @@ namespace ModernBox
             return FindNearestEnemy(carrier) != null;
         }
 
-        private static Actor FindNearestEnemy(Actor carrier)
+        private static Actor FindNearestEnemy(Actor carrier, HashSet<Actor> excluded = null)
         {
             if (carrier?.kingdom == null || carrier.current_tile == null)
                 return null;
@@ -389,6 +390,7 @@ namespace ModernBox
             foreach (Actor actor in Finder.getUnitsFromChunk(carrier.current_tile, chunkRadius, 55f, false))
             {
                 if (actor == null || !actor.isAlive() || actor.current_tile == null || actor.kingdom == null ||
+                    (excluded != null && excluded.Contains(actor)) ||
                     !carrier.kingdom.isEnemy(actor.kingdom))
                     continue;
                 float distance = Toolbox.DistTile(carrier.current_tile, actor.current_tile);
