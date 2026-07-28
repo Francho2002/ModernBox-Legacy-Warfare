@@ -261,7 +261,7 @@ namespace ModernBox
             // Los SSBN de guerra especial mantienen sus restricciones nucleares.
             // Esta salida sólo usa su misil convencional habitual para cubrir la
             // ausencia de aviación, nunca adelanta una carga estratégica.
-            Vector2? target = GetEnemyTargets(caster, 1, 6f, 4f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 10f, 4f).FirstOrNull();
             return target != null && LaunchAt(caster, target.Value, GetFactionConventionalProjectile(actorId));
         }
 
@@ -448,14 +448,14 @@ namespace ModernBox
             if (!IsConventionalLaunchReady(caster))
                 return false;
 
-            Vector2? target = GetNearestEnemyBoatTarget(caster) ?? GetEnemyTargets(caster, 1, 6f, 4f).FirstOrNull();
+            Vector2? target = GetNearestEnemyBoatTarget(caster) ?? GetEnemyTargets(caster, 1, 6f, 4f, false).FirstOrNull();
             if (target == null)
                 return false;
 
             SpendGold(caster.city, 8);
             bool launched = LaunchAt(caster, target.Value, TorpedoProjectileId, true);
-            launched |= LaunchAt(caster, target.Value + new Vector2(2.5f, 1.5f), "missileartillery", true);
-            launched |= LaunchAt(caster, target.Value + new Vector2(-2.5f, -1.5f), "missileartillery", true);
+            launched |= LaunchAt(caster, target.Value + new Vector2(4f, 0f), "missileartillery", true);
+            launched |= LaunchAt(caster, target.Value + new Vector2(-4f, 0f), "missileartillery", true);
             if (launched)
                 MarkConventionalLaunch(caster, 30f);
             return launched;
@@ -470,7 +470,7 @@ namespace ModernBox
                 return false;
 
             int count = UnityEngine.Random.Range(6, 11);
-            List<Vector2> targets = GetEnemyTargets(caster, count, 8f, 4f);
+            List<Vector2> targets = GetEnemyTargets(caster, count, 10f, 4f);
             if (targets.Count == 0)
                 return false;
 
@@ -488,7 +488,7 @@ namespace ModernBox
                 return false;
 
             int count = UnityEngine.Random.Range(3, 6);
-            List<Vector2> targets = GetEnemyTargets(caster, count, 12f, 20f);
+            List<Vector2> targets = GetEnemyTargets(caster, count, 24f, 20f);
             if (targets.Count == 0)
                 return false;
 
@@ -501,7 +501,7 @@ namespace ModernBox
             if (!CanLaunchNuclear(caster, 35, false))
                 return false;
 
-            Vector2? target = GetEnemyTargets(caster, 1, 6f, 20f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 14f, 20f).FirstOrNull();
             if (target == null)
                 return false;
 
@@ -514,7 +514,7 @@ namespace ModernBox
             if (!CanLaunchConventional(caster, 30))
                 return false;
 
-            Vector2? target = GetEnemyTargets(caster, 1, 8f, 20f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 24f, 20f).FirstOrNull();
             if (target == null)
                 return false;
 
@@ -527,7 +527,7 @@ namespace ModernBox
             if (!CanLaunchNuclear(caster, 240, true))
                 return false;
 
-            Vector2? target = GetEnemyTargets(caster, 1, 12f, 34f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 44f, 34f).FirstOrNull();
             if (target == null)
                 return false;
 
@@ -540,7 +540,7 @@ namespace ModernBox
             if (!CanLaunchNuclear(caster, 25, false))
                 return false;
 
-            Vector2? target = GetEnemyTargets(caster, 1, 8f, 20f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 16f, 20f).FirstOrNull();
             if (target == null)
                 return false;
 
@@ -607,7 +607,7 @@ namespace ModernBox
         }
 
         private static List<Vector2> GetEnemyTargets(Actor caster, int targetCount, float minimumSeparation,
-            float blastSafetyRadius)
+            float blastSafetyRadius, bool reserveTargets = true)
         {
             List<Vector2> targets = new List<Vector2>();
             if (caster == null || caster.kingdom == null || !caster.kingdom.hasEnemies())
@@ -630,7 +630,7 @@ namespace ModernBox
 
             foreach (City city in enemyCities)
             {
-                TryAddTarget(caster, targets, GetCityPriorityTarget(city), minimumSeparation, blastSafetyRadius);
+                TryAddTarget(caster, targets, GetCityPriorityTarget(city), minimumSeparation, blastSafetyRadius, reserveTargets);
                 if (targets.Count >= targetCount)
                     return targets;
             }
@@ -642,43 +642,26 @@ namespace ModernBox
                     foreach (Building building in city.buildings)
                     {
                         if (building?.current_tile != null)
-                            TryAddTarget(caster, targets, building.current_tile.pos, minimumSeparation, blastSafetyRadius);
+                            TryAddTarget(caster, targets, building.current_tile.pos, minimumSeparation, blastSafetyRadius, reserveTargets);
                         if (targets.Count >= targetCount)
                             return targets;
                     }
                 }
 
                 if (city.hasLeader() && city.leader != null && city.leader.isAlive())
-                    TryAddTarget(caster, targets, city.leader.current_position, minimumSeparation, blastSafetyRadius);
+                    TryAddTarget(caster, targets, city.leader.current_position, minimumSeparation, blastSafetyRadius, reserveTargets);
                 if (targets.Count >= targetCount)
                     return targets;
 
                 WorldTile tile = city.getTile();
                 if (tile != null)
-                    TryAddTarget(caster, targets, tile.pos, minimumSeparation, blastSafetyRadius);
+                    TryAddTarget(caster, targets, tile.pos, minimumSeparation, blastSafetyRadius, reserveTargets);
                 if (targets.Count >= targetCount)
                     return targets;
             }
 
-            // A tiny city may not provide enough distinct buildings. Fallbacks
-            // remain centred on a real enemy position and are separated enough
-            // to keep multi-warhead strikes from collapsing into one pixel.
-            if (targets.Count > 0)
-            {
-                Vector2 center = targets[0];
-                Vector2[] offsets =
-                {
-                    new Vector2(15f, 0f), new Vector2(-15f, 0f), new Vector2(0f, 15f), new Vector2(0f, -15f),
-                    new Vector2(12f, 12f), new Vector2(-12f, 12f), new Vector2(12f, -12f), new Vector2(-12f, -12f),
-                    new Vector2(24f, 0f), new Vector2(-24f, 0f)
-                };
-                foreach (Vector2 offset in offsets)
-                {
-                    TryAddTarget(caster, targets, center + offset, minimumSeparation, blastSafetyRadius);
-                    if (targets.Count >= targetCount)
-                        break;
-                }
-            }
+            // Do not manufacture nearby fallback points: an undersupplied
+            // target set deliberately launches fewer warheads.
             return targets;
         }
 
@@ -699,7 +682,7 @@ namespace ModernBox
         }
 
         private static void TryAddTarget(Actor caster, List<Vector2> targets, Vector2? candidate,
-            float minimumSeparation, float blastSafetyRadius)
+            float minimumSeparation, float blastSafetyRadius, bool reserveTarget)
         {
             if (candidate == null || !Vehicles.TryResolveWorldTarget(candidate.Value, out Vector2 resolved) ||
                 !Vehicles.IsIntercontinentalMissileTargetInRange(caster, resolved) ||
@@ -710,6 +693,8 @@ namespace ModernBox
                 if (Vector2.Distance(target, resolved) < minimumSeparation)
                     return;
             }
+            if (reserveTarget && !SubmarineTargetReservations.TryReserve(caster, resolved, minimumSeparation))
+                return;
             targets.Add(resolved);
         }
 

@@ -10179,6 +10179,78 @@ private static bool CanLaunchConventionalMissile(Actor caster)
         !IsLocalFriendlyTerritoryUnderInvasion(caster);
 }
 
+private static bool TryReserveBaselineSubmarineTarget(Actor caster, Vector2 target, float separation)
+{
+    return !IsBaselineSubmarine(caster) ||
+        SubmarineTargetReservations.TryReserve(caster, target, separation);
+}
+
+private static bool IsBaselineSubmarine(Actor caster)
+{
+    string actorId = caster?.asset?.id;
+    return !string.IsNullOrEmpty(actorId) &&
+        (actorId.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase) ||
+         actorId.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase));
+}
+
+private static bool TrySelectBaselineSubmarineTarget(Actor caster, float blastSafetyRadius,
+    float reservationSeparation, out Vector2 target)
+{
+    target = default(Vector2);
+    if (!IsBaselineSubmarine(caster) || caster.kingdom == null)
+        return false;
+
+    List<City> cities = new List<City>();
+    using (var enemies = caster.kingdom.getEnemiesKingdoms())
+    {
+        foreach (Kingdom enemyKingdom in enemies)
+        {
+            if (enemyKingdom?.cities == null)
+                continue;
+            foreach (City city in enemyKingdom.cities)
+            {
+                if (city != null && city.isAlive())
+                    cities.Add(city);
+            }
+        }
+    }
+
+    foreach (City city in cities.OrderBy(_ => UnityEngine.Random.value))
+    {
+        List<Vector2> candidates = new List<Vector2>();
+        if (city.buildings != null)
+        {
+            int buildingCount = city.buildings.Count;
+            int buildingStart = buildingCount > 0 ? UnityEngine.Random.Range(0, buildingCount) : 0;
+            int buildingChecks = Mathf.Min(buildingCount, 8);
+            for (int index = 0; index < buildingChecks; index++)
+            {
+                Building building = city.buildings[(buildingStart + index) % buildingCount];
+                if (building?.current_tile != null)
+                    candidates.Add(building.current_tile.pos);
+            }
+        }
+        if (city.hasLeader() && city.leader != null && city.leader.isAlive())
+            candidates.Add(city.leader.current_position);
+        if (city.kingdom?.king != null && city.kingdom.king.isAlive())
+            candidates.Add(city.kingdom.king.current_position);
+        WorldTile cityTile = city.getTile();
+        if (cityTile != null)
+            candidates.Add(cityTile.pos);
+
+        foreach (Vector2 candidate in candidates)
+        {
+            if (!IsIntercontinentalMissileTargetInRange(caster, candidate) ||
+                !IsStrategicMissileTargetSafe(caster.kingdom, candidate, blastSafetyRadius) ||
+                !SubmarineTargetReservations.TryReserve(caster, candidate, reservationSeparation))
+                continue;
+            target = candidate;
+            return true;
+        }
+    }
+    return false;
+}
+
 public static bool MissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile = null)
 {
     if (pTarget == null || !pTarget.isActor())
@@ -10225,9 +10297,19 @@ public static bool MissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile
                             attackPos = targetTile.pos;
                     }
 
+                    bool submarineReservation = false;
+                    if (IsBaselineSubmarine(caster))
+                    {
+                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 10f, out Vector2 alternative))
+                            return false;
+                        attackPos = alternative;
+                        submarineReservation = true;
+                    }
+
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
-                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
+                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
+                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 10f)))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
@@ -10292,9 +10374,19 @@ public static bool HORDEmissileArtilleryEffect(BaseSimObject pTarget, WorldTile 
                             attackPos = targetTile.pos;
                     }
 
+                    bool submarineReservation = false;
+                    if (IsBaselineSubmarine(caster))
+                    {
+                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 10f, out Vector2 alternative))
+                            return false;
+                        attackPos = alternative;
+                        submarineReservation = true;
+                    }
+
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
-                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
+                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
+                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 10f)))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
@@ -10361,9 +10453,19 @@ public static bool GAIAmissileArtilleryEffect(BaseSimObject pTarget, WorldTile p
                             attackPos = targetTile.pos;
                     }
 
+                    bool submarineReservation = false;
+                    if (IsBaselineSubmarine(caster))
+                    {
+                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 10f, out Vector2 alternative))
+                            return false;
+                        attackPos = alternative;
+                        submarineReservation = true;
+                    }
+
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
-                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
+                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
+                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 10f)))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
@@ -10428,9 +10530,19 @@ public static bool HARDENmissileArtilleryEffect(BaseSimObject pTarget, WorldTile
                             attackPos = targetTile.pos;
                     }
 
+                    bool submarineReservation = false;
+                    if (IsBaselineSubmarine(caster))
+                    {
+                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 10f, out Vector2 alternative))
+                            return false;
+                        attackPos = alternative;
+                        submarineReservation = true;
+                    }
+
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
-                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f))
+                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
+                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 10f)))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
@@ -10507,9 +10619,19 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
                             attackPos = targetTile.pos;
                     }
 
+                    bool submarineReservation = false;
+                    if (IsBaselineSubmarine(caster))
+                    {
+                        if (!TrySelectBaselineSubmarineTarget(caster, 20f, 30f, out Vector2 alternative))
+                            return false;
+                        attackPos = alternative;
+                        submarineReservation = true;
+                    }
+
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
-                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 20f))
+                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 20f) &&
+                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 30f)))
                     {
                         // Do not charge a launch that the territorial safety
                         // rule rejected while choosing a target.
@@ -10553,7 +10675,7 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
         return false;
 
     int salvoCount = UnityEngine.Random.Range(4, 7);
-    const float minimumTargetSeparation = 12f;
+    const float minimumTargetSeparation = 36f;
     List<City> enemyCities = new List<City>();
     using (var enemies = caster.kingdom.getEnemiesKingdoms())
     {
@@ -10570,19 +10692,20 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
         }
     }
 
+    enemyCities = enemyCities.OrderBy(_ => UnityEngine.Random.value).ToList();
     List<Vector2> salvoTargets = new List<Vector2>();
     // First pass: one strategic point per distinct enemy city.
     foreach (City city in enemyCities)
     {
         Vector2? target = GetNuclearSalvoCityTarget(city);
         if (target != null)
-            TryAddNuclearSalvoTarget(salvoTargets, target.Value, minimumTargetSeparation);
+            TryAddNuclearSalvoTarget(caster, salvoTargets, target.Value, minimumTargetSeparation);
         if (salvoTargets.Count == salvoCount)
             break;
     }
 
-    // Second pass: spread remaining warheads across other buildings, leaders,
-    // kings and city centers before considering any artificial fallback point.
+    // Second pass: spread remaining warheads across other real buildings,
+    // leaders, kings and city centers. A shortage simply fires fewer warheads.
     if (salvoTargets.Count < salvoCount)
     {
         foreach (City city in enemyCities)
@@ -10592,7 +10715,7 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
                 foreach (Building building in city.buildings)
                 {
                     if (building?.current_tile != null)
-                        TryAddNuclearSalvoTarget(salvoTargets, building.current_tile.pos, minimumTargetSeparation);
+                        TryAddNuclearSalvoTarget(caster, salvoTargets, building.current_tile.pos, minimumTargetSeparation);
                     if (salvoTargets.Count == salvoCount)
                         break;
                 }
@@ -10601,36 +10724,18 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
                 break;
 
             if (city.hasLeader() && city.leader.isAlive())
-                TryAddNuclearSalvoTarget(salvoTargets, city.leader.current_position, minimumTargetSeparation);
+                TryAddNuclearSalvoTarget(caster, salvoTargets, city.leader.current_position, minimumTargetSeparation);
             if (salvoTargets.Count == salvoCount)
                 break;
 
             if (city.kingdom?.king != null && city.kingdom.king.isAlive())
-                TryAddNuclearSalvoTarget(salvoTargets, city.kingdom.king.current_position, minimumTargetSeparation);
+                TryAddNuclearSalvoTarget(caster, salvoTargets, city.kingdom.king.current_position, minimumTargetSeparation);
             if (salvoTargets.Count == salvoCount)
                 break;
 
             WorldTile cityTile = city.getTile();
             if (cityTile != null)
-                TryAddNuclearSalvoTarget(salvoTargets, cityTile.pos, minimumTargetSeparation);
-            if (salvoTargets.Count == salvoCount)
-                break;
-        }
-    }
-
-    // Only a shortage of real strategic positions permits nearby fallback aim points.
-    if (salvoTargets.Count > 0 && salvoTargets.Count < salvoCount)
-    {
-        Vector2 fallbackCenter = salvoTargets[0];
-        Vector2[] fallbackOffsets =
-        {
-            new Vector2(-20f, -20f), new Vector2(20f, -20f),
-            new Vector2(-20f, 20f), new Vector2(20f, 20f),
-            new Vector2(-28f, 0f), new Vector2(28f, 0f)
-        };
-        foreach (Vector2 offset in fallbackOffsets)
-        {
-            TryAddNuclearSalvoTarget(salvoTargets, fallbackCenter + offset, minimumTargetSeparation);
+                TryAddNuclearSalvoTarget(caster, salvoTargets, cityTile.pos, minimumTargetSeparation);
             if (salvoTargets.Count == salvoCount)
                 break;
         }
@@ -10681,9 +10786,11 @@ private static Vector2? GetNuclearSalvoCityTarget(City city)
     return cityTile == null ? (Vector2?)null : cityTile.pos;
 }
 
-private static bool TryAddNuclearSalvoTarget(List<Vector2> targets, Vector2 candidate, float minimumSeparation)
+private static bool TryAddNuclearSalvoTarget(Actor caster, List<Vector2> targets, Vector2 candidate, float minimumSeparation)
 {
-    if (!TryResolveWorldTarget(candidate, out candidate))
+    if (!TryResolveWorldTarget(candidate, out candidate) ||
+        !IsIntercontinentalMissileTargetInRange(caster, candidate) ||
+        !IsStrategicMissileTargetSafe(caster?.kingdom, candidate, 24f))
         return false;
 
     foreach (Vector2 existing in targets)
@@ -10691,15 +10798,14 @@ private static bool TryAddNuclearSalvoTarget(List<Vector2> targets, Vector2 cand
         if (Vector2.Distance(existing, candidate) < minimumSeparation)
             return false;
     }
+    if (!SubmarineTargetReservations.TryReserve(caster, candidate, minimumSeparation))
+        return false;
     targets.Add(candidate);
     return true;
 }
 
 /// <summary>
-/// Converts an aiming point to a real tile before any missile uses it.  Salvo
-/// fallbacks deliberately offset an enemy city; near a map edge that offset
-/// can leave the playable world.  Rejecting it is safer than clamping every
-/// missile into one border tile.
+/// Converts an aiming point to a real tile before any missile uses it.
 /// </summary>
 internal static bool TryResolveWorldTarget(Vector2 candidate, out Vector2 resolved)
 {
