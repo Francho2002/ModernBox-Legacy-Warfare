@@ -327,6 +327,23 @@ namespace ModernBox
                 CustomItemsList.toggleDrugs();
             }
 
+            new ButtonBuilder("alliances_toggle")
+                .SetSprite(Resources.Load<Sprite>("ui/Icons/landTradeDecision"))
+                .SetTitle("Permitir alianzas")
+                .SetDescription("Activa las alianzas nativas entre reinos. Al apagarlo se disuelven las alianzas civiles actuales; la Liga Moderna y el comercio siguen activos.")
+                .SetPosition(2, 1)
+                .SetType(ButtonType.Toggle)
+                .SetTransform(tab5.transform)
+                .SetFunction(AlliancePolicy.Toggle)
+                .Build();
+
+            if (AlliancePolicy.Enabled) {
+                PowerButtons.ToggleButton("alliances_toggle");
+            }
+            else {
+                AlliancePolicy.EnforceDisabledState();
+            }
+
             if (false) {
             new ButtonBuilder("atat")
                 .SetSprite(Resources.Load<Sprite>("actors/AT9000/main/walk_7"))

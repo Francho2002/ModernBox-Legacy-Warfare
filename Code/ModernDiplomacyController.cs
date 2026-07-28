@@ -95,6 +95,7 @@ namespace ModernBox
                 return;
             if (cachedWorld != World.world || cachedMapStats != World.world.map_stats)
                 ResetForWorld();
+            AlliancePolicy.EnforceDisabledState();
             if (World.world.isPaused())
                 return;
 
@@ -276,6 +277,8 @@ namespace ModernBox
 
         private static void CreateGuarantee(Kingdom guarantor, Kingdom protectedKingdom)
         {
+            if (!AlliancePolicy.Enabled)
+                return;
             AddDirectedLink(guarantor, protectedKingdom, "garantía", 0, 16);
         }
 
@@ -306,7 +309,7 @@ namespace ModernBox
                 if (State(a).puppetMasterId == b.id || State(b).puppetMasterId == a.id)
                     continue;
                 int score = Stable(a.id, b.id) % 10;
-                if (score < 3 && a.isOpinionTowardsKingdomGood(b))
+                if (score < 3 && a.isOpinionTowardsKingdomGood(b) && AlliancePolicy.Enabled)
                     AddSymmetricLink(a, b, "pacto defensivo", 0, 18);
                 else if (score < 5 && a.isOpinionTowardsKingdomGood(b))
                     AddSymmetricLink(a, b, "bloque comercial", 0, 14);
@@ -314,7 +317,7 @@ namespace ModernBox
                 {
                     Kingdom guarantor = a.power >= b.power ? a : b;
                     Kingdom protectedKingdom = guarantor == a ? b : a;
-                    if (guarantor.power >= Math.Max(1, Mathf.RoundToInt(protectedKingdom.power * 1.25f)))
+                    if (AlliancePolicy.Enabled && guarantor.power >= Math.Max(1, Mathf.RoundToInt(protectedKingdom.power * 1.25f)))
                         CreateGuarantee(guarantor, protectedKingdom);
                 }
                 else if (score == 6 && a.isOpinionTowardsKingdomGood(b))
@@ -456,10 +459,16 @@ namespace ModernBox
 
         private static void RunCrises()
         {
-            HydrateDefenderJoins();
+            if (AlliancePolicy.Enabled)
+                HydrateDefenderJoins();
+            else
+            {
+                defenderJoins.Clear();
+                queuedJoinKeys.Clear();
+            }
             int joins = 0;
             int processed = 0;
-            while (defenderJoins.Count > 0 && joins < MaxJoinsPerWarCycle && processed < 8)
+            while (AlliancePolicy.Enabled && defenderJoins.Count > 0 && joins < MaxJoinsPerWarCycle && processed < 8)
             {
                 processed++;
                 DefenderJoin request = defenderJoins.Dequeue();
@@ -567,6 +576,26 @@ namespace ModernBox
                 else Ledger(source, "Ultimátum cerrado sin guerra.");
                 Save(source); if (target != null) Save(target);
                 break;
+            }
+        }
+
+        internal static void SuspendDefensiveCommitments()
+        {
+            defenderJoins.Clear();
+            queuedJoinKeys.Clear();
+            defenderJoinsHydrated = true;
+
+            foreach (Kingdom kingdom in Civilizations())
+            {
+                CountryState state = State(kingdom);
+                bool removedLinks = state.links.RemoveAll(link =>
+                    link != null && (link.type == "pacto defensivo" || link.type == "garant\u00eda")) > 0;
+                bool removedJoins = state.pendingDefenderJoins.RemoveAll(join => join != null) > 0;
+                if (!removedLinks && !removedJoins)
+                    continue;
+
+                Ledger(kingdom, "Compromisos defensivos suspendidos porque las alianzas estan desactivadas.");
+                Save(kingdom);
             }
         }
 
@@ -715,6 +744,8 @@ namespace ModernBox
 
         internal static void NoticeWarCreated(Kingdom attacker, Kingdom defender)
         {
+            if (!AlliancePolicy.Enabled)
+                return;
             if (attacker == null || defender == null || attacker == defender) return;
             foreach (Kingdom candidate in Civilizations())
             {

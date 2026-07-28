@@ -46,6 +46,7 @@ namespace ModernBox
 			{"newversion",  true},			
 			{"Developer_Mode",  false},			
 			{"IdeologiesOption",  true},		
+			{"AlliancesOption",  true},
 			{"FactoriesOption",  true},		
 			{"GunOption",  true},
 			{"DronesOption",  true},
