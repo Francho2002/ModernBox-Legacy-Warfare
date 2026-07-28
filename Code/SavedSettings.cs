@@ -48,7 +48,9 @@ namespace ModernBox
 			{"IdeologiesOption",  true},		
 			{"AlliancesOption",  true},
 			{"FactoriesOption",  true},		
-			{"GunOption",  true},
+			// Las armas de fuego siguen disponibles en el catálogo, pero un perfil
+			// nuevo debe habilitarlas expresamente desde Reglas y objetos.
+			{"GunOption",  false},
 			{"DronesOption",  true},
 			{"ShakeOption",  true},
 			{"P9000Option",  false},
