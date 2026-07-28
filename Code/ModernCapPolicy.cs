@@ -157,6 +157,8 @@ namespace ModernBox
         {
             if (!IsAllowedActor(actorId))
                 return false;
+            if (!MilitaryKnowledgeService.CanBuild(city, actorId))
+                return false;
             if (IsMissileLauncher(actorId))
                 return CountMissileLaunchers(city) < MilitaryQuotaService.GetMissileLauncherCap(city);
             if (!IsConventionalArtillery(actorId))

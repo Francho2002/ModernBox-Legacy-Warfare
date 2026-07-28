@@ -139,6 +139,7 @@ namespace ModernBox
         {
             return IsValidLauncherCity(city) &&
                 MilitaryProgressionController.CanBuildDefensiveLauncher(city) &&
+                MilitaryKnowledgeService.CanBuild(city, "MissileSystem_Human") &&
                 ModernCapPolicy.CountMissileLaunchers(city) < MilitaryQuotaService.GetMissileLauncherCap(city);
         }
 
@@ -303,6 +304,7 @@ namespace ModernBox
                 .Where(entry => entry.asset != null &&
                     !string.IsNullOrEmpty(entry.asset.default_attack) &&
                     AssetManager.items.get(entry.asset.default_attack) != null &&
+                    MilitaryKnowledgeService.CanBuild(city, entry.id) &&
                     CanAddFixedWingAirframe(city, entry.id, null) &&
                     city.hasEnoughResourcesFor(entry.cost))
                 .Select(entry => new Candidate
@@ -397,6 +399,7 @@ namespace ModernBox
                 .Where(entry => entry.asset != null &&
                     !string.IsNullOrEmpty(entry.asset.default_attack) &&
                     AssetManager.items.get(entry.asset.default_attack) != null &&
+                    MilitaryKnowledgeService.CanBuild(city, entry.id) &&
                     city.hasEnoughResourcesFor(entry.cost))
                 .Select(entry => new Candidate
                 {
@@ -565,6 +568,8 @@ namespace ModernBox
         {
             if (city == null || candidate == null || string.IsNullOrEmpty(candidate.id))
                 return false;
+            if (!MilitaryKnowledgeService.CanBuild(city, candidate.id))
+                return false;
 
             WorldTile spawnTile = FindSafeLandTile(city);
             if (spawnTile == null)
@@ -691,6 +696,7 @@ namespace ModernBox
                 ActorAsset asset = AssetManager.actor_library.get(id);
                 if (!ModernCapPolicy.IsLandMilitaryActor(id) ||
                     !MilitaryProgressionController.IsRoleUnlocked(militaryLevel, tier, role, id) ||
+                    !MilitaryKnowledgeService.CanBuild(city, id) ||
                     !WithinCityCaps(city, id, transforming) || asset == null ||
                     string.IsNullOrEmpty(asset.default_attack) ||
                     AssetManager.items.get(asset.default_attack) == null)

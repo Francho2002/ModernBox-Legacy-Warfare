@@ -250,7 +250,8 @@ namespace ModernBox
 
         private static Actor SpawnAircraft(string assetId, Actor carrier)
         {
-            if (AssetManager.actor_library.get(assetId) == null)
+            if (AssetManager.actor_library.get(assetId) == null ||
+                !MilitaryKnowledgeService.CanBuild(carrier?.city, assetId))
                 return null;
             Actor aircraft = World.world.units.createNewUnit(assetId, carrier.current_tile);
             if (aircraft == null)

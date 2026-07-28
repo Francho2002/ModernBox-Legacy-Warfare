@@ -505,6 +505,7 @@ namespace ModernBox
 
             result.AppendLine("<b>" + cityName + "</b>  <color=#B7C9DD>" + page.cityNumber + "/" + page.cityCount +
                 " · " + population + " hab. · nivel " + level + "</color>");
+            result.AppendLine(MilitaryKnowledgeService.GetSummary(city));
             result.AppendLine("Fuerza: " + DescribeCompactForces(city) + ".");
             result.AppendLine("Tierra: " + (Traits.vehiclesAllowed ? "<color=#8FF0A4>activa</color>" : "<color=#FF8888>desactivada</color>") +
                 " · " + land + "/" + landCap + " vehículos · " + artillery + "/" + artilleryCap + " artillería.");
@@ -564,6 +565,7 @@ namespace ModernBox
             List<ProductionCandidate> candidates = GetLandCandidates(city);
             List<ProductionCandidate> unlocked = candidates
                 .Where(candidate => MilitaryProgressionController.IsRoleUnlocked(city, candidate.tier, candidate.role, candidate.id))
+                .Where(candidate => MilitaryKnowledgeService.CanBuild(city, candidate.id))
                 .Where(candidate => !ModernCapPolicy.IsConventionalArtillery(candidate.id) || artillery < artilleryCap)
                 .Where(candidate => !ModernCapPolicy.IsMissileLauncher(candidate.id) || launchers < launcherCap)
                 .ToList();
@@ -605,6 +607,11 @@ namespace ModernBox
                 result.AppendLine("Lanzamisiles: <color=#FFCC77>requiere 75 hab. y nivel 3.</color>");
                 return;
             }
+            if (!MilitaryKnowledgeService.CanBuild(city, "MissileSystem_Human"))
+            {
+                result.AppendLine("Lanzamisiles: <color=#FFCC77>requiere Guiado balístico.</color>");
+                return;
+            }
             result.AppendLine("Lanzamisiles: <color=#8FF0A4>" + launchers + "/" + launcherCap +
                 "; elegible en el próximo ciclo.</color>");
         }
@@ -624,6 +631,7 @@ namespace ModernBox
             }
 
             List<ProductionCandidate> affordable = GetNavalCandidates(GetNavalFaction(city))
+                .Where(candidate => MilitaryKnowledgeService.CanBuild(city, candidate.id))
                 .Where(candidate => city.hasEnoughResourcesFor(candidate.cost))
                 .ToList();
             result.AppendLine("Naval: " + docks.Count + " puerto(s) · " + CountBoats(city) + " barcos" +
@@ -686,6 +694,7 @@ namespace ModernBox
             string progression = GetProgressionLabel(city);
             string cityName = SafeName(GetCityName(city), "Ciudad sin nombre");
             result.AppendLine("  <color=#FFFFFF><b>" + Escape(cityName) + "</b></color> — población " + population + " | progreso: " + Escape(progression));
+            result.AppendLine("    " + Escape(MilitaryKnowledgeService.GetSummary(city)));
 
             AppendOwnedUnits(result, city);
             AppendLandProduction(result, city, population);
@@ -754,9 +763,11 @@ namespace ModernBox
 
             List<ProductionCandidate> unlocked = candidates
                 .Where(candidate => MilitaryProgressionController.IsRoleUnlocked(city, candidate.tier, candidate.role, candidate.id))
+                .Where(candidate => MilitaryKnowledgeService.CanBuild(city, candidate.id))
                 .ToList();
             List<ProductionCandidate> progressionBlocked = candidates
-                .Where(candidate => !MilitaryProgressionController.IsRoleUnlocked(city, candidate.tier, candidate.role, candidate.id))
+                .Where(candidate => !MilitaryProgressionController.IsRoleUnlocked(city, candidate.tier, candidate.role, candidate.id) ||
+                    !MilitaryKnowledgeService.CanBuild(city, candidate.id))
                 .ToList();
             List<ProductionCandidate> artilleryBlocked = unlocked
                 .Where(candidate => ModernCapPolicy.IsConventionalArtillery(candidate.id) &&
@@ -852,6 +863,10 @@ namespace ModernBox
             {
                 result.AppendLine("    Lanzamisiles terrestre: bloqueado — requiere nivel militar 3 e infraestructura pesada.");
             }
+            else if (!MilitaryKnowledgeService.CanBuild(city, launcher.id))
+            {
+                result.AppendLine("    Lanzamisiles terrestre: bloqueado â€” " + Escape(MilitaryKnowledgeService.GetBlockingReason(city, launcher.id)));
+            }
             else if (!city.hasLeader())
             {
                 result.AppendLine("    Lanzamisiles terrestre: bloqueado — la ciudad no tiene líder.");
@@ -897,10 +912,13 @@ namespace ModernBox
                 return;
             }
 
-            List<ProductionCandidate> affordable = candidates
+            List<ProductionCandidate> known = candidates
+                .Where(candidate => MilitaryKnowledgeService.CanBuild(city, candidate.id))
+                .ToList();
+            List<ProductionCandidate> affordable = known
                 .Where(candidate => city.hasEnoughResourcesFor(candidate.cost))
                 .ToList();
-            result.AppendLine("      Catálogo naval: " + DescribeCandidates(candidates) + ".");
+            result.AppendLine("      Catálogo naval conocido: " + DescribeCandidates(known) + ".");
             result.AppendLine("      Cada muelle completa una vez su plantilla y después solo repone el casco faltante.");
 
             if (affordable.Count == 0)

@@ -123,6 +123,7 @@ namespace ModernBox{
                 // appearance controls; legacy achievements are not initialized.
                 StatManager = gameObject.AddComponent<StatManager>();
                 gameObject.AddComponent<MilitaryProgressionController>();
+                gameObject.AddComponent<MilitaryKnowledgeService>();
                 gameObject.AddComponent<AntiSubmarineWarfareController>();
                 gameObject.AddComponent<NavalOwnershipReconciliationController>();
                 gameObject.AddComponent<CarrierAirWingController>();

@@ -225,6 +225,7 @@ namespace ModernBox
             };
 
             return ids.Where(id => AssetManager.actor_library.get(id) != null)
+                .Where(id => MilitaryKnowledgeService.CanBuild(city, id))
                 // This is the complete, per-home-dock template. Existing
                 // save-game duplicates are left untouched, but production
                 // never creates a second managed hull for this dock.
