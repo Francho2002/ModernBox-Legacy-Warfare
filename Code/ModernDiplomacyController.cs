@@ -21,6 +21,7 @@ namespace ModernBox
         private const int MaxGoldTransfer = 18;
         private const int MaxSanctionLoss = 3;
         private const int MaxJoinsPerWarCycle = 2;
+        private const int MaxDefenderCommitmentReviewsPerCleanup = 3;
         private const int MaximumActiveWarsFromUltimatums = 6;
 
         // MapBox persists between some loads; map_stats identifies the loaded map.
@@ -33,6 +34,7 @@ namespace ModernBox
         private static int rosterCursor;
         private static int economyCursor;
         private static int crisisCursor;
+        private static int defenderCommitmentCursor;
         private static float nextRoster;
         private static float nextEconomy;
         private static float nextCrisis;
@@ -52,6 +54,7 @@ namespace ModernBox
             public string organizationId;
             public long organizationResolutionAt;
             public List<DefenderJoin> pendingDefenderJoins = new List<DefenderJoin>();
+            public List<DefenderCommitment> defenderCommitments = new List<DefenderCommitment>();
         }
 
         [Serializable]
@@ -81,6 +84,20 @@ namespace ModernBox
             public long warDefender;
             public long joiner;
             public string reason;
+        }
+
+        // A completed ModernBox defensive intervention. It stays on the
+        // joiner's save data so an annexed protected kingdom triggers exactly
+        // one, persistent decision instead of making the ally oscillate.
+        [Serializable]
+        private sealed class DefenderCommitment
+        {
+            public long attacker;
+            public long protectedKingdom;
+            public long joiner;
+            public long createdAt;
+            public bool resolved;
+            public bool continues;
         }
 
         private void Awake()
@@ -146,6 +163,7 @@ namespace ModernBox
             defenderJoinsHydrated = false;
             rosterCursor = 0;
             economyCursor = crisisCursor = 0;
+            defenderCommitmentCursor = 0;
             float now = Time.time;
             // Give WorldBox time to finish hydrating KingdomData before this
             // layer reads or writes its save-backed state.
@@ -164,6 +182,7 @@ namespace ModernBox
             defenderJoins.Clear();
             queuedJoinKeys.Clear();
             defenderJoinsHydrated = false;
+            defenderCommitmentCursor = 0;
         }
 
         private static List<Kingdom> Civilizations()
@@ -202,6 +221,7 @@ namespace ModernBox
             current.links = current.links ?? new List<DiplomacyLink>();
             current.ledger = current.ledger ?? new List<LedgerEntry>();
             current.pendingDefenderJoins = current.pendingDefenderJoins ?? new List<DefenderJoin>();
+            current.defenderCommitments = current.defenderCommitments ?? new List<DefenderCommitment>();
             states[kingdom.id] = current;
             return current;
         }
@@ -290,6 +310,33 @@ namespace ModernBox
             state.ledger.Insert(0, new LedgerEntry { at = Now(), text = text });
             if (state.ledger.Count > MaxLedgerEntries)
                 state.ledger.RemoveRange(MaxLedgerEntries, state.ledger.Count - MaxLedgerEntries);
+        }
+
+        private static void RegisterDefenderCommitment(DefenderJoin request)
+        {
+            if (request == null)
+                return;
+
+            Kingdom joiner = Find(request.joiner);
+            CountryState state = State(joiner);
+            if (state == null)
+                return;
+
+            bool alreadyActive = state.defenderCommitments.Any(commitment =>
+                commitment != null && !commitment.resolved &&
+                commitment.attacker == request.warAttacker &&
+                commitment.protectedKingdom == request.warDefender &&
+                commitment.joiner == request.joiner);
+            if (alreadyActive)
+                return;
+
+            state.defenderCommitments.Add(new DefenderCommitment
+            {
+                attacker = request.warAttacker,
+                protectedKingdom = request.warDefender,
+                joiner = request.joiner,
+                createdAt = Now()
+            });
         }
 
         private static string Name(Kingdom kingdom) { return string.IsNullOrEmpty(kingdom?.name) ? "Reino " + kingdom?.id : kingdom.name; }
@@ -483,6 +530,10 @@ namespace ModernBox
                     try
                     {
                         war.joinDefenders(joiner);
+                        if (!war.hasKingdom(joiner) || !war.isDefender(joiner))
+                            throw new InvalidOperationException("WorldBox no confirmo la adhesion defensiva.");
+
+                        RegisterDefenderCommitment(request);
                         Ledger(joiner, "Entró como defensor por " + request.reason + ".");
                         ModernBoxLogger.Log("[MX.Diplomacy] Adhesión defensiva: " +
                             joiner.id + " por " + request.reason + ".");
@@ -591,7 +642,8 @@ namespace ModernBox
                 bool removedLinks = state.links.RemoveAll(link =>
                     link != null && (link.type == "pacto defensivo" || link.type == "garant\u00eda")) > 0;
                 bool removedJoins = state.pendingDefenderJoins.RemoveAll(join => join != null) > 0;
-                if (!removedLinks && !removedJoins)
+                bool removedCommitments = state.defenderCommitments.RemoveAll(commitment => commitment != null) > 0;
+                if (!removedLinks && !removedJoins && !removedCommitments)
                     continue;
 
                 Ledger(kingdom, "Compromisos defensivos suspendidos porque las alianzas estan desactivadas.");
@@ -611,6 +663,105 @@ namespace ModernBox
                 state.links.RemoveAll(l => { Kingdom other = Find(l.otherId); return other == null || Link(other, kingdom.id, l.type) == null; });
                 Save(kingdom);
             }
+            ResolveAnnexedDefenderCommitments();
+        }
+
+        private static void ResolveAnnexedDefenderCommitments()
+        {
+            List<Kingdom> roster = Civilizations();
+            if (roster.Count == 0)
+                return;
+
+            int reviewed = 0;
+            int start = defenderCommitmentCursor % roster.Count;
+            for (int offset = 0; offset < roster.Count && reviewed < MaxDefenderCommitmentReviewsPerCleanup; offset++)
+            {
+                Kingdom joiner = roster[(start + offset) % roster.Count];
+                CountryState state = State(joiner);
+                foreach (DefenderCommitment commitment in state.defenderCommitments
+                    .Where(item => item != null && !item.resolved).ToList())
+                {
+                    Kingdom protectedKingdom = Find(commitment.protectedKingdom);
+                    bool annexed = protectedKingdom == null || !protectedKingdom.isCiv() ||
+                        protectedKingdom.cities == null || !protectedKingdom.cities.Any(city => city != null);
+                    if (!annexed)
+                        continue;
+
+                    reviewed++;
+                    ResolveAnnexedDefenderCommitment(joiner, commitment);
+                    if (reviewed >= MaxDefenderCommitmentReviewsPerCleanup)
+                        break;
+                }
+            }
+            defenderCommitmentCursor = (start + 1) % roster.Count;
+        }
+
+        private static void ResolveAnnexedDefenderCommitment(Kingdom joiner, DefenderCommitment commitment)
+        {
+            Kingdom attacker = Find(commitment.attacker);
+            War war = attacker == null ? null : World.world.wars.getWar(attacker, joiner, false);
+            bool validWar = war != null && !war.hasEnded() && !war.isTotalWar() &&
+                war.isAttacker(attacker) && war.isDefender(joiner);
+            if (!validWar)
+            {
+                commitment.resolved = true;
+                commitment.continues = war != null && !war.hasEnded() && war.isTotalWar();
+                Ledger(joiner, commitment.continues
+                    ? "El reino protegido fue anexado; mantiene la guerra total contra " + Name(attacker) + "."
+                    : "El reino protegido fue anexado; cerró su compromiso defensivo sin afectar otras guerras.");
+                Save(joiner);
+                return;
+            }
+
+            List<Kingdom> opposingKingdoms = war.getOppositeSideKingdom(joiner);
+            float opposingPower = 0f;
+            int opposingWarriors = 0;
+            if (opposingKingdoms != null)
+            {
+                foreach (Kingdom opposing in opposingKingdoms)
+                {
+                    if (opposing == null || !opposing.isCiv())
+                        continue;
+                    opposingPower += Mathf.Max(1f, opposing.power);
+                    opposingWarriors += Math.Max(0, opposing.countTotalWarriors());
+                }
+            }
+            if (opposingPower <= 0f && attacker != null)
+            {
+                opposingPower = Mathf.Max(1f, attacker.power);
+                opposingWarriors = Math.Max(0, attacker.countTotalWarriors());
+            }
+
+            int cities = joiner.cities == null ? 0 : joiner.cities.Count(city => city != null);
+            int gold = TotalGold(joiner);
+            float ownPower = Mathf.Max(1f, joiner.power);
+            int ownWarriors = Math.Max(0, joiner.countTotalWarriors());
+            bool badlyOutmatched = opposingPower > ownPower * 2.25f &&
+                opposingWarriors > Math.Max(8, ownWarriors * 2);
+            bool withdraw = cities < 2 || gold < 4 || badlyOutmatched;
+
+            if (withdraw)
+            {
+                try
+                {
+                    war.leaveWar(joiner);
+                }
+                catch (Exception ex)
+                {
+                    ModernBoxLogger.Warning("[MX.Diplomacy] Retirada defensiva aplazada: " + ex.Message);
+                    return;
+                }
+                commitment.resolved = true;
+                commitment.continues = false;
+                Ledger(joiner, "El reino protegido fue anexado; abandonó esta guerra contra " + Name(attacker) + " por falta de capacidad.");
+            }
+            else
+            {
+                commitment.resolved = true;
+                commitment.continues = true;
+                Ledger(joiner, "El reino protegido fue anexado; continuará esta guerra contra " + Name(attacker) + " porque aún puede sostenerla.");
+            }
+            Save(joiner);
         }
 
         private static void CreateUltimatum(Kingdom source, Kingdom target)
