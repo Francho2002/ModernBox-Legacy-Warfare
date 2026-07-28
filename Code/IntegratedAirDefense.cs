@@ -494,32 +494,4 @@ namespace ModernBox
         }
     }
 
-    [HarmonyPatch(typeof(Projectile), "checkHitOnNearbyUnits")]
-    internal static class StrategicMissileNearbyHitPatch
-    {
-        [HarmonyPrefix]
-        private static bool Prefix(Projectile __instance, ref AttackDataResult __result)
-        {
-            if (!IntegratedAirDefense.IsProtectedMissile(__instance))
-                return true;
-
-            // `default(AttackDataResult)` means Hit in WorldBox, which makes
-            // Projectile.update remove the missile before its flight sprite is
-            // drawn. Continue rejects ordinary nearby attacks but preserves the
-            // native movement and render loop.
-            __result = AttackDataResult.Continue;
-            return false;
-        }
-    }
-
-    [HarmonyPatch(typeof(Projectile), "getDeflected")]
-    internal static class StrategicMissileDeflectionPatch
-    {
-        [HarmonyPrefix]
-        private static bool Prefix(Projectile __instance)
-        {
-            return !IntegratedAirDefense.IsProtectedMissile(__instance);
-        }
-    }
-
 }
