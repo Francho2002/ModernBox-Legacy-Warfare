@@ -239,6 +239,13 @@ namespace ModernBox
                 aircraft = null;
                 return;
             }
+            if (Vehicles.TryConsumeCarrierRecoveryReady(aircraft, carrier))
+            {
+                Vehicles.UnlinkCarrierAircraft(aircraft);
+                ActionLibrary.removeUnit(aircraft);
+                aircraft = null;
+                return;
+            }
             if (state.sortieEndsAt <= 0f && aircraft.current_tile != null &&
                 Toolbox.DistTile(aircraft.current_tile, deck) <= 3)
             {

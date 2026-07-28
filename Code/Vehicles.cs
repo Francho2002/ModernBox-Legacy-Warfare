@@ -127,6 +127,7 @@ namespace ModernBox
 		private const string BomberTargetRefreshTickKey = "bj_bomber_target_refresh_tick";
 		internal const string CarrierHomeIdKey = "mb_carrier_home_id";
 		internal const string CarrierAircraftKey = "mb_carrier_aircraft";
+		internal const string CarrierRecoveryReadyKey = "mb_carrier_recovery_ready";
 		private static readonly Dictionary<long, Actor> CarrierHomeCache = new Dictionary<long, Actor>();
 		private const int AirTargetRefreshInterval = 8;
 		private const int AirBuildingTargetRefreshInterval = 4;
@@ -9097,6 +9098,7 @@ internal static void LinkCarrierAircraft(Actor aircraft, Actor carrier)
 	RegisterCarrier(carrier);
 	aircraft.data.set(CarrierAircraftKey, true);
 	aircraft.data.set(CarrierHomeIdKey, carrier.getID().ToString());
+	aircraft.data.set(CarrierRecoveryReadyKey, false);
 }
 
 internal static bool IsCarrierAircraft(Actor aircraft)
@@ -9151,6 +9153,24 @@ internal static void UnlinkCarrierAircraft(Actor aircraft)
 	}
 	aircraft.data.set(CarrierAircraftKey, false);
 	aircraft.data.set(CarrierHomeIdKey, string.Empty);
+	aircraft.data.set(CarrierRecoveryReadyKey, false);
+}
+
+internal static bool TryConsumeCarrierRecoveryReady(Actor aircraft, Actor carrier)
+{
+	if (aircraft == null || carrier == null)
+	{
+		return false;
+	}
+
+	aircraft.data.get(CarrierRecoveryReadyKey, out bool recoveryReady, pDefault: false);
+	if (!recoveryReady || !TryGetCarrierForAircraft(aircraft, out Actor linkedCarrier) || linkedCarrier != carrier)
+	{
+		return false;
+	}
+
+	aircraft.data.set(CarrierRecoveryReadyKey, false);
+	return true;
 }
 
 private static WorldTile FindCarrierDeckTile(Actor aircraft)
@@ -9790,6 +9810,23 @@ private static void UpdateBomberHumanRuntime(Actor actor, float pElapsed)
 	{
 		SetBomberBool(actor, BomberForceRtbKey, true);
 		actor.clearAttackTarget();
+
+		if (TryGetCarrierForAircraft(actor, out Actor carrier) &&
+			IsNearTile(actor, carrier.current_tile, profile.landingDistance))
+		{
+			// Carrier recovery is finalized by CarrierAirWingController. Keep the
+			// aircraft airborne until that sampled controller consumes this mark,
+			// so a moving deck cannot leave it frozen at an old position.
+			actor.data.set(CarrierRecoveryReadyKey, true);
+			ResetReloadTimer(actor, BomberReloadTimerKey);
+			actor.setFlying(true);
+			SetBomberBool(actor, BomberLandedKey, false);
+			if (AdvanceBomberTick(actor, BomberNavTickKey, profile.navTickInterval))
+			{
+				actor.goTo(carrier.current_tile, pPathOnWater: true, pWalkOnBlocks: true, pWalkOnLava: false, pLimitPathfindingRegions: 8);
+			}
+			return;
+		}
 
 		if (baseTile != null && IsNearTile(actor, baseTile, profile.landingDistance))
 		{
