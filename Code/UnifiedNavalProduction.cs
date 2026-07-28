@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using UnityEngine;
 
 namespace ModernBox
 {
@@ -53,18 +54,19 @@ namespace ModernBox
             if (selectedDock == null)
                 return false;
 
-            if (selectedDock.tiles_ocean == null || selectedDock.tiles_ocean.Count == 0)
-            {
-                selectedDock.recalculateOceanTiles();
-                return false;
-            }
-
             string id = SelectAffordableId(selectedDock, city);
             if (string.IsNullOrEmpty(id))
                 return false;
 
-            WorldTile tile = selectedDock.tiles_ocean.GetRandom();
-            if (tile?.region?.island == null || !tile.region.island.goodForDocks())
+            WorldTile tile = SelectSafeOceanTile(selectedDock);
+            if (tile == null)
+            {
+                // Dock tile lists can become stale after terrain powers. Rebuild
+                // once and only produce if the refreshed list contains water.
+                selectedDock.recalculateOceanTiles();
+                tile = SelectSafeOceanTile(selectedDock);
+            }
+            if (tile == null)
                 return false;
             Actor boat = World.world.units.createNewUnit(id, tile);
             if (boat == null)
@@ -76,6 +78,54 @@ namespace ModernBox
             city.spendResourcesForBuildingAsset(GetCost(id));
             ModernDiplomacyController.ApplyArmsCredit(city);
             result = boat;
+            return true;
+        }
+
+        private static WorldTile SelectSafeOceanTile(Docks dock)
+        {
+            if (dock?.tiles_ocean == null || dock.tiles_ocean.Count == 0)
+                return null;
+
+            List<WorldTile> water = new List<WorldTile>();
+            List<WorldTile> bufferedWater = new List<WorldTile>();
+            foreach (WorldTile tile in dock.tiles_ocean)
+            {
+                if (!IsValidDockWater(tile))
+                    continue;
+                water.Add(tile);
+                if (HasWaterBuffer(tile, 2))
+                    bufferedWater.Add(tile);
+            }
+
+            // Prefer open water so subs do not begin pressed against a coast,
+            // while retaining a safe fallback for narrow bays and small islands.
+            if (bufferedWater.Count > 0)
+                return bufferedWater.GetRandom();
+            return water.Count > 0 ? water.GetRandom() : null;
+        }
+
+        private static bool IsValidDockWater(WorldTile tile)
+        {
+            return tile?.Type != null && (tile.Type.ocean || tile.Type.liquid) &&
+                tile.region?.island != null && tile.region.island.goodForDocks();
+        }
+
+        private static bool HasWaterBuffer(WorldTile tile, int radius)
+        {
+            if (tile == null || World.world == null)
+                return false;
+
+            int centerX = Mathf.RoundToInt(tile.pos.x);
+            int centerY = Mathf.RoundToInt(tile.pos.y);
+            for (int offsetX = -radius; offsetX <= radius; offsetX++)
+            {
+                for (int offsetY = -radius; offsetY <= radius; offsetY++)
+                {
+                    WorldTile nearby = World.world.GetTile(centerX + offsetX, centerY + offsetY);
+                    if (nearby?.Type == null || (!nearby.Type.ocean && !nearby.Type.liquid))
+                        return false;
+                }
+            }
             return true;
         }
 

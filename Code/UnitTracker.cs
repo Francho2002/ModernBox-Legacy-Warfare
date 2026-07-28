@@ -86,12 +86,42 @@ public class UnitTracker : MonoBehaviour
     }
 
   public static bool SpawnVehicle(WorldTile pTile, string pPowerID) {
+    if (pTile == null) {
+      return false;
+    }
     if (pTile.zone.city == null) {
       WorldTip.showNow("You must spawn this vehicle within a kingdom.", true, "top", 3f);
       return false;
     }
 
     City pCity = pTile.zone.city;
+
+    // Resolve the requested asset before creating the temporary base unit. A
+    // boat created on land cannot recover through native pathfinding, so reject
+    // the manual action early instead of leaving a stranded hull behind.
+    if (AssetManager.powers == null)
+    {
+      ModernBoxLogger.Error("[spawnUnit] AssetManager.powers is null!");
+      return false;
+    }
+
+    GodPower godPower = AssetManager.powers.get(pPowerID);
+    if (godPower == null)
+    {
+      ModernBoxLogger.Error($"[spawnUnit] GodPower with ID '{pPowerID}' not found!");
+      return false;
+    }
+
+    string text = godPower.actor_asset_ids != null && godPower.actor_asset_ids.Length > 0
+      ? godPower.actor_asset_ids.GetRandom<string>()
+      : godPower.actor_asset_id;
+    if (string.IsNullOrEmpty(text))
+      return false;
+
+    if (IsNavalActor(text) && !IsNavigableWater(pTile)) {
+      WorldTip.showNow("Los barcos y submarinos solo pueden aparecer en agua.", true, "top", 3f);
+      return false;
+    }
 
     Actor baseVehicle = World.world.units.createNewUnit(
         "baseWarUnit",
@@ -135,32 +165,8 @@ public class UnitTracker : MonoBehaviour
         }
     }
 
-			if (AssetManager.powers == null)
-			{
-				ModernBoxLogger.Error("[spawnUnit] AssetManager.powers is null!");
-				return false;
-			}
-
-			GodPower godPower = AssetManager.powers.get(pPowerID);
-			if (godPower == null)
-			{
-				ModernBoxLogger.Error($"[spawnUnit] GodPower with ID '{pPowerID}' not found!");
-				return false;
-			}
-
 			ModernBoxLogger.Log($"[spawnUnit] Got GodPower: {godPower.id}");
-
-			string text;
-			if (godPower.actor_asset_ids != null && godPower.actor_asset_ids.Length > 0)
-			{
-				text = godPower.actor_asset_ids.GetRandom<string>();
-				ModernBoxLogger.Log($"[spawnUnit] Selected random actor from actor_asset_ids: {text}");
-			}
-			else
-			{
-				text = godPower.actor_asset_id;
-				ModernBoxLogger.Log($"[spawnUnit] Using fallback actor_asset_id: {text}");
-			}
+			ModernBoxLogger.Log($"[spawnUnit] Selected actor: {text}");
             
     TransformUnit(baseVehicle, text, pTile);
     return true;
@@ -182,6 +188,23 @@ private static void TransformUnit(Actor originalActor, string newActorId, WorldT
     }
    newActor.setCity(originalActor.city);
     ActionLibrary.removeUnit(originalActor);
+}
+
+private static bool IsNavalActor(string actorId)
+{
+    if (string.IsNullOrEmpty(actorId))
+        return false;
+
+    ActorAsset asset = AssetManager.actor_library == null ? null : AssetManager.actor_library.get(actorId);
+    return asset?.is_boat == true || actorId.StartsWith("CarrierVessel_", System.StringComparison.OrdinalIgnoreCase) ||
+        actorId.StartsWith("aDestroyer_", System.StringComparison.OrdinalIgnoreCase) ||
+        actorId.StartsWith("bDestroyer_", System.StringComparison.OrdinalIgnoreCase) ||
+        ModernBox.NavalRoles.IsAnyModernSubmarine(actorId);
+}
+
+private static bool IsNavigableWater(WorldTile tile)
+{
+    return tile?.Type != null && (tile.Type.ocean || tile.Type.liquid);
 }
 
 

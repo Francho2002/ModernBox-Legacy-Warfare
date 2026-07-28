@@ -55,6 +55,8 @@ namespace ModernBox
                 // handing it to the native pathfinder; otherwise one stale
                 // fleet order can cause RegionPathFinder failures every tick.
                 WorldTile reachableTarget = GetReachableSeaTarget(boat, order.target);
+                if (IsModernSubmarine(boat))
+                    reachableTarget = GetBufferedSubmarineTarget(boat, reachableTarget) ?? reachableTarget;
                 if (reachableTarget != null)
                 {
                     // This is just the destination used by the normal boat
@@ -72,6 +74,16 @@ namespace ModernBox
             WorldTile naturalTarget = boat.beh_tile_target;
             if (!IsNavigableSeaTile(naturalTarget))
                 return;
+
+            // Keep the dock order itself unchanged for surface escorts and
+            // carriers. A submarine receives a deeper reachable substitute
+            // below when the native order is applied to that individual hull.
+            if (IsModernSubmarine(boat))
+            {
+                WorldTile bufferedTarget = GetBufferedSubmarineTarget(boat, naturalTarget);
+                if (bufferedTarget != null)
+                    boat.beh_tile_target = bufferedTarget;
+            }
 
             OrdersByDock[dock] = new FleetOrder
             {
@@ -140,6 +152,61 @@ namespace ModernBox
         private static bool IsNavigableSeaTile(WorldTile tile)
         {
             return tile?.Type != null && (tile.Type.ocean || tile.Type.liquid);
+        }
+
+        private static bool IsModernSubmarine(Actor boat)
+        {
+            return NavalRoles.IsAnyModernSubmarine(boat?.asset?.id);
+        }
+
+        private static WorldTile GetBufferedSubmarineTarget(Actor submarine, WorldTile requested)
+        {
+            if (submarine?.current_tile == null || requested == null || !IsNavigableSeaTile(requested))
+                return null;
+            if (HasWaterBuffer(requested, 2))
+                return requested;
+
+            int centerX = Mathf.RoundToInt(requested.pos.x);
+            int centerY = Mathf.RoundToInt(requested.pos.y);
+            // Search the closest open-water cell first. OceanHelper remains the
+            // authority on reachability, so this cannot force a route through
+            // land or teleport an existing submarine.
+            for (int radius = 1; radius <= 8; radius++)
+            {
+                for (int offsetX = -radius; offsetX <= radius; offsetX++)
+                {
+                    for (int offsetY = -radius; offsetY <= radius; offsetY++)
+                    {
+                        if (Mathf.Abs(offsetX) != radius && Mathf.Abs(offsetY) != radius)
+                            continue;
+                        WorldTile candidate = World.world?.GetTile(centerX + offsetX, centerY + offsetY);
+                        if (!HasWaterBuffer(candidate, 2))
+                            continue;
+                        WorldTile reachable = GetReachableSeaTarget(submarine, candidate);
+                        if (reachable != null && HasWaterBuffer(reachable, 2))
+                            return reachable;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static bool HasWaterBuffer(WorldTile tile, int radius)
+        {
+            if (!IsNavigableSeaTile(tile) || World.world == null)
+                return false;
+
+            int centerX = Mathf.RoundToInt(tile.pos.x);
+            int centerY = Mathf.RoundToInt(tile.pos.y);
+            for (int offsetX = -radius; offsetX <= radius; offsetX++)
+            {
+                for (int offsetY = -radius; offsetY <= radius; offsetY++)
+                {
+                    if (!IsNavigableSeaTile(World.world.GetTile(centerX + offsetX, centerY + offsetY)))
+                        return false;
+                }
+            }
+            return true;
         }
 
         private static void CleanupExpiredOrders()
