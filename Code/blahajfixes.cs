@@ -177,6 +177,8 @@ namespace ModernBox
             public float lastDistance;
             public float stalledSeconds;
             public bool hasDistanceSample;
+            public Vector2 lastPosition;
+            public bool hasPositionSample;
         }
 
         private static void Prefix(Projectile __instance, float pElapsed)
@@ -237,22 +239,36 @@ namespace ModernBox
                 data.hasDistanceSample = true;
                 data.initialDistance = remainingDistance;
                 data.lastDistance = remainingDistance;
+                data.lastPosition = current;
+                data.hasPositionSample = true;
             }
             else
             {
-                // A small tolerance prevents normal low-frame-rate motion from
-                // being misclassified as a loop, while a missile parked away
-                // from its destination is cleaned up after a visible grace time.
-                if (remainingDistance + 0.08f < data.lastDistance)
+                // Strategic warheads can spend several seconds rising or
+                // turning before their distance-to-target falls.  Treat actual
+                // movement as healthy flight too; otherwise a deliberately
+                // slowed missile can be removed over the sea before it reaches
+                // its already-valid target tile.
+                float movedDistance = data.hasPositionSample
+                    ? Vector2.Distance(current, data.lastPosition)
+                    : 0f;
+                bool madeProgress = remainingDistance + 0.08f < data.lastDistance;
+                if (madeProgress || movedDistance > 0.02f)
                     data.stalledSeconds = 0f;
                 else if (remainingDistance > 1.5f)
                     data.stalledSeconds += safeElapsed;
 
                 data.lastDistance = remainingDistance;
+                data.lastPosition = current;
+                data.hasPositionSample = true;
             }
 
             float speed = Mathf.Max(1f, projectile.asset.speed);
-            float lifetimeLimit = Mathf.Clamp(12f + (data.initialDistance / speed) * 4f, 18f, 45f);
+            // Flight speed is intentionally reduced for readability.  The old
+            // 45-second ceiling was shorter than a valid cross-map flight and
+            // could clean it up just before impact.  A real loop still exits
+            // through the stationary check above or this bounded hard limit.
+            float lifetimeLimit = Mathf.Clamp(18f + (data.initialDistance / speed) * 8f, 45f, 180f);
             if (remainingDistance > 1.5f && (data.stalledSeconds > 4.5f || data.age > lifetimeLimit))
             {
                 // Do not synthesize an explosion at an unknown/invalid point.
@@ -273,6 +289,45 @@ namespace ModernBox
             }
 
             Timers.Remove(__instance);
+        }
+
+        [HarmonyPatch(typeof(Projectile), "targetReached")]
+        [HarmonyPrefix]
+        private static void SnapLongRangeImpactToTarget(Projectile __instance)
+        {
+            if (__instance?.asset == null || !LongRangeImpactProjectiles.Contains(__instance.asset.id))
+                return;
+
+            // WorldBox detects an arrival after the final movement step.  With
+            // a large timestep that can leave the visual position beyond the
+            // intended tile, including in adjacent water.  Put the projectile
+            // back on its own native target immediately before the native
+            // impact path runs, preserving that projectile's normal effect and
+            // sound while guaranteeing the impact location.
+            try
+            {
+                FieldInfo positionField = typeof(Projectile).GetField("_current_position_3d",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                FieldInfo targetField = typeof(Projectile).GetField("_vector_target",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                if (positionField == null || targetField == null)
+                    return;
+
+                Vector3 position = (Vector3)positionField.GetValue(__instance);
+                Vector2 target = (Vector2)targetField.GetValue(__instance);
+                if (float.IsNaN(target.x) || float.IsNaN(target.y) ||
+                    float.IsInfinity(target.x) || float.IsInfinity(target.y))
+                    return;
+
+                position.x = target.x;
+                position.y = target.y;
+                positionField.SetValue(__instance, position);
+            }
+            catch
+            {
+                // The projectile's native impact remains the fallback if a
+                // future WorldBox build changes these private field names.
+            }
         }
     }
 
