@@ -1,7 +1,7 @@
 {
     "name": "ModernBox",
     "author": "Tuxxego",
-    "version": "5.7.0",
+    "version": "5.7.1",
     "targetGameBuild": 719,
     "description": "Guerra realista, flotas misilísticas, diplomacia moderna persistente, OreBox integrado y ataques nucleares que preservan el terreno.",
     "iconPath": "Icon.jpg"

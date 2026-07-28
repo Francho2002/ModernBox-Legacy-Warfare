@@ -38,6 +38,7 @@ namespace ModernBox
             internal bool HasSample;
             internal bool ImpactStarted;
             internal bool ImpactCompleted;
+            internal bool ImpactSoundPlayed;
             internal bool Terminal;
         }
 
@@ -146,7 +147,6 @@ namespace ModernBox
             }
 
             EffectsLibrary.spawnAt("fx_explosion_middle", airPosition, 0.45f);
-            MusicBox.playSound("event:/SFX/EXPLOSIONS/ExplosionSmall", airPosition.x, airPosition.y, true, false);
             projectile.setState(ProjectileState.ToRemove);
             IntegratedAirDefense.Forget(projectile);
             NuclearAlertController.Forget(projectile);
@@ -191,9 +191,11 @@ namespace ModernBox
             state.Terminal = true;
             AlignAtCapturedTarget(projectile, state);
 
-            // One ordered impact pipeline. These used to be independent
-            // targetReached patches whose ordering varied with loader state.
-            IntegratedAirDefense.PlayConventionalImpactSound(projectile);
+            // One ordered impact pipeline. The sound is intentionally played
+            // here, before native impact, instead of through asset.sound_impact
+            // or an independent Harmony patch. That makes the report match the
+            // captured blast point and guarantees a single refined sample.
+            PlayImpactSound(projectile, profile, state.Target);
             NuclearFallout.RememberImpact(projectile);
             NavalRoles.HandleSpecialWarheadImpact(projectile);
             return true;
@@ -268,7 +270,6 @@ namespace ModernBox
             }
 
             EffectsLibrary.spawnAt("fx_explosion_middle", position, 0.45f);
-            MusicBox.playSound("event:/SFX/EXPLOSIONS/ExplosionSmall", position.x, position.y, true, false);
             projectile.setState(ProjectileState.ToRemove);
             IntegratedAirDefense.Forget(projectile);
             NuclearAlertController.Forget(projectile);
@@ -283,6 +284,25 @@ namespace ModernBox
             // projectile's world position, not its aerial sprite transform.
             CurrentPositionField.SetValue(projectile, new Vector3(state.Target.x, state.Target.y, 0f));
             TargetField.SetValue(projectile, state.Target);
+        }
+
+        private static void PlayImpactSound(Projectile projectile, MissileProfile profile, Vector2 position)
+        {
+            if (projectile == null || profile == null || string.IsNullOrEmpty(profile.ImpactSoundId))
+                return;
+
+            MissileState state;
+            if (!States.TryGetValue(projectile, out state))
+                state = States.GetOrCreateValue(projectile);
+            if (state.ImpactSoundPlayed)
+                return;
+
+            state.ImpactSoundPlayed = true;
+            // A non-negative position produces FMOD's positional route. It
+            // remains audible in aerial view, but never becomes a global
+            // map-wide rumble because the event is anchored at its impact.
+            MusicBox.playSound(profile.ImpactSoundId, position.x, position.y,
+                profile.ImpactSoundGameViewOnly, false);
         }
 
         private static bool IsValidWorldTarget(Vector2 target)

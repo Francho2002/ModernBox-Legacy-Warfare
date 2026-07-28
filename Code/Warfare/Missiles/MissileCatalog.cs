@@ -59,11 +59,16 @@ namespace ModernBox
         internal readonly MissileFalloutTier FalloutTier;
         internal readonly bool ConventionalImpact;
         internal readonly bool HeavyConventionalImpact;
+        // Registered warheads never use ProjectileAsset.sound_impact: it is
+        // played by MissileLifecycle exactly once, at the captured impact
+        // point.  This keeps legacy "fireball" samples from leaking back in.
+        internal readonly string ImpactSoundId;
+        internal readonly bool ImpactSoundGameViewOnly;
 
         internal MissileProfile(string id, bool offensive, bool nuclear, bool interceptable,
             float baseInterceptChance, bool protectedFromOrdinaryCollisions, bool usesTrail, float overviewMarkerScale,
             float blastSafetyRadius, MissileFalloutTier falloutTier, bool conventionalImpact,
-            bool heavyConventionalImpact)
+            bool heavyConventionalImpact, string impactSoundId, bool impactSoundGameViewOnly)
         {
             Id = id;
             Offensive = offensive;
@@ -77,6 +82,8 @@ namespace ModernBox
             FalloutTier = falloutTier;
             ConventionalImpact = conventionalImpact;
             HeavyConventionalImpact = heavyConventionalImpact;
+            ImpactSoundId = impactSoundId;
+            ImpactSoundGameViewOnly = impactSoundGameViewOnly;
         }
     }
 
@@ -88,6 +95,7 @@ namespace ModernBox
     internal static class MissileCatalog
     {
         private const string TrailEffectId = "modern_cap_missile_trail";
+        private const string SilentImpactEffectPrefix = "modernbox_silent_missile_";
 
         private static readonly Dictionary<string, MissileProfile> Profiles =
             new Dictionary<string, MissileProfile>(StringComparer.OrdinalIgnoreCase)
@@ -108,11 +116,13 @@ namespace ModernBox
                 { MissileIds.Czar, Nuclear(MissileIds.Czar, 0.50f, 24f, MissileFalloutTier.Heavy, 0.25f) },
                 { MissileIds.Torpedo, Conventional(MissileIds.Torpedo, 0.55f, 4f, false) },
                 { MissileIds.Interceptor, new MissileProfile(MissileIds.Interceptor, false, false, false, 0f, false,
-                    false, 0.38f, 0f, MissileFalloutTier.None, false, false) },
+                    false, 0.38f, 0f, MissileFalloutTier.None, false, false,
+                    null, false) },
                 { MissileIds.Arsenal, Conventional(MissileIds.Arsenal, 0.72f, 6f, true) },
                 { MissileIds.Trident, Nuclear(MissileIds.Trident, 0.55f, 16f, MissileFalloutTier.Medium) },
                 { MissileIds.Neutron, Nuclear(MissileIds.Neutron, 0.55f, 8f, MissileFalloutTier.Light) },
-                { MissileIds.Emp, Nuclear(MissileIds.Emp, 0.52f, 0f, MissileFalloutTier.None) },
+                { MissileIds.Emp, Nuclear(MissileIds.Emp, 0.52f, 0f, MissileFalloutTier.None, 0.30f,
+                    "event:/SFX/EXPLOSIONS/ExplosionMiddle") },
                 { MissileIds.Hammer, Nuclear(MissileIds.Hammer, 0.60f, 34f, MissileFalloutTier.Heavy, 0.12f) },
                 { MissileIds.Ruin, Nuclear(MissileIds.Ruin, 0.55f, 11f, MissileFalloutTier.Light) }
             };
@@ -121,14 +131,18 @@ namespace ModernBox
             float blastSafetyRadius = 4f, bool heavyImpact = true, float baseInterceptChance = 0.65f)
         {
             return new MissileProfile(id, true, false, true, baseInterceptChance, true, true, markerScale,
-                blastSafetyRadius, MissileFalloutTier.None, true, heavyImpact);
+                blastSafetyRadius, MissileFalloutTier.None, true, heavyImpact,
+                heavyImpact ? "event:/SFX/EXPLOSIONS/ExplosionMeteorite" : "event:/SFX/EXPLOSIONS/ExplosionSmall",
+                false);
         }
 
         private static MissileProfile Nuclear(string id, float markerScale, float blastSafetyRadius,
-            MissileFalloutTier falloutTier, float baseInterceptChance = 0.30f)
+            MissileFalloutTier falloutTier, float baseInterceptChance = 0.30f,
+            string impactSoundId = "event:/SFX/EXPLOSIONS/ExplosionHuge")
         {
             return new MissileProfile(id, true, true, true, baseInterceptChance, true, true, markerScale,
-                blastSafetyRadius, falloutTier, false, false);
+                blastSafetyRadius, falloutTier, false, false,
+                impactSoundId, false);
         }
 
         internal static bool TryGet(string id, out MissileProfile profile)
@@ -224,11 +238,25 @@ namespace ModernBox
 
             foreach (MissileProfile profile in Profiles.Values)
             {
-                if (!profile.Offensive)
-                    continue;
-
                 ProjectileAsset asset = AssetManager.projectiles.get(profile.Id);
                 if (asset == null)
+                    continue;
+
+                // Establish the conventional visual first, so its silent
+                // clone below also applies to an asset that was incomplete.
+                if (profile.Offensive && profile.ConventionalImpact && string.IsNullOrEmpty(asset.end_effect))
+                    asset.end_effect = "fx_firebomb_explosion";
+
+                // Some source assets still carry WeaponFireballLand and
+                // similar legacy samples. The lifecycle owns the sound path
+                // for every registered warhead that defines a sound profile.
+                if (!string.IsNullOrEmpty(profile.ImpactSoundId))
+                {
+                    asset.sound_impact = string.Empty;
+                    asset.end_effect = GetSilentImpactEffect(asset.end_effect);
+                }
+
+                if (!profile.Offensive)
                     continue;
 
                 asset.can_be_left_on_ground = false;
@@ -244,8 +272,6 @@ namespace ModernBox
                         asset.terraform_option = "modern_cap_missile_blast";
                         asset.terraform_range = Math.Max(asset.terraform_range, 4);
                     }
-                    if (string.IsNullOrEmpty(asset.end_effect))
-                        asset.end_effect = "fx_firebomb_explosion";
                 }
 
                 if (!profile.UsesTrail)
@@ -256,6 +282,38 @@ namespace ModernBox
                 asset.trail_effect_scale = 0.30f;
                 asset.trail_effect_timer = 0.10f;
             }
+        }
+
+        private static string GetSilentImpactEffect(string sourceId)
+        {
+            if (string.IsNullOrEmpty(sourceId) || sourceId.StartsWith(SilentImpactEffectPrefix,
+                StringComparison.Ordinal))
+                return sourceId;
+
+            string silentId = SilentImpactEffectPrefix + sourceId;
+            EffectAsset silent = AssetManager.effects_library.get(silentId);
+            if (silent == null)
+            {
+                EffectAsset source = AssetManager.effects_library.get(sourceId);
+                if (source == null)
+                {
+                    ModernBoxLogger.Warning("[MissileCatalog] Missing impact effect: " + sourceId);
+                    return sourceId;
+                }
+
+                silent = AssetManager.effects_library.clone(silentId, sourceId);
+                if (silent == null)
+                {
+                    ModernBoxLogger.Warning("[MissileCatalog] Could not clone impact effect: " + sourceId);
+                    return sourceId;
+                }
+            }
+
+            // End effects retain their sprite, scale and animation but never
+            // replay their own launch sound. MissileLifecycle is the sole
+            // authority for the corresponding impact report.
+            silent.sound_launch = string.Empty;
+            return silentId;
         }
     }
 }

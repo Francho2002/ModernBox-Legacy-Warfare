@@ -42,7 +42,6 @@ namespace ModernBox
             internal float interceptAt;
             internal float interceptTargetRemaining;
             internal Vector2 interceptPoint;
-            internal bool impactSoundPlayed;
         }
 
         private sealed class CooldownData
@@ -254,29 +253,6 @@ namespace ModernBox
         {
             if (projectile != null)
                 ProjectileStates.Remove(projectile);
-        }
-
-        internal static void PlayConventionalImpactSound(Projectile projectile)
-        {
-            bool heavy;
-            if (projectile?.asset == null || !MissileCatalog.IsConventionalImpact(projectile, out heavy))
-                return;
-
-            ProjectileData state = ProjectileStates.GetOrCreateValue(projectile);
-            if (state.impactSoundPlayed)
-                return;
-
-            state.impactSoundPlayed = true;
-            // Keep the conventional impact local to the real detonation.  The
-            // previous (-1, -1) non-positional route made every impact rumble
-            // across the entire map and could be mistaken for a nuclear blast.
-            // Cruise/land missiles retain WorldBox's native meteorite report;
-            // the lighter torpedo keeps its original smaller splash-like impact.
-            string impactSound = heavy
-                ? "event:/SFX/EXPLOSIONS/ExplosionMeteorite"
-                : "event:/SFX/EXPLOSIONS/ExplosionSmall";
-            Vector2 impactPosition = projectile.getTargetVector();
-            MusicBox.playSound(impactSound, impactPosition.x, impactPosition.y, true, true);
         }
 
         private static Actor FindMissileDefender(WorldTile missileTile, Kingdom missileKingdom)
