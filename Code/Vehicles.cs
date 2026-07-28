@@ -2768,7 +2768,6 @@ MissileSystem_Human.addDecision("check_swearing");
 MissileSystem_Human.addDecision("warrior_random_move");
 MissileSystem_Human.addDecision("missileArtilleryDecision");
 // MissileSystem_Human.addDecision("city_idle_walking");
-MissileSystem_Human.addDecision("swim_to_island");
         MissileSystem_Human.texture_asset = new ActorTextureSubAsset("actors/MissileSystem_Human/", false);
         MissileSystem_Human.special = true;
         MissileSystem_Human.has_advanced_textures = false;
@@ -3182,7 +3181,6 @@ MissileSystem_Ork.addDecision("check_swearing");
 MissileSystem_Ork.addDecision("warrior_random_move");
 MissileSystem_Ork.addDecision("HORDEmissileArtilleryDecision");
 // MissileSystem_Ork.addDecision("city_idle_walking");
-MissileSystem_Ork.addDecision("swim_to_island");
         MissileSystem_Ork.texture_asset = new ActorTextureSubAsset("actors/MissileSystem_Ork/", false);
         MissileSystem_Ork.special = true;
         MissileSystem_Ork.has_advanced_textures = false;
@@ -3469,7 +3467,6 @@ MissileSystem_Dwarf.addDecision("check_swearing");
 MissileSystem_Dwarf.addDecision("warrior_random_move");
 MissileSystem_Dwarf.addDecision("HARDENmissileArtilleryDecision");
 // MissileSystem_Dwarf.addDecision("city_idle_walking");
-MissileSystem_Dwarf.addDecision("swim_to_island");
         MissileSystem_Dwarf.sound_hit = "event:/SFX/HIT/HitMetal";
         MissileSystem_Dwarf.default_attack = "MissileSystemHarden";
         MissileSystem_Dwarf.icon = "iconBoat";
@@ -3900,7 +3897,6 @@ MissileSystem_Gaia.addDecision("check_swearing");
 MissileSystem_Gaia.addDecision("warrior_random_move");
 MissileSystem_Gaia.addDecision("GAIAmissileArtilleryDecision");
 // MissileSystem_Gaia.addDecision("city_idle_walking");
-MissileSystem_Gaia.addDecision("swim_to_island");
         MissileSystem_Gaia.texture_asset = new ActorTextureSubAsset("actors/MissileSystem_Gaia/", false);
         MissileSystem_Gaia.special = true;
         MissileSystem_Gaia.has_advanced_textures = false;
@@ -10297,6 +10293,20 @@ private static bool IsGroundMissileLauncher(Actor actor)
         actorId.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase);
 }
 
+// This applies only to the four MissileSystem_* ground launchers. Naval
+// missile platforms deliberately retain their sea-targeting rules.
+private static bool IsGroundMissileTargetOnLand(Actor caster, Vector2 target)
+{
+    if (!IsGroundMissileLauncher(caster))
+        return true;
+    if (!TryResolveWorldTarget(target, out Vector2 resolved))
+        return false;
+
+    WorldTile targetTile = World.world.GetTile(Mathf.RoundToInt(resolved.x), Mathf.RoundToInt(resolved.y));
+    return targetTile?.Type != null && targetTile.Type.ground &&
+        !targetTile.Type.ocean && !targetTile.Type.liquid;
+}
+
 private static bool IsValidMissilePlatformDirectTarget(Actor caster, BaseSimObject target)
 {
     if (caster == null || caster.kingdom == null || target == null ||
@@ -10308,7 +10318,11 @@ private static bool IsValidMissilePlatformDirectTarget(Actor caster, BaseSimObje
     // direct-fire route against a landing force or any target on home soil:
     // that fight belongs to soldiers, tanks and conventional artillery.
     if (IsGroundMissileLauncher(caster))
+    {
+        if (!IsGroundMissileTargetOnLand(caster, target.current_position))
+            return false;
         return IsStrategicMissileTargetSafe(caster.kingdom, target.current_position, 4f);
+    }
 
     WorldTile tile = target.current_tile;
     City territoryCity = tile?.zone?.city;
@@ -10528,6 +10542,7 @@ public static bool MissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile
 
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
+                        IsGroundMissileTargetOnLand(caster, attackPos.Value) &&
                         IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
                         (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 8f)))
                     {
@@ -10607,6 +10622,7 @@ public static bool HORDEmissileArtilleryEffect(BaseSimObject pTarget, WorldTile 
 
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
+                        IsGroundMissileTargetOnLand(caster, attackPos.Value) &&
                         IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
                         (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 8f)))
                     {
@@ -10688,6 +10704,7 @@ public static bool GAIAmissileArtilleryEffect(BaseSimObject pTarget, WorldTile p
 
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
+                        IsGroundMissileTargetOnLand(caster, attackPos.Value) &&
                         IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
                         (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 8f)))
                     {
@@ -10767,6 +10784,7 @@ public static bool HARDENmissileArtilleryEffect(BaseSimObject pTarget, WorldTile
 
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
+                        IsGroundMissileTargetOnLand(caster, attackPos.Value) &&
                         IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
                         (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 8f)))
                     {
@@ -11356,6 +11374,18 @@ public static class Patch_ActorAnimationLoader_Fix
 
 				__instance.clearAttackTarget();
 				return false;
+			}
+		}
+
+		[HarmonyPatch(typeof(Actor), "embarkInto")]
+		public static class Patch_Actor_GroundMissileLauncherEmbarkGuard
+		{
+			[HarmonyPrefix]
+			public static bool Prefix(Actor __instance)
+			{
+				// Strategic land launchers are fixed to the mainland: they neither
+				// navigate water themselves nor occupy a transport boat slot.
+				return !IsGroundMissileLauncher(__instance);
 			}
 		}
 
