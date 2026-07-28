@@ -31,9 +31,15 @@ namespace ModernBox
             try
             {
                 var alliance = pZone.getAllianceOnZone(pZoneOption);
-                if (alliance != null && alliance.data != null)
+                // No alliance is the normal state for a zone.  The native
+                // renderer must still receive it so it can preserve the
+                // kingdom/culture fill beneath the optional alliance layer.
+                if (alliance == null || alliance.data != null)
                     return true;
 
+                // Only a real but malformed alliance entry needs the
+                // null-safe fallback.  This is the stale-save case the patch
+                // exists to protect against.
                 __instance.drawZoneMeta(pZone, MetaTypeLibrary.alliance, _ => null);
                 ReportInvalidZoneOnce();
             }
