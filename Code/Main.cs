@@ -123,6 +123,7 @@ namespace ModernBox{
                 StatManager = gameObject.AddComponent<StatManager>();
                 gameObject.AddComponent<MilitaryProgressionController>();
                 gameObject.AddComponent<AntiSubmarineWarfareController>();
+                gameObject.AddComponent<NavalOwnershipReconciliationController>();
                 gameObject.AddComponent<CarrierAirWingController>();
                 gameObject.AddComponent<NavalOverviewRegistrationController>();
                 gameObject.AddComponent<GroundMissileProductionController>();

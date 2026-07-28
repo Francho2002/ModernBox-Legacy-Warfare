@@ -10576,7 +10576,7 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
         return false;
 
     Actor caster = pTarget.a;
-    if (!caster.isAlive() || !caster.kingdom.hasEnemies())
+    if (!caster.isAlive() || caster.kingdom == null || !caster.kingdom.hasEnemies())
         return false;
 
     City ownerCity = caster.city;
