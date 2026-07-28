@@ -107,6 +107,7 @@ namespace ModernBox{
                 ModernBoxLogger.Log("[MX] Main.Awake entered");
 	            loadSettings();
                 ForbiddenKnowledgeIntegration.EnsureEnabledForCurrentRelease();
+                WorldLawDefaults.EnableRandomCultureReligionTraitsByDefault();
 
                 harmony = new Harmony("com.Tuxxego.MX");
 
