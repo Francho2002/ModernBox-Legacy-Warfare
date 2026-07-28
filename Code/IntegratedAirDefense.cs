@@ -375,8 +375,15 @@ namespace ModernBox
                 !candidate.isFlying())
                 return false;
 
-            return ModernCapPolicy.IsAllowedAircraft(candidate.asset.id) &&
-                   (!Vehicles.IsFixedWingMissionAircraft(candidate) || Vehicles.IsAircraftInAttackWindow(candidate));
+            if (!ModernCapPolicy.IsAllowedAircraft(candidate.asset.id) ||
+                (Vehicles.IsFixedWingMissionAircraft(candidate) && !Vehicles.IsAircraftInAttackWindow(candidate)))
+                return false;
+
+            // The B-2-style bomber only exposes itself to an anti-air search
+            // on a rare radar contact.  It remains technically interceptable,
+            // while several overlapping batteries do not reliably erase every
+            // sortie during its short attack pass.
+            return !Vehicles.IsStealthBomber(candidate) || UnityEngine.Random.value < 0.04f;
         }
 
         private static bool IsReady(Actor defender)

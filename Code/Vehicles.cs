@@ -133,6 +133,10 @@ namespace ModernBox
 		private const string AirMissionAttackWindowKey = "mb_air_mission_attack_window";
 		private const string AirMissionCooldownKey = "mb_air_mission_cooldown";
 		private const float BomberMissionSpeed = 105f;
+		// Bomber_Human uses the triangular B-2/stealth sprite.  It keeps the
+		// normal bomber payload and sortie rules, but has a distinctly faster
+		// penetration profile than the conventional bomber variants.
+		private const float StealthBomberMissionSpeed = 185f;
 		private const float FighterMissionSpeed = 135f;
 		private const float AirMissionApproachDistance = 10f;
 		private const float AirMissionAttackWindowSeconds = 3.5f;
@@ -2880,7 +2884,7 @@ supporttruck_Human.addDecision("swim_to_island");
         Bomber_Human.base_stats["size"] = 1f;
 		Bomber_Human.base_stats["mass"] = 1000f;
         Bomber_Human.base_stats["health"] = 400f;
-		Bomber_Human.base_stats["speed"] = BomberMissionSpeed;
+		Bomber_Human.base_stats["speed"] = StealthBomberMissionSpeed;
 		Bomber_Human.base_stats["armor"] = 0f;
 		Bomber_Human.base_stats["attack_speed"] = 5f;
 		Bomber_Human.base_stats["damage"] = 200f;
@@ -8933,7 +8937,9 @@ private static void ApplyAirVehicleDecisionProfiles()
 		}
 		if (entry.Key.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase))
 		{
-			asset.base_stats["speed"] = BomberMissionSpeed;
+			asset.base_stats["speed"] = IsStealthBomber(entry.Key)
+				? StealthBomberMissionSpeed
+				: BomberMissionSpeed;
 		}
 		else if (entry.Key.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) ||
 			string.Equals(entry.Key, "F55FighterJet", StringComparison.OrdinalIgnoreCase))
@@ -9159,6 +9165,18 @@ internal static bool IsFixedWingMissionAircraft(Actor actor)
 		 string.Equals(id, "F55FighterJet", StringComparison.OrdinalIgnoreCase));
 }
 
+// The human bomber is the B-2-style triangular asset.  Keep this identifier
+// check deliberately narrow so conventional bombers retain normal behavior.
+internal static bool IsStealthBomber(Actor actor)
+{
+	return IsStealthBomber(actor?.asset?.id);
+}
+
+private static bool IsStealthBomber(string actorId)
+{
+	return string.Equals(actorId, "Bomber_Human", StringComparison.OrdinalIgnoreCase);
+}
+
 internal static void AssignAirMission(Actor aircraft, WorldTile target)
 {
 	if (aircraft == null || target == null || !TryGetAirVehicleProfile(aircraft, out _))
@@ -9179,7 +9197,7 @@ private static void SetAirMissionSpeed(Actor actor)
 		return;
 	string id = actor.asset.id;
 	float speed = id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase)
-		? BomberMissionSpeed
+		? (IsStealthBomber(id) ? StealthBomberMissionSpeed : BomberMissionSpeed)
 		: FighterMissionSpeed;
 	actor.stats["speed"] = speed;
 }
