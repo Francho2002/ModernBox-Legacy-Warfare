@@ -70,6 +70,16 @@ namespace ModernBox
 
         internal static bool Enabled { get; private set; } = true;
 
+        // WorldBox normally lets nearby actors collide with a projectile.  That
+        // is suitable for arrows and stones, but it makes an ICBM look as if a
+        // sword or a rifle round can shoot it down.  ModernBox missile defence
+        // is intentionally handled only by TryInterceptMissile below, which
+        // launches and resolves an actual interceptor missile.
+        internal static bool IsProtectedMissile(Projectile projectile)
+        {
+            return projectile?.asset != null && InterceptableMissiles.Contains(projectile.asset.id);
+        }
+
         private sealed class ProjectileData
         {
             internal float age;
@@ -469,6 +479,47 @@ namespace ModernBox
             IntegratedAirDefense.PlayConventionalImpactSound(__instance);
             IntegratedAirDefense.Forget(__instance);
             NuclearAlertController.Forget(__instance);
+        }
+    }
+
+    // Keep long-range conventional and strategic warheads out of WorldBox's
+    // ordinary projectile collision path.  The explicit IAD update patch above
+    // remains active, so this does not disable missile interception.
+    [HarmonyPatch(typeof(Projectile), "canBeCollided")]
+    internal static class StrategicMissileCollisionPatch
+    {
+        [HarmonyPrefix]
+        private static bool Prefix(Projectile __instance, ref bool __result)
+        {
+            if (!IntegratedAirDefense.IsProtectedMissile(__instance))
+                return true;
+
+            __result = false;
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(Projectile), "checkHitOnNearbyUnits")]
+    internal static class StrategicMissileNearbyHitPatch
+    {
+        [HarmonyPrefix]
+        private static bool Prefix(Projectile __instance, ref AttackDataResult __result)
+        {
+            if (!IntegratedAirDefense.IsProtectedMissile(__instance))
+                return true;
+
+            __result = default(AttackDataResult);
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(Projectile), "getDeflected")]
+    internal static class StrategicMissileDeflectionPatch
+    {
+        [HarmonyPrefix]
+        private static bool Prefix(Projectile __instance)
+        {
+            return !IntegratedAirDefense.IsProtectedMissile(__instance);
         }
     }
 }
