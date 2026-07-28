@@ -7,7 +7,7 @@ using UnityEngine;
 namespace ModernBox
 {
     // Carrier air operations are deliberately sampled instead of updated every
-    // frame. A carrier owns at most one fighter and one bomber at a time.
+    // frame. A carrier owns at most two fighters and two bombers at a time.
     internal sealed class CarrierAirWingController : MonoBehaviour
     {
         private const float CycleSeconds = 4f;
@@ -16,13 +16,16 @@ namespace ModernBox
         private const float RefitSeconds = 80f;
         private const float LostCarrierRtbSeconds = 48f;
         private const int CarriersPerCycle = 3;
+        private const int AircraftPerRole = 2;
         private const string FighterReplacementRequiredKey = "mb_carrier_fighter_replacement_required";
         private const string BomberReplacementRequiredKey = "mb_carrier_bomber_replacement_required";
+        private const string FighterLossCountKey = "mb_carrier_fighter_loss_count";
+        private const string BomberLossCountKey = "mb_carrier_bomber_loss_count";
 
         private sealed class WingState
         {
-            internal Actor fighter;
-            internal Actor bomber;
+            internal readonly List<Actor> fighters = new List<Actor>();
+            internal readonly List<Actor> bombers = new List<Actor>();
             internal float readyAt;
             internal float sortieEndsAt;
             internal float carrierLostAt;
@@ -75,15 +78,43 @@ namespace ModernBox
                 }
             }
 
-            // Actor data survives a save/load. Rehydrate the lightweight
-            // runtime links before any new sortie can be considered.
+            // Actor data survives a save/load. Rebuild the lightweight runtime
+            // links from every marked aircraft so old references cannot cause
+            // duplicate entries after a roster refresh.
+            Dictionary<Actor, Actor> previousOwners = new Dictionary<Actor, Actor>();
+            HashSet<Actor> recordedDestroyedAircraft = new HashSet<Actor>();
+            foreach (KeyValuePair<Actor, WingState> wing in _wings)
+            {
+                RecordDestroyedAircraft(wing.Key, wing.Value.fighters, true, recordedDestroyedAircraft);
+                RecordDestroyedAircraft(wing.Key, wing.Value.bombers, false, recordedDestroyedAircraft);
+                foreach (Actor aircraft in wing.Value.fighters)
+                    if (aircraft != null)
+                        previousOwners[aircraft] = wing.Key;
+                foreach (Actor aircraft in wing.Value.bombers)
+                    if (aircraft != null)
+                        previousOwners[aircraft] = wing.Key;
+                wing.Value.fighters.Clear();
+                wing.Value.bombers.Clear();
+            }
+
+            HashSet<Actor> rehydratedAircraft = new HashSet<Actor>();
             foreach (Actor actor in World.world.units.Cast<Actor>())
             {
                 if (!Vehicles.IsCarrierAircraft(actor))
                     continue;
+                if (!actor.isAlive())
+                {
+                    if (recordedDestroyedAircraft.Add(actor) &&
+                        Vehicles.TryGetCarrierForAircraft(actor, out Actor destroyedAircraftCarrier))
+                        RegisterLossForAircraft(destroyedAircraftCarrier, actor);
+                    continue;
+                }
                 if (!Vehicles.TryGetCarrierForAircraft(actor, out Actor carrier))
                 {
                     BeginTerrestrialFallback(actor);
+                    if (previousOwners.TryGetValue(actor, out Actor previousCarrier) &&
+                        !IsCarrier(previousCarrier) && _wings.TryGetValue(previousCarrier, out WingState lostState))
+                        AddAircraftToRole(lostState, actor);
                     continue;
                 }
                 if (!_wings.TryGetValue(carrier, out WingState state))
@@ -91,10 +122,9 @@ namespace ModernBox
                     state = new WingState { sortieEndsAt = Time.time + 24f };
                     _wings[carrier] = state;
                 }
-                if (actor.asset?.id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) == true)
-                    state.fighter = actor;
-                else if (actor.asset?.id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase) == true)
-                    state.bomber = actor;
+                if (!rehydratedAircraft.Add(actor))
+                    continue;
+                AddAircraftToRole(state, actor);
             }
         }
 
@@ -160,36 +190,61 @@ namespace ModernBox
             string faction = GetFaction(carrier.asset?.id);
             string fighterId = "FighterJet_" + faction;
             string bomberId = "Bomber_" + faction;
-            ConstructionCost fighterCost = new ConstructionCost(5, 4, 3, 1);
-            ConstructionCost bomberCost = new ConstructionCost(7, 6, 5, 2);
-            bool replaceFighter = GetReplacementRequired(carrier, FighterReplacementRequiredKey);
-            bool replaceBomber = GetReplacementRequired(carrier, BomberReplacementRequiredKey);
-            ConstructionCost replacementCost = replaceFighter && replaceBomber ? new ConstructionCost(12, 10, 8, 3) :
-                replaceFighter ? fighterCost : replaceBomber ? bomberCost : new ConstructionCost(0, 0, 0, 0);
+            int fighterLosses = GetLossCount(carrier, FighterLossCountKey, FighterReplacementRequiredKey);
+            int bomberLosses = GetLossCount(carrier, BomberLossCountKey, BomberReplacementRequiredKey);
+            ConstructionCost replacementCost = new ConstructionCost(
+                fighterLosses * 5 + bomberLosses * 7,
+                fighterLosses * 4 + bomberLosses * 6,
+                fighterLosses * 3 + bomberLosses * 5,
+                fighterLosses + bomberLosses * 2);
             // The carrier hull includes its initial wing. Only aircraft that
             // were actually lost consume city resources on replacement.
-            if ((replaceFighter || replaceBomber) && !city.hasEnoughResourcesFor(replacementCost))
+            if ((fighterLosses > 0 || bomberLosses > 0) && !city.hasEnoughResourcesFor(replacementCost))
                 return false;
 
-            Actor fighter = SpawnAircraft(fighterId, carrier);
-            if (fighter == null)
-                return false;
-            Actor bomber = SpawnAircraft(bomberId, carrier);
-            if (bomber == null)
+            List<Actor> deployedFighters = new List<Actor>(AircraftPerRole);
+            List<Actor> deployedBombers = new List<Actor>(AircraftPerRole);
+            for (int index = 0; index < AircraftPerRole; index++)
             {
-                ActionLibrary.removeUnit(fighter);
-                return false;
+                Actor fighter = SpawnAircraft(fighterId, carrier);
+                if (fighter == null)
+                {
+                    RollbackDeployment(deployedFighters, deployedBombers);
+                    return false;
+                }
+                deployedFighters.Add(fighter);
+            }
+            for (int index = 0; index < AircraftPerRole; index++)
+            {
+                Actor bomber = SpawnAircraft(bomberId, carrier);
+                if (bomber == null)
+                {
+                    RollbackDeployment(deployedFighters, deployedBombers);
+                    return false;
+                }
+                deployedBombers.Add(bomber);
             }
 
-            if (replaceFighter || replaceBomber)
+            if (fighterLosses > 0 || bomberLosses > 0)
                 city.spendResourcesForBuildingAsset(replacementCost);
-            SetReplacementRequired(carrier, FighterReplacementRequiredKey, false);
-            SetReplacementRequired(carrier, BomberReplacementRequiredKey, false);
-            state.fighter = fighter;
-            state.bomber = bomber;
-            AssignEnemyTarget(carrier, fighter);
-            AssignEnemyTarget(carrier, bomber);
+            SetLossCount(carrier, FighterLossCountKey, 0);
+            SetLossCount(carrier, BomberLossCountKey, 0);
+            state.fighters.AddRange(deployedFighters);
+            state.bombers.AddRange(deployedBombers);
+            foreach (Actor fighter in deployedFighters)
+                AssignEnemyTarget(carrier, fighter);
+            foreach (Actor bomber in deployedBombers)
+                AssignEnemyTarget(carrier, bomber);
             return true;
+        }
+
+        private static void RollbackDeployment(List<Actor> fighters, List<Actor> bombers)
+        {
+            foreach (Actor aircraft in fighters.Concat(bombers))
+            {
+                Vehicles.UnlinkCarrierAircraft(aircraft);
+                ActionLibrary.removeUnit(aircraft);
+            }
         }
 
         private static Actor SpawnAircraft(string assetId, Actor carrier)
@@ -219,38 +274,48 @@ namespace ModernBox
         private static void ReturnToCarrier(Actor carrier, WingState state)
         {
             state.sortieEndsAt = 0f;
-            Vehicles.ForceCarrierAircraftRtb(state.fighter);
-            Vehicles.ForceCarrierAircraftRtb(state.bomber);
+            foreach (Actor aircraft in state.fighters)
+                Vehicles.ForceCarrierAircraftRtb(aircraft);
+            foreach (Actor aircraft in state.bombers)
+                Vehicles.ForceCarrierAircraftRtb(aircraft);
         }
 
         private static void RecoverAircraftOnDeck(Actor carrier, WingState state)
         {
-            RecoverAircraft(carrier, state, ref state.fighter, carrier.current_tile, FighterReplacementRequiredKey);
-            RecoverAircraft(carrier, state, ref state.bomber, carrier.current_tile, BomberReplacementRequiredKey);
+            RecoverAircraft(carrier, state, state.fighters, carrier.current_tile, true);
+            RecoverAircraft(carrier, state, state.bombers, carrier.current_tile, false);
         }
 
-        private static void RecoverAircraft(Actor carrier, WingState state, ref Actor aircraft, WorldTile deck, string replacementKey)
+        private static void RecoverAircraft(Actor carrier, WingState state, List<Actor> aircraft, WorldTile deck, bool fighter)
         {
-            if (aircraft == null)
-                return;
-            if (!aircraft.isAlive())
+            for (int index = aircraft.Count - 1; index >= 0; index--)
             {
-                SetReplacementRequired(carrier, replacementKey, true);
-                aircraft = null;
-                return;
-            }
-            if (Vehicles.TryConsumeCarrierRecoveryReady(aircraft, carrier))
-            {
-                Vehicles.UnlinkCarrierAircraft(aircraft);
-                ActionLibrary.removeUnit(aircraft);
-                aircraft = null;
-                return;
-            }
-            if (state.sortieEndsAt <= 0f && aircraft.current_tile != null &&
-                Toolbox.DistTile(aircraft.current_tile, deck) <= 3)
-            {
-                ActionLibrary.removeUnit(aircraft);
-                aircraft = null;
+                Actor unit = aircraft[index];
+                if (unit == null)
+                {
+                    aircraft.RemoveAt(index);
+                    continue;
+                }
+                if (!unit.isAlive())
+                {
+                    RegisterLoss(carrier, fighter);
+                    aircraft.RemoveAt(index);
+                    continue;
+                }
+                if (Vehicles.TryConsumeCarrierRecoveryReady(unit, carrier))
+                {
+                    Vehicles.UnlinkCarrierAircraft(unit);
+                    ActionLibrary.removeUnit(unit);
+                    aircraft.RemoveAt(index);
+                    continue;
+                }
+                if (state.sortieEndsAt <= 0f && unit.current_tile != null &&
+                    Toolbox.DistTile(unit.current_tile, deck) <= 3)
+                {
+                    Vehicles.UnlinkCarrierAircraft(unit);
+                    ActionLibrary.removeUnit(unit);
+                    aircraft.RemoveAt(index);
+                }
             }
         }
 
@@ -259,13 +324,15 @@ namespace ModernBox
             if (state.carrierLostAt <= 0f)
             {
                 state.carrierLostAt = Time.time;
-                BeginTerrestrialFallback(state.fighter);
-                BeginTerrestrialFallback(state.bomber);
+                foreach (Actor aircraft in state.fighters)
+                    BeginTerrestrialFallback(aircraft);
+                foreach (Actor aircraft in state.bombers)
+                    BeginTerrestrialFallback(aircraft);
             }
             if (Time.time < state.carrierLostAt + LostCarrierRtbSeconds)
                 return;
-            RetireLostAircraft(ref state.fighter);
-            RetireLostAircraft(ref state.bomber);
+            RetireLostAircraft(state.fighters);
+            RetireLostAircraft(state.bombers);
         }
 
         private static void ReturnToLand(Actor aircraft)
@@ -290,17 +357,20 @@ namespace ModernBox
             }
         }
 
-        private static void RetireLostAircraft(ref Actor aircraft)
+        private static void RetireLostAircraft(List<Actor> aircraft)
         {
-            if (aircraft != null && aircraft.isAlive())
-                ActionLibrary.removeUnit(aircraft);
-            aircraft = null;
+            foreach (Actor unit in aircraft)
+            {
+                if (unit != null && unit.isAlive())
+                    ActionLibrary.removeUnit(unit);
+            }
+            aircraft.Clear();
         }
 
         private static bool HasLiveAircraft(WingState state)
         {
-            return (state.fighter != null && state.fighter.isAlive()) ||
-                (state.bomber != null && state.bomber.isAlive());
+            return state.fighters.Any(aircraft => aircraft != null && aircraft.isAlive()) ||
+                state.bombers.Any(aircraft => aircraft != null && aircraft.isAlive());
         }
 
         private static bool HasEnemyNearby(Actor carrier)
@@ -329,6 +399,64 @@ namespace ModernBox
                 }
             }
             return closest;
+        }
+
+        private static void AddAircraftToRole(WingState state, Actor aircraft)
+        {
+            if (aircraft.asset?.id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                if (!state.fighters.Contains(aircraft))
+                    state.fighters.Add(aircraft);
+            }
+            else if (aircraft.asset?.id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase) == true &&
+                !state.bombers.Contains(aircraft))
+            {
+                state.bombers.Add(aircraft);
+            }
+        }
+
+        private static void RecordDestroyedAircraft(Actor carrier, List<Actor> aircraft, bool fighter,
+            HashSet<Actor> recordedDestroyedAircraft)
+        {
+            foreach (Actor unit in aircraft)
+            {
+                if (unit != null && !unit.isAlive() && recordedDestroyedAircraft.Add(unit))
+                    RegisterLoss(carrier, fighter);
+            }
+        }
+
+        private static void RegisterLossForAircraft(Actor carrier, Actor aircraft)
+        {
+            if (aircraft.asset?.id.StartsWith("FighterJet_", StringComparison.OrdinalIgnoreCase) == true)
+                RegisterLoss(carrier, true);
+            else if (aircraft.asset?.id.StartsWith("Bomber_", StringComparison.OrdinalIgnoreCase) == true)
+                RegisterLoss(carrier, false);
+        }
+
+        private static void RegisterLoss(Actor carrier, bool fighter)
+        {
+            string lossCountKey = fighter ? FighterLossCountKey : BomberLossCountKey;
+            string legacyKey = fighter ? FighterReplacementRequiredKey : BomberReplacementRequiredKey;
+            SetLossCount(carrier, lossCountKey, GetLossCount(carrier, lossCountKey, legacyKey) + 1);
+        }
+
+        private static int GetLossCount(Actor carrier, string lossCountKey, string legacyKey)
+        {
+            carrier.data.get(lossCountKey, out int losses, pDefault: 0);
+            losses = Mathf.Clamp(losses, 0, AircraftPerRole);
+            if (GetReplacementRequired(carrier, legacyKey))
+            {
+                losses = Mathf.Max(losses, 1);
+                SetReplacementRequired(carrier, legacyKey, false);
+            }
+            SetLossCount(carrier, lossCountKey, losses);
+            return losses;
+        }
+
+        private static void SetLossCount(Actor carrier, string key, int losses)
+        {
+            if (carrier != null)
+                carrier.data.set(key, Mathf.Clamp(losses, 0, AircraftPerRole));
         }
 
         private static bool GetReplacementRequired(Actor carrier, string key)

@@ -764,7 +764,7 @@ namespace ModernBox
             if (id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase))
             {
                 title = "Portaaviones - " + faction;
-                description = "Despliega 1 caza + 1 bombardero.";
+                description = "Despliega 2 cazas + 2 bombarderos.";
                 return;
             }
             if (id.StartsWith("CargoShip_", StringComparison.OrdinalIgnoreCase))
