@@ -482,23 +482,6 @@ namespace ModernBox
         }
     }
 
-    // Keep long-range conventional and strategic warheads out of WorldBox's
-    // ordinary projectile collision path.  The explicit IAD update patch above
-    // remains active, so this does not disable missile interception.
-    [HarmonyPatch(typeof(Projectile), "canBeCollided")]
-    internal static class StrategicMissileCollisionPatch
-    {
-        [HarmonyPrefix]
-        private static bool Prefix(Projectile __instance, ref bool __result)
-        {
-            if (!IntegratedAirDefense.IsProtectedMissile(__instance))
-                return true;
-
-            __result = false;
-            return false;
-        }
-    }
-
     [HarmonyPatch(typeof(Projectile), "checkHitOnNearbyUnits")]
     internal static class StrategicMissileNearbyHitPatch
     {
