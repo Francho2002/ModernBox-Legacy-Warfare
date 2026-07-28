@@ -20,6 +20,11 @@ namespace ModernBox
 {
     class Buildings : MonoBehaviour
     {
+        // ModernBox keeps the legacy building assets registered so existing
+        // saves can still resolve them. New cities must use WorldBox's native
+        // building chains while visual eras are disabled, however.
+        private const bool EnableLegacyVisualBuildingReplacements = false;
+
         public static void init()
         {
             BuildingOrderandStuff();
@@ -30,12 +35,17 @@ namespace ModernBox
             float[] era = ModernBoxPrefs.EraProgress;
             float[] ren = ModernBoxPrefs.RenaissanceTime;
             float[] fuckmaxim = ModernBoxPrefs.HyperfutureTime;
+            if (EnableLegacyVisualBuildingReplacements)
+            {
            BuildingAsset stockpile = AssetManager.buildings.get("stockpile");
             stockpile.base_stats["health"] = 999999f;
             stockpile.burnable = false;
            BuildingAsset stockpile_fireproof = AssetManager.buildings.get("stockpile_fireproof");
             stockpile_fireproof.base_stats["health"] = 999999f;
+            }
    BuildingAsset mine = AssetManager.buildings.get("mine");
+            if (EnableLegacyVisualBuildingReplacements)
+            {
 mine.cost = new ConstructionCost(1, 0, 0, 0);
 mine.upgrade_level = 0;
 mine.can_be_upgraded = true;
@@ -43,6 +53,7 @@ mine.burnable = false;
 mine.upgrade_to = "mine_modern";
 mine.fundament = new BuildingFundament(1, 1, 1, 0);
 mine.construction_progress_needed = 5;
+            }
 BuildingAsset mine_modern = AssetManager.buildings.clone("mine_modern", "mine");
 mine_modern.can_be_upgraded = false;
 mine_modern.priority = 9999;
@@ -67,6 +78,8 @@ AssetManager.buildings.add(mine_modern);
 
 
 
+if (EnableLegacyVisualBuildingReplacements)
+{
 string[] alliancecivs = new string[] { "human", "plague_doctor", "evil_mage", "civ_white_mage", "civ_cat", "civ_dog", "civ_chicken", "civ_sheep", "civ_acid_gentleman", "bandit"};
 foreach (string allianceciv in alliancecivs)
 {
@@ -133,6 +146,7 @@ watch_tower.upgrade_level = 1;
 watch_tower.can_be_upgraded = true;
 watch_tower.upgrade_to = "watch_tower_modern_alliance";
     }
+}
 }
 BuildingAsset bonfire_alliance = AssetManager.buildings.clone("bonfire_alliance", "$city_building$");
 bonfire_alliance.draw_light_area = true;
@@ -629,6 +643,8 @@ AssetManager.city_build_orders.add(allianceBuild);
 
 
 
+if (EnableLegacyVisualBuildingReplacements)
+{
 string[] hardencivs = new string[] { "dwarf", "cold_one", "snowman", "civ_armadillo", "civ_rhino", "civ_crab", "civ_penguin", "civ_turtle", "civ_crystal_golem", "civ_candy_man", "civ_goat" };
 foreach (string hardenciv in hardencivs)
 {
@@ -695,6 +711,7 @@ foreach (string hardenciv in hardencivs)
         watch_tower.can_be_upgraded = true;
         watch_tower.upgrade_to = "watch_tower_modern_harden";
     }
+}
 }
 BuildingAsset bonfire_harden = AssetManager.buildings.clone("bonfire_harden", "$city_building$");
 bonfire_harden.draw_light_area = true;
@@ -1192,6 +1209,8 @@ AssetManager.city_build_orders.add(hardenBuild);
 
 
 
+if (EnableLegacyVisualBuildingReplacements)
+{
 string[] gaiacivs = new string[] { "elf", "civ_rabbit", "civ_monkey", "civ_cow", "civ_buffalo", "civ_alpaca", "civ_capybara", "civ_frog", "civ_liliar", "druid", "fairy", "civ_garlic_man", "civ_lemon_man", "unicorn" };
 foreach (string gaiaciv in gaiacivs)
 {
@@ -1258,6 +1277,7 @@ foreach (string gaiaciv in gaiacivs)
         watch_tower.can_be_upgraded = true;
         watch_tower.upgrade_to = "watch_tower_modern_gaia";
     }
+}
 }
 BuildingAsset bonfire_gaia = AssetManager.buildings.clone("bonfire_gaia", "$city_building$");
 bonfire_gaia.draw_light_area = true;
@@ -1755,6 +1775,8 @@ AssetManager.city_build_orders.add(gaiaBuild);
 
 
 
+if (EnableLegacyVisualBuildingReplacements)
+{
 string[] hordecivs = new string[] { "orc", "necromancer", "civ_fox", "civ_wolf", "civ_bear", "civ_hyena", "civ_rat", "civ_scorpion", "civ_crocodile", "civ_snake", "civ_piranha", "greg", "jumpy_skull" };
     foreach (string hordeciv in hordecivs)
     {
@@ -1821,6 +1843,7 @@ string[] hordecivs = new string[] { "orc", "necromancer", "civ_fox", "civ_wolf",
             watch_tower.can_be_upgraded = true;
             watch_tower.upgrade_to = "watch_tower_modern_horde";
         }
+    }
     }
     BuildingAsset bonfire_horde = AssetManager.buildings.clone("bonfire_horde", "$city_building$");
     bonfire_horde.draw_light_area = true;
@@ -2326,7 +2349,10 @@ string[] hordecivs = new string[] { "orc", "necromancer", "civ_fox", "civ_wolf",
 
 
 
-   AddCustomOrdersToArchitectures();
+   if (EnableLegacyVisualBuildingReplacements)
+   {
+       AddCustomOrdersToArchitectures();
+   }
 
 
         }
