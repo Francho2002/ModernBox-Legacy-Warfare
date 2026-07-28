@@ -41,14 +41,23 @@ estadisticas, pero sus ataques usan los proyectiles convencionales compartidos:
 sin municion elemental ni fantastica en canones, vehiculos, aviacion, destructores,
 lanzamisiles y submarinos.
 
-## Espacio, planetas y galaxias desactivados
+## Espacio, planetas y galaxias retirados
 
-`EnableSpaceSystems` esta fijado en `false`. Los assets, clases y datos legacy
-de espacio se conservan para compatibilidad, pero no se crean gestores de
-planetas o espacio, no se muestran ventanas ni controles de galaxias y no se
-generan planetas. Tampoco se ejecuta la limpieza de datos ModernBox ni la
-persistencia/autoguardado espacial, por lo que la compuerta no borra ni escribe
-datos espaciales existentes.
+El runtime legacy de espacio, planetas, galaxias y TUUDS fue eliminado del
+código compilado: ya no existen sus gestores, parches, ventanas, estadísticas
+ni botones. Los recursos físicos no se borraron para evitar una migración
+destructiva innecesaria. `PersistenceOption` se conserva únicamente como clave
+dormida para leer configuraciones antiguas.
+
+## Núcleo unificado de misiles
+
+Los misiles convencionales, nucleares, aéreos y defensivos comparten un catálogo
+y un ciclo de vida únicos. La intercepción produce un airburst en altura sin
+activar la carga; los impactos se alinean con su destino; y un misil atascado
+termina de forma visible en vez de desaparecer o quedar clavado.
+
+La guía para ampliar el sistema sin duplicar listas o parches está en
+[`docs/MISSILE_ARCHITECTURE.md`](docs/MISSILE_ARCHITECTURE.md).
 
 ## Defensa aérea y antimisiles
 
@@ -202,8 +211,7 @@ La invocación manual está separada en cuatro categorías: artillería, unidade
 terrestres, aviación y armada. Cada categoría conserva los poderes de aparición
 originales; Trainbox permanece en su propia pestaña.
 
-El panel heredado de planetas no se muestra mientras los sistemas espaciales
-están desactivados.
+El panel heredado de planetas y sus controles fueron retirados.
 
 La interfaz activa de ModernBox, los controles de Trainbox y las descripciones
 de las unidades están localizados al español. Los identificadores internos de
