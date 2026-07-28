@@ -90,7 +90,7 @@ namespace ModernBox
                 yield return "CarrierVessel_" + faction;
             }
 
-            // Includes Hunter, Arsenal, Trident, Neutron, EMP, Hammer and Ruin
+            // Includes Guardián, Hunter, Arsenal, Trident, Neutron, EMP, Hammer and Ruin
             // submarine classes for every faction.
             foreach (string assetId in NavalRoles.GetRoleIds())
                 yield return assetId;

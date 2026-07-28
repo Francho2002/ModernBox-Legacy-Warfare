@@ -100,6 +100,15 @@ namespace ModernBox
                 return true;
             }
 
+            if (string.Equals(projectileId, NavalRoles.InterceptorProjectileId, StringComparison.Ordinal))
+            {
+                // The countermeasure has to remain easy to follow at maximum
+                // zoom, without making a defensive salvo look like a nuclear
+                // launch on the aerial map.
+                markerScale = 0.38f;
+                return true;
+            }
+
             if (string.Equals(projectileId, "NUKER", StringComparison.Ordinal))
             {
                 markerScale = 0.50f;

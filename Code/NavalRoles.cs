@@ -23,6 +23,7 @@ namespace ModernBox
         private const string RuinDecisionId = "modernbox_sub_ruin_attack";
 
         private const string TorpedoProjectileId = "modernbox_torpedo";
+        internal const string InterceptorProjectileId = "modernbox_interceptor_missile";
         private const string ArsenalProjectileId = "modernbox_arsenal_warhead";
         private const string TridentProjectileId = "modernbox_trident_warhead";
         private const string NeutronProjectileId = "modernbox_neutron_warhead";
@@ -62,6 +63,11 @@ namespace ModernBox
 
         private static readonly RoleDefinition[] Roles =
         {
+            // A dedicated missile-defense hull. It deliberately has no attack
+            // decision: IntegratedAirDefense launches its interceptor only at
+            // an incoming projectile, never at a city or an aircraft.
+            new RoleDefinition("InterceptorSubmarine", "SSN Guardián", "interceptor_submarine", null,
+                new ConstructionCost(10, 9, 7, 3), false),
             new RoleDefinition("HunterSubmarine", "SSN Cazador", "hunter_submarine", HunterDecisionId,
                 new ConstructionCost(6, 5, 3, 1), false),
             new RoleDefinition("ArsenalSubmarine", "SSGN Arsenal", "arsenal_submarine", ArsenalDecisionId,
@@ -154,6 +160,12 @@ namespace ModernBox
             return false;
         }
 
+        internal static bool IsInterceptorSubmarine(string actorId)
+        {
+            return !string.IsNullOrEmpty(actorId) &&
+                actorId.StartsWith("InterceptorSubmarine_", StringComparison.OrdinalIgnoreCase);
+        }
+
         internal static SubmarineTargetLane GetTargetReservationLane(Actor caster)
         {
             string actorId = caster?.asset?.id;
@@ -196,6 +208,10 @@ namespace ModernBox
             if (actorId.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase))
             {
                 description = "1 torpedo + 2 misiles normales.";
+            }
+            else if (IsInterceptorSubmarine(actorId))
+            {
+                description = "Contramisil defensivo: intercepta misiles entrantes; no ataca ciudades ni aeronaves.";
             }
             else if (actorId.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase))
             {
@@ -262,6 +278,8 @@ namespace ModernBox
         internal static bool TryLaunchNoAirFallback(Actor caster)
         {
             string actorId = caster?.asset?.id;
+            if (IsInterceptorSubmarine(actorId))
+                return false;
             if (!CanLaunchConventional(caster, 0))
                 return false;
 
@@ -306,9 +324,10 @@ namespace ModernBox
             submarine.name_locale = role.DisplayName;
             submarine.cost = role.Cost;
             submarine.decision_ids = new List<string>();
-            submarine.addDecision(role.DecisionId);
+            if (!string.IsNullOrEmpty(role.DecisionId))
+                submarine.addDecision(role.DecisionId);
             submarine.addDecision("random_swim");
-            submarine.default_attack = "MissileSystemmissile";
+            submarine.default_attack = IsInterceptorSubmarine(id) ? "boat_cannonball" : "MissileSystemmissile";
             submarine.addTrait("NavalUnit");
             // Strategic hulls are intentionally costly and survivable without
             // crossing into fantastical end-game statistics.
@@ -342,6 +361,8 @@ namespace ModernBox
 
         private static void RegisterDecision(string id, int cooldown, Func<Actor, bool> action)
         {
+            if (string.IsNullOrEmpty(id))
+                return;
             if (AssetManager.decisions_library.get(id) != null)
                 return;
 
@@ -394,6 +415,11 @@ namespace ModernBox
 
         private static void CreateProjectiles()
         {
+            // A visual defensive projectile only. It has no terraform option,
+            // damage, fire or nuclear effect; the defense controller removes
+            // the hostile missile only after this countermeasure reaches it.
+            CreateProjectile(InterceptorProjectileId, "missileartillery", null, 0, 108f,
+                0.26f, "fx_explosion_middle", false, 0.35f, false);
             CreateProjectile(TorpedoProjectileId, "missileartillery", "modern_cap_missile_blast", 4, 62f,
                 0.42f, "fx_firebomb_explosion", false, 0.55f);
             // Retained only so an already-saved in-flight Arsenal projectile
@@ -419,7 +445,7 @@ namespace ModernBox
         }
 
         private static void CreateProjectile(string id, string texture, string terraformId, int terraformRange,
-            float speed, float scale, string effect, bool nuclearSound, float effectScale)
+            float speed, float scale, string effect, bool nuclearSound, float effectScale, bool leaveTrail = true)
         {
             if (AssetManager.projectiles.get(id) != null)
                 return;
@@ -441,7 +467,7 @@ namespace ModernBox
                 : string.Empty;
             projectile.end_effect = effect;
             projectile.end_effect_scale = effectScale;
-            projectile.trail_effect_enabled = true;
+            projectile.trail_effect_enabled = leaveTrail;
             projectile.trail_effect_id = "modern_cap_missile_trail";
             projectile.trail_effect_scale = 0.30f;
             projectile.trail_effect_timer = 0.10f;

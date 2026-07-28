@@ -1085,6 +1085,11 @@ namespace ModernBox
                     cost = new ConstructionCost(6, 5, 3, 1);
                     label = "6 madera, 5 piedra, 3 metal, 1 oro";
                 }
+                else if (id.StartsWith("InterceptorSubmarine_", StringComparison.OrdinalIgnoreCase))
+                {
+                    cost = new ConstructionCost(10, 9, 7, 3);
+                    label = "10 madera, 9 piedra, 7 metal, 3 oro";
+                }
                 else if (id.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase))
                 {
                     cost = new ConstructionCost(8, 7, 5, 2);

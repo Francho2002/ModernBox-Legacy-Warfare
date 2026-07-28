@@ -427,7 +427,8 @@ namespace ModernBox
         private static bool IsMissileNavalPlatform(Actor actor)
         {
             return actor != null && actor.isAlive() && actor.asset != null && actor.kingdom != null &&
-                   NavalRoles.IsAnyModernSubmarine(actor.asset.id);
+                   NavalRoles.IsAnyModernSubmarine(actor.asset.id) &&
+                   !NavalRoles.IsInterceptorSubmarine(actor.asset.id);
         }
 
         private static bool IsEnemySubmarine(Actor defender, Actor candidate)

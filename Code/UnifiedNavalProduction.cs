@@ -15,7 +15,7 @@ namespace ModernBox
         private static readonly string[] Factions = { "alliance", "harden", "gaia", "horde" };
         private static readonly string[] RoleBoatPrefixes =
         {
-            "hunter_submarine", "arsenal_submarine", "trident_submarine", "neutron_submarine",
+            "interceptor_submarine", "hunter_submarine", "arsenal_submarine", "trident_submarine", "neutron_submarine",
             "emp_submarine", "hammer_submarine", "ruin_submarine"
         };
 
@@ -167,7 +167,7 @@ namespace ModernBox
             string[] ids =
             {
                 "aDestroyer_" + faction, "bDestroyer_" + faction, "CarrierVessel_" + faction,
-                "HunterSubmarine_" + faction, "Submarine_" + faction,
+                "InterceptorSubmarine_" + faction, "HunterSubmarine_" + faction, "Submarine_" + faction,
                 "ArsenalSubmarine_" + faction, "TridentSubmarine_" + faction,
                 "NeutronSubmarine_" + faction, "EmpSubmarine_" + faction,
                 "HammerSubmarine_" + faction, "RuinSubmarine_" + faction,
@@ -280,6 +280,7 @@ namespace ModernBox
         {
             if (id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(16, 14, 11, 6);
             if (IsEscortDestroyer(id)) return new ConstructionCost(7, 6, 4, 2);
+            if (id.StartsWith("InterceptorSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(10, 9, 7, 3);
             if (id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(6, 5, 3, 1);
             if (id.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(8, 7, 5, 2);
             if (id.StartsWith("TridentSubmarine_", StringComparison.OrdinalIgnoreCase)) return new ConstructionCost(12, 10, 8, 4);

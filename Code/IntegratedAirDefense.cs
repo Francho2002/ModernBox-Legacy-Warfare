@@ -15,10 +15,15 @@ namespace ModernBox
         private const string DecisionId = "modernbox_integrated_air_defense";
         private const float LandRange = 30f;
         private const float NavalRange = 38f;
+        private const float InterceptorSubmarineRange = 34f;
         private const float LandCooldown = 5.5f;
         private const float NavalCooldown = 4.5f;
+        private const float InterceptorSubmarineCooldown = 14f;
         private const float MissileVisibleTime = 0.25f;
         private const float MissileCheckInterval = 0.15f;
+        private const float InterceptorProjectileSpeed = 108f;
+        private const float InterceptorArrivalRadius = 3.5f;
+        private const float InterceptorArrivalGraceSeconds = 1.2f;
 
         private static readonly HashSet<string> InterceptableMissiles = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -70,6 +75,10 @@ namespace ModernBox
             internal float age;
             internal float nextCheck;
             internal bool attempted;
+            internal bool countermeasurePending;
+            internal float interceptAt;
+            internal float interceptTargetRemaining;
+            internal Vector2 interceptPoint;
             internal bool impactSoundPlayed;
         }
 
@@ -120,7 +129,7 @@ namespace ModernBox
 
         private static bool TryLaunchAntiAir(Actor defender)
         {
-            if (!Enabled || !IsDefensePlatform(defender) || !IsReady(defender))
+            if (!Enabled || !IsAntiAirPlatform(defender) || !IsReady(defender))
                 return false;
 
             float range = GetRange(defender);
@@ -161,24 +170,129 @@ namespace ModernBox
 
             ProjectileData state = ProjectileStates.GetOrCreateValue(projectile);
             state.age += elapsed;
+            if (state.countermeasurePending)
+                return ResolvePendingCountermeasure(projectile, state);
             if (state.attempted || state.age < MissileVisibleTime || state.age < state.nextCheck || projectile.kingdom == null)
                 return false;
 
             state.nextCheck = state.age + MissileCheckInterval;
-            Actor defender = FindDefender(projectile.getCurrentTilePosition(), projectile.kingdom);
+            Actor defender = FindMissileDefender(projectile.getCurrentTilePosition(), projectile.kingdom);
             if (defender == null)
                 return false;
 
+            if (IsInterceptorSubmarine(defender))
+            {
+                if (UnityEngine.Random.value > GetInterceptChance(defender, projectile.asset.id))
+                {
+                    state.attempted = true;
+                    return false;
+                }
+
+                if (TryLaunchSubmarineCountermeasure(defender, projectile, state))
+                {
+                    state.attempted = true;
+                    PutOnCooldown(defender);
+                }
+                else
+                {
+                    // The Guardian may be inside its detection radius while
+                    // still being unable to reach this particular trajectory.
+                    // Keep the hostile missile available for a later check
+                    // instead of consuming every other defense opportunity.
+                    state.nextCheck = state.age + MissileCheckInterval;
+                }
+                return false;
+            }
+
             state.attempted = true;
-            PutOnCooldown(defender);
-            if (UnityEngine.Random.value > GetInterceptChance(projectile.asset.id))
+            if (UnityEngine.Random.value > GetInterceptChance(defender, projectile.asset.id))
                 return false;
 
+            PutOnCooldown(defender);
             Vector2 position = projectile.getCurrentPosition();
             EffectsLibrary.spawnAt("fx_firebomb_explosion", position, 0.4f);
             MusicBox.playSound("event:/SFX/EXPLOSIONS/ExplosionSmall", position.x, position.y, true, false);
             projectile.setState(ProjectileState.ToRemove);
             return true;
+        }
+
+        private static bool TryLaunchSubmarineCountermeasure(Actor defender, Projectile hostile,
+            ProjectileData state)
+        {
+            if (defender?.current_tile == null || hostile?.asset == null || World.world?.projectiles == null ||
+                AssetManager.projectiles?.get(NavalRoles.InterceptorProjectileId) == null)
+                return false;
+
+            Vector2 current = hostile.getCurrentPosition();
+            Vector2 destination = hostile.getTargetVector();
+            Vector2 path = destination - current;
+            float remainingDistance = path.magnitude;
+            float hostileSpeed = Mathf.Max(1f, hostile.asset.speed);
+            if (remainingDistance <= 3.5f || float.IsNaN(remainingDistance) || float.IsInfinity(remainingDistance))
+                return false;
+
+            float hostileEta = remainingDistance / hostileSpeed;
+            Vector2 direction = path / remainingDistance;
+            float directTravel = Vector2.Distance(defender.current_position, current) / InterceptorProjectileSpeed;
+            if (directTravel >= hostileEta - 0.05f)
+                return false;
+
+            float leadDistance = Mathf.Clamp(hostileSpeed * directTravel, 1.5f, remainingDistance - 1.5f);
+            Vector2 interceptPoint = current + direction * leadDistance;
+            float interceptorEta = Vector2.Distance(defender.current_position, interceptPoint) / InterceptorProjectileSpeed;
+            if (interceptorEta >= hostileEta - 0.02f)
+                return false;
+
+            Vector3 origin = defender.current_position;
+            Vector3 vector = Toolbox.getNewPoint(origin.x, origin.y, interceptPoint.x, interceptPoint.y,
+                Vector2.Distance(origin, interceptPoint));
+            Vector3 start = Toolbox.getNewPoint(origin.x, origin.y, interceptPoint.x, interceptPoint.y,
+                defender.stats["size"]);
+            start.y += 0.5f;
+            try
+            {
+                World.world.projectiles.spawn(defender, null, NavalRoles.InterceptorProjectileId, start, vector);
+            }
+            catch
+            {
+                return false;
+            }
+
+            state.countermeasurePending = true;
+            state.interceptAt = Time.time + interceptorEta;
+            state.interceptPoint = interceptPoint;
+            state.interceptTargetRemaining = Vector2.Distance(interceptPoint, destination);
+            defender.punchTargetAnimation(vector, true, false, 45f);
+            return true;
+        }
+
+        private static bool ResolvePendingCountermeasure(Projectile hostile, ProjectileData state)
+        {
+            if (Time.time < state.interceptAt)
+                return false;
+
+            Vector2 current = hostile.getCurrentPosition();
+            float distanceToIntercept = Vector2.Distance(current, state.interceptPoint);
+            if (distanceToIntercept <= InterceptorArrivalRadius)
+            {
+                state.countermeasurePending = false;
+                EffectsLibrary.spawnAt("fx_explosion_middle", state.interceptPoint, 0.45f);
+                MusicBox.playSound("event:/SFX/EXPLOSIONS/ExplosionSmall", state.interceptPoint.x,
+                    state.interceptPoint.y, true, false);
+                hostile.setState(ProjectileState.ToRemove);
+                return true;
+            }
+
+            float remainingToTarget = Vector2.Distance(current, hostile.getTargetVector());
+            if (Time.time >= state.interceptAt + InterceptorArrivalGraceSeconds ||
+                remainingToTarget + 0.5f < state.interceptTargetRemaining)
+            {
+                // The hostile projectile passed or out-ran the rendezvous. The
+                // defensive missile stays harmless and the original warhead
+                // continues normally rather than disappearing mid-flight.
+                state.countermeasurePending = false;
+            }
+            return false;
         }
 
         internal static void Forget(Projectile projectile)
@@ -207,7 +321,7 @@ namespace ModernBox
             MusicBox.playSound(impactSound, -1f, -1f, true, false);
         }
 
-        private static Actor FindDefender(WorldTile missileTile, Kingdom missileKingdom)
+        private static Actor FindMissileDefender(WorldTile missileTile, Kingdom missileKingdom)
         {
             if (missileTile == null || World.world?.units == null)
                 return null;
@@ -216,7 +330,7 @@ namespace ModernBox
             float nearest = float.MaxValue;
             foreach (Actor candidate in Finder.getUnitsFromChunk(missileTile, 4, NavalRange, false))
             {
-                if (!IsDefensePlatform(candidate) || candidate.kingdom == null ||
+                if (!IsMissileDefensePlatform(candidate) || candidate.kingdom == null ||
                     !candidate.kingdom.isEnemy(missileKingdom) || !IsReady(candidate))
                     continue;
 
@@ -230,7 +344,12 @@ namespace ModernBox
             return best;
         }
 
-        private static bool IsDefensePlatform(Actor actor)
+        private static bool IsMissileDefensePlatform(Actor actor)
+        {
+            return IsAntiAirPlatform(actor) || IsInterceptorSubmarine(actor);
+        }
+
+        private static bool IsAntiAirPlatform(Actor actor)
         {
             if (actor == null || !actor.isAlive() || actor.asset == null || actor.current_tile == null || actor.kingdom == null)
                 return false;
@@ -239,6 +358,12 @@ namespace ModernBox
             return id.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase) ||
                    id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) ||
                    id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsInterceptorSubmarine(Actor actor)
+        {
+            return actor != null && actor.isAlive() && actor.asset != null && actor.current_tile != null &&
+                actor.kingdom != null && NavalRoles.IsInterceptorSubmarine(actor.asset.id);
         }
 
         private static bool IsHostileAircraft(Actor defender, Actor candidate)
@@ -260,7 +385,9 @@ namespace ModernBox
         private static void PutOnCooldown(Actor defender)
         {
             CooldownData data = DefenderCooldowns.GetOrCreateValue(defender);
-            data.readyAt = Time.time + (IsNavalPlatform(defender) ? NavalCooldown : LandCooldown);
+            data.readyAt = Time.time + (IsInterceptorSubmarine(defender)
+                ? InterceptorSubmarineCooldown
+                : IsNavalPlatform(defender) ? NavalCooldown : LandCooldown);
         }
 
         private static bool IsNavalPlatform(Actor actor)
@@ -273,22 +400,29 @@ namespace ModernBox
 
         private static float GetRange(Actor actor)
         {
-            return IsNavalPlatform(actor) ? NavalRange : LandRange;
+            return IsInterceptorSubmarine(actor) ? InterceptorSubmarineRange :
+                IsNavalPlatform(actor) ? NavalRange : LandRange;
         }
 
-        private static float GetInterceptChance(string projectileId)
+        private static float GetInterceptChance(Actor defender, string projectileId)
         {
+            float chance;
             if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.Ordinal))
-                return 0.25f;
-            if (string.Equals(projectileId, "modernbox_baseline_ssbn_warhead", StringComparison.Ordinal))
-                return 0.25f;
-            if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.Ordinal))
-                return 0.12f;
-            if (string.Equals(projectileId, "NUKER", StringComparison.Ordinal))
-                return 0.25f;
-            if (NavalRoles.IsHeavyWarhead(projectileId))
-                return 0.30f;
-            return 0.65f;
+                chance = 0.25f;
+            else if (string.Equals(projectileId, "modernbox_baseline_ssbn_warhead", StringComparison.Ordinal))
+                chance = 0.25f;
+            else if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.Ordinal))
+                chance = 0.12f;
+            else if (string.Equals(projectileId, "NUKER", StringComparison.Ordinal))
+                chance = 0.25f;
+            else if (NavalRoles.IsHeavyWarhead(projectileId))
+                chance = 0.30f;
+            else
+                chance = 0.65f;
+
+            return IsInterceptorSubmarine(defender)
+                ? Mathf.Clamp(chance + 0.15f, 0.20f, 0.82f)
+                : chance;
         }
     }
 
@@ -324,6 +458,7 @@ namespace ModernBox
         private static void TargetReachedPrefix(Projectile __instance)
         {
             IntegratedAirDefense.PlayConventionalImpactSound(__instance);
+            IntegratedAirDefense.Forget(__instance);
             NuclearAlertController.Forget(__instance);
         }
     }

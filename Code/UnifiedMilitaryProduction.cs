@@ -547,7 +547,8 @@ namespace ModernBox
             foreach (Actor unit in city.units)
             {
                 if (unit != null && unit.isAlive() &&
-                    NavalRoles.IsAnyModernSubmarine(unit.asset?.id))
+                    NavalRoles.IsAnyModernSubmarine(unit.asset?.id) &&
+                    !NavalRoles.IsInterceptorSubmarine(unit.asset?.id))
                     return true;
             }
             return false;

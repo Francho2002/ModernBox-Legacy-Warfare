@@ -666,15 +666,16 @@ namespace ModernBox
             if (id.StartsWith("Heli_", StringComparison.OrdinalIgnoreCase)) return 22;
             if (id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase)) return 28;
             if (id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase)) return 29;
-            if (id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase)) return 30;
-            if (id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase)) return 31;
-            if (id.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase)) return 32;
-            if (id.StartsWith("TridentSubmarine_", StringComparison.OrdinalIgnoreCase)) return 33;
-            if (id.StartsWith("NeutronSubmarine_", StringComparison.OrdinalIgnoreCase)) return 34;
-            if (id.StartsWith("EmpSubmarine_", StringComparison.OrdinalIgnoreCase)) return 35;
-            if (id.StartsWith("HammerSubmarine_", StringComparison.OrdinalIgnoreCase)) return 36;
-            if (id.StartsWith("RuinSubmarine_", StringComparison.OrdinalIgnoreCase)) return 37;
-            if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase)) return 38;
+            if (id.StartsWith("InterceptorSubmarine_", StringComparison.OrdinalIgnoreCase)) return 30;
+            if (id.StartsWith("HunterSubmarine_", StringComparison.OrdinalIgnoreCase)) return 31;
+            if (id.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase)) return 32;
+            if (id.StartsWith("ArsenalSubmarine_", StringComparison.OrdinalIgnoreCase)) return 33;
+            if (id.StartsWith("TridentSubmarine_", StringComparison.OrdinalIgnoreCase)) return 34;
+            if (id.StartsWith("NeutronSubmarine_", StringComparison.OrdinalIgnoreCase)) return 35;
+            if (id.StartsWith("EmpSubmarine_", StringComparison.OrdinalIgnoreCase)) return 36;
+            if (id.StartsWith("HammerSubmarine_", StringComparison.OrdinalIgnoreCase)) return 37;
+            if (id.StartsWith("RuinSubmarine_", StringComparison.OrdinalIgnoreCase)) return 38;
+            if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase)) return 39;
             return 90;
         }
 

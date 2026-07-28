@@ -166,7 +166,8 @@ namespace ModernBox
             "modernbox_neutron_warhead",
             "modernbox_emp_warhead",
             "modernbox_hammer_warhead",
-            "modernbox_ruin_warhead"
+            "modernbox_ruin_warhead",
+            "modernbox_interceptor_missile"
         };
 
         private sealed class ProjectileLifetime
