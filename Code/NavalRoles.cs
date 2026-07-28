@@ -22,14 +22,14 @@ namespace ModernBox
         private const string HammerDecisionId = "modernbox_sub_hammer_attack";
         private const string RuinDecisionId = "modernbox_sub_ruin_attack";
 
-        private const string TorpedoProjectileId = "modernbox_torpedo";
-        internal const string InterceptorProjectileId = "modernbox_interceptor_missile";
-        private const string ArsenalProjectileId = "modernbox_arsenal_warhead";
-        private const string TridentProjectileId = "modernbox_trident_warhead";
-        private const string NeutronProjectileId = "modernbox_neutron_warhead";
-        private const string EmpProjectileId = "modernbox_emp_warhead";
-        private const string HammerProjectileId = "modernbox_hammer_warhead";
-        private const string RuinProjectileId = "modernbox_ruin_warhead";
+        private const string TorpedoProjectileId = MissileIds.Torpedo;
+        internal const string InterceptorProjectileId = MissileIds.Interceptor;
+        private const string ArsenalProjectileId = MissileIds.Arsenal;
+        private const string TridentProjectileId = MissileIds.Trident;
+        private const string NeutronProjectileId = MissileIds.Neutron;
+        private const string EmpProjectileId = MissileIds.Emp;
+        private const string HammerProjectileId = MissileIds.Hammer;
+        private const string RuinProjectileId = MissileIds.Ruin;
 
         private static readonly string[] Factions = { "alliance", "harden", "gaia", "horde" };
         private static readonly ConditionalWeakTable<Actor, ConventionalLaunchState> ConventionalLaunchStates =
@@ -248,15 +248,6 @@ namespace ModernBox
             return true;
         }
 
-        internal static bool IsHeavyWarhead(string projectileId)
-        {
-            return string.Equals(projectileId, TridentProjectileId, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(projectileId, NeutronProjectileId, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(projectileId, HammerProjectileId, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(projectileId, RuinProjectileId, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(projectileId, EmpProjectileId, StringComparison.OrdinalIgnoreCase);
-        }
-
         // Cuando un reino carece de alas fijas operativas, el controlador naval
         // usa esta cadencia como sustitución limitada del apoyo aéreo. No altera
         // los enfriamientos ni las decisiones normales mientras sí haya aviación.
@@ -298,12 +289,12 @@ namespace ModernBox
         private static string GetFactionConventionalProjectile(string actorId)
         {
             if (actorId != null && actorId.EndsWith("_horde", StringComparison.OrdinalIgnoreCase))
-                return "fireboneartillery";
+                return MissileIds.HordeCruise;
             if (actorId != null && actorId.EndsWith("_harden", StringComparison.OrdinalIgnoreCase))
-                return "frostmissileartillery";
+                return MissileIds.HardenCruise;
             if (actorId != null && actorId.EndsWith("_gaia", StringComparison.OrdinalIgnoreCase))
-                return "plantmissileartillery";
-            return "missileartillery";
+                return MissileIds.GaiaCruise;
+            return MissileIds.AllianceCruise;
         }
 
         private static void CreateRoleSubmarine(string faction, RoleDefinition role)
@@ -418,29 +409,29 @@ namespace ModernBox
             // A visual defensive projectile only. It has no terraform option,
             // damage, fire or nuclear effect; the defense controller removes
             // the hostile missile only after this countermeasure reaches it.
-            CreateProjectile(InterceptorProjectileId, "missileartillery", null, 0, 108f,
+            CreateProjectile(InterceptorProjectileId, MissileIds.AllianceCruise, null, 0, 108f,
                 0.26f, "fx_explosion_middle", false, 0.35f, false);
-            CreateProjectile(TorpedoProjectileId, "missileartillery", "modern_cap_missile_blast", 4, 62f,
+            CreateProjectile(TorpedoProjectileId, MissileIds.AllianceCruise, "modern_cap_missile_blast", 4, 62f,
                 0.42f, "fx_firebomb_explosion", false, 0.55f);
             // Retained only so an already-saved in-flight Arsenal projectile
             // can still be resolved after upgrading. New Arsenal salvos use
             // the exact faction conventional projectile below.
-            CreateProjectile(ArsenalProjectileId, "missileartillery", "modernbox_arsenal_blast", 6, 37f,
+            CreateProjectile(ArsenalProjectileId, MissileIds.AllianceCruise, "modernbox_arsenal_blast", 6, 37f,
                 0.50f, "fx_explosion_meteorite", false, 0.72f);
             // El Tridente emplea una cabeza MIRV propia: más amplia que la
             // nuclear estándar pero por debajo del Martillo, sin cráteres ni
             // bioma radiactivo.
-            CreateProjectile(TridentProjectileId, "NUKER", "modernbox_trident_blast", 16, 43f,
+            CreateProjectile(TridentProjectileId, MissileIds.Nuke, "modernbox_trident_blast", 16, 43f,
                 0.58f, "fx_explosion_nuke_atomic", true, 1.00f);
-            CreateProjectile(NeutronProjectileId, "NUKER", "modernbox_neutron_blast", 7, 45.5f,
+            CreateProjectile(NeutronProjectileId, MissileIds.Nuke, "modernbox_neutron_blast", 7, 45.5f,
                 0.48f, "fx_explosion_nuke_atomic", true, 0.72f);
             // The EMP detonates at altitude as a flash: it does not damage
             // terrain and its disable effect applies only to hostile forces.
-            CreateProjectile(EmpProjectileId, "NUKER", null, 0, 51f,
+            CreateProjectile(EmpProjectileId, MissileIds.Nuke, null, 0, 51f,
                 0.46f, "fx_explosion_middle", true, 0.80f);
-            CreateProjectile(HammerProjectileId, "NUKER", "modernbox_hammer_blast", 34, 38.5f,
+            CreateProjectile(HammerProjectileId, MissileIds.Nuke, "modernbox_hammer_blast", 34, 38.5f,
                 0.72f, "fx_explosion_huge", true, 1.45f);
-            CreateProjectile(RuinProjectileId, "NUKER", "modernbox_ruin_blast", 9, 44f,
+            CreateProjectile(RuinProjectileId, MissileIds.Nuke, "modernbox_ruin_blast", 9, 44f,
                 0.50f, "fx_explosion_middle", true, 0.90f);
         }
 
@@ -492,8 +483,8 @@ namespace ModernBox
 
             SpendGold(caster.city, 8);
             bool launched = LaunchAt(caster, target.Value, TorpedoProjectileId, true);
-            launched |= LaunchAt(caster, target.Value + new Vector2(4f, 0f), "missileartillery", true);
-            launched |= LaunchAt(caster, target.Value + new Vector2(-4f, 0f), "missileartillery", true);
+            launched |= LaunchAt(caster, target.Value + new Vector2(4f, 0f), MissileIds.AllianceCruise, true);
+            launched |= LaunchAt(caster, target.Value + new Vector2(-4f, 0f), MissileIds.AllianceCruise, true);
             if (launched)
                 MarkConventionalLaunch(caster, 30f);
             return launched;
@@ -909,13 +900,4 @@ namespace ModernBox
         }
     }
 
-    [HarmonyPatch(typeof(Projectile), "targetReached")]
-    internal static class NavalRolesProjectilePatch
-    {
-        [HarmonyPrefix]
-        private static void Prefix(Projectile __instance)
-        {
-            NavalRoles.HandleSpecialWarheadImpact(__instance);
-        }
-    }
 }

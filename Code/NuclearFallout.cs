@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using HarmonyLib;
 using UnityEngine;
 
 namespace ModernBox
@@ -51,7 +50,8 @@ namespace ModernBox
             // Projectile instances are pooled. A reused conventional projectile
             // must never inherit a prior nuclear impact state.
             PendingImpacts.Remove(projectile);
-            if (!TryGetProfile(projectile.asset?.id, out FalloutProfile profile))
+            FalloutProfile profile = GetProfile(MissileCatalog.GetFalloutTier(projectile));
+            if (profile == null)
                 return;
 
             WorldTile tile = projectile.getCurrentTilePosition();
@@ -83,37 +83,15 @@ namespace ModernBox
             }
         }
 
-        private static bool TryGetProfile(string projectileId, out FalloutProfile profile)
+        private static FalloutProfile GetProfile(MissileFalloutTier tier)
         {
-            profile = null;
-            if (string.IsNullOrEmpty(projectileId))
-                return false;
-
-            if (string.Equals(projectileId, "NUKER", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(projectileId, "modernbox_baseline_ssbn_warhead", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(projectileId, "modernbox_neutron_warhead", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(projectileId, "modernbox_ruin_warhead", StringComparison.OrdinalIgnoreCase))
-            {
-                profile = Light;
-                return true;
-            }
-
-            if (string.Equals(projectileId, "modernbox_trident_warhead", StringComparison.OrdinalIgnoreCase))
-            {
-                profile = Medium;
-                return true;
-            }
-
-            if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.OrdinalIgnoreCase))
-            {
-                profile = Heavy;
-                return true;
-            }
-
-            // EMP, Arsenal, torpedoes, and conventional missiles intentionally
-            // have no fallout profile.
-            return false;
+            if (tier == MissileFalloutTier.Light)
+                return Light;
+            if (tier == MissileFalloutTier.Medium)
+                return Medium;
+            if (tier == MissileFalloutTier.Heavy)
+                return Heavy;
+            return null;
         }
 
         private static void Apply(WorldTile impactTile, FalloutProfile profile)
@@ -165,19 +143,4 @@ namespace ModernBox
         }
     }
 
-    [HarmonyPatch(typeof(Projectile), "targetReached")]
-    internal static class NuclearFalloutProjectilePatch
-    {
-        [HarmonyPrefix]
-        private static void Prefix(Projectile __instance)
-        {
-            NuclearFallout.RememberImpact(__instance);
-        }
-
-        [HarmonyPostfix]
-        private static void Postfix(Projectile __instance)
-        {
-            NuclearFallout.ApplyRememberedImpact(__instance);
-        }
-    }
 }

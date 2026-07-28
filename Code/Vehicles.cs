@@ -463,7 +463,7 @@ namespace ModernBox
             AssetManager.effects_library.add(modernCapMissileTrail);
 
 			ProjectileAsset missileartillery = new ProjectileAsset();
-            missileartillery.id = "missileartillery";
+            missileartillery.id = MissileIds.AllianceCruise;
 			// Strategic missiles stay visible long enough to follow in normal play.
 			missileartillery.speed = 35f;
             missileartillery.look_at_target = true;
@@ -489,14 +489,14 @@ namespace ModernBox
 
             EquipmentAsset MissileSystemmissile = AssetManager.items.clone("MissileSystemmissile", "$range");
             MissileSystemmissile.has_locales = false;
-            MissileSystemmissile.projectile = "missileartillery";
+            MissileSystemmissile.projectile = MissileIds.AllianceCruise;
             MissileSystemmissile.base_stats["projectiles"] = 1f;
             MissileSystemmissile.path_slash_animation = "effects/slashes/slash_cannonball";
             MissileSystemmissile.show_in_meta_editor = false;
             MissileSystemmissile.show_in_knowledge_window = false;
 
 			ProjectileAsset fireboneartillery = new ProjectileAsset();
-            fireboneartillery.id = "fireboneartillery";
+            fireboneartillery.id = MissileIds.HordeCruise;
 			fireboneartillery.speed = 35f;
             fireboneartillery.look_at_target = true;
 			fireboneartillery.texture = "missileartillery";
@@ -518,14 +518,14 @@ namespace ModernBox
 
             EquipmentAsset MissileSystemHorde = AssetManager.items.clone("MissileSystemHorde", "$range");
             MissileSystemHorde.has_locales = false;
-            MissileSystemHorde.projectile = "fireboneartillery";
+            MissileSystemHorde.projectile = MissileIds.HordeCruise;
             MissileSystemHorde.base_stats["projectiles"] = 1f;
             MissileSystemHorde.path_slash_animation = "effects/slashes/slash_cannonball";
             MissileSystemHorde.show_in_meta_editor = false;
             MissileSystemHorde.show_in_knowledge_window = false;
 
 			ProjectileAsset frostmissileartillery = new ProjectileAsset();
-            frostmissileartillery.id = "frostmissileartillery";
+            frostmissileartillery.id = MissileIds.HardenCruise;
 			frostmissileartillery.speed = 35f;
             frostmissileartillery.look_at_target = true;
 			frostmissileartillery.texture = "missileartillery";
@@ -548,14 +548,14 @@ namespace ModernBox
 
             EquipmentAsset MissileSystemHarden = AssetManager.items.clone("MissileSystemHarden", "$range");
             MissileSystemHarden.has_locales = false;
-            MissileSystemHarden.projectile = "frostmissileartillery";
+            MissileSystemHarden.projectile = MissileIds.HardenCruise;
             MissileSystemHarden.base_stats["projectiles"] = 1f;
             MissileSystemHarden.path_slash_animation = "effects/slashes/slash_cannonball";
             MissileSystemHarden.show_in_meta_editor = false;
             MissileSystemHarden.show_in_knowledge_window = false;
 
 			ProjectileAsset plantmissileartillery = new ProjectileAsset();
-            plantmissileartillery.id = "plantmissileartillery";
+            plantmissileartillery.id = MissileIds.GaiaCruise;
 			plantmissileartillery.speed = 35f;
             plantmissileartillery.look_at_target = true;
 			plantmissileartillery.texture = "missileartillery";
@@ -577,7 +577,7 @@ namespace ModernBox
 
             EquipmentAsset MissileSystemGaia = AssetManager.items.clone("MissileSystemGaia", "$range");
             MissileSystemGaia.has_locales = false;
-            MissileSystemGaia.projectile = "plantmissileartillery";
+            MissileSystemGaia.projectile = MissileIds.GaiaCruise;
             MissileSystemGaia.base_stats["projectiles"] = 1f;
             MissileSystemGaia.path_slash_animation = "effects/slashes/slash_cannonball";
             MissileSystemGaia.show_in_meta_editor = false;
@@ -595,7 +595,7 @@ var AntiAirbomb = AssetManager.terraform.clone("AntiAirbomb", "grenade");
         AssetManager.terraform.add(AntiAirbomb);
 
 			ProjectileAsset jetrocketprojectile = new ProjectileAsset();
-            jetrocketprojectile.id = "jetrocketprojectile";
+            jetrocketprojectile.id = MissileIds.JetRocket;
             jetrocketprojectile.speed = 20f;
             jetrocketprojectile.look_at_target = true;
 			jetrocketprojectile.texture = "jetrocketprojectile";
@@ -613,14 +613,14 @@ var AntiAirbomb = AssetManager.terraform.clone("AntiAirbomb", "grenade");
 
             EquipmentAsset fighterattack = AssetManager.items.clone("fighterattack", "$range");
             fighterattack.has_locales = false;
-            fighterattack.projectile = "jetrocketprojectile";
+            fighterattack.projectile = MissileIds.JetRocket;
             fighterattack.base_stats["projectiles"] = 2f;
             fighterattack.path_slash_animation = "effects/slashes/slash_cannonball";
             fighterattack.show_in_meta_editor = false;
             fighterattack.show_in_knowledge_window = false;
 
 			ProjectileAsset jetrocketprojectileHorde = new ProjectileAsset();
-            jetrocketprojectileHorde.id = "jetrocketprojectileHorde";
+            jetrocketprojectileHorde.id = MissileIds.JetRocketHorde;
             jetrocketprojectileHorde.speed = 20f;
             jetrocketprojectileHorde.look_at_target = true;
 			jetrocketprojectileHorde.texture = "jetrocketprojectileHorde";
@@ -638,7 +638,7 @@ var AntiAirbomb = AssetManager.terraform.clone("AntiAirbomb", "grenade");
 
             EquipmentAsset fighterattackHorde = AssetManager.items.clone("fighterattackHorde", "$range");
             fighterattackHorde.has_locales = false;
-            fighterattackHorde.projectile = "jetrocketprojectileHorde";
+            fighterattackHorde.projectile = MissileIds.JetRocketHorde;
             fighterattackHorde.base_stats["projectiles"] = 2f;
             fighterattackHorde.path_slash_animation = "effects/slashes/slash_cannonball";
             fighterattackHorde.show_in_meta_editor = false;
@@ -646,7 +646,7 @@ var AntiAirbomb = AssetManager.terraform.clone("AntiAirbomb", "grenade");
 
 
 			ProjectileAsset jetrocketprojectileHarden = new ProjectileAsset();
-            jetrocketprojectileHarden.id = "jetrocketprojectileHarden";
+            jetrocketprojectileHarden.id = MissileIds.JetRocketHarden;
             jetrocketprojectileHarden.speed = 20f;
             jetrocketprojectileHarden.look_at_target = true;
 			jetrocketprojectileHarden.texture = "jetrocketprojectileHarden";
@@ -664,14 +664,14 @@ var AntiAirbomb = AssetManager.terraform.clone("AntiAirbomb", "grenade");
 
             EquipmentAsset fighterattackHarden = AssetManager.items.clone("fighterattackHarden", "$range");
             fighterattackHarden.has_locales = false;
-            fighterattackHarden.projectile = "jetrocketprojectileHarden";
+            fighterattackHarden.projectile = MissileIds.JetRocketHarden;
             fighterattackHarden.base_stats["projectiles"] = 2f;
             fighterattackHarden.path_slash_animation = "effects/slashes/slash_cannonball";
             fighterattackHarden.show_in_meta_editor = false;
             fighterattackHarden.show_in_knowledge_window = false;
 
             ProjectileAsset jetrocketprojectileGaia = new ProjectileAsset();
-            jetrocketprojectileGaia.id = "jetrocketprojectileGaia";
+            jetrocketprojectileGaia.id = MissileIds.JetRocketGaia;
             jetrocketprojectileGaia.speed = 20f;
 			jetrocketprojectileGaia.look_at_target = true;
 			jetrocketprojectileGaia.texture = "jetrocketprojectileGaia";
@@ -689,7 +689,7 @@ var AntiAirbomb = AssetManager.terraform.clone("AntiAirbomb", "grenade");
 
             EquipmentAsset fighterattackGaia = AssetManager.items.clone("fighterattackGaia", "$range");
             fighterattackGaia.has_locales = false;
-            fighterattackGaia.projectile = "jetrocketprojectileGaia";
+            fighterattackGaia.projectile = MissileIds.JetRocketGaia;
             fighterattackGaia.base_stats["projectiles"] = 2f;
             fighterattackGaia.path_slash_animation = "effects/slashes/slash_cannonball";
             fighterattackGaia.show_in_meta_editor = false;
@@ -716,7 +716,7 @@ var AntiAirbomb = AssetManager.terraform.clone("AntiAirbomb", "grenade");
 
             EquipmentAsset BomberAttack = AssetManager.items.clone("BomberAttack", "$range");
             BomberAttack.has_locales = false;
-            BomberAttack.projectile = "bomberrocketprojectile";
+            BomberAttack.projectile = MissileIds.BomberRocket;
 			BomberAttack.base_stats["damage"] = 420f;
             BomberAttack.base_stats["projectiles"] = 2f;
             BomberAttack.path_slash_animation = "effects/slashes/slash_cannonball";
@@ -724,7 +724,7 @@ var AntiAirbomb = AssetManager.terraform.clone("AntiAirbomb", "grenade");
             BomberAttack.show_in_knowledge_window = false;
 
             ProjectileAsset bomberrocketprojectile = new ProjectileAsset();
-            bomberrocketprojectile.id = "bomberrocketprojectile";
+            bomberrocketprojectile.id = MissileIds.BomberRocket;
             bomberrocketprojectile.speed = 42f;
             bomberrocketprojectile.look_at_target = true;
             bomberrocketprojectile.texture = "jetrocketprojectile";
@@ -1463,7 +1463,7 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
 			////////////////NUKE//////////////////
 
 			ProjectileAsset NUKER = new ProjectileAsset();
-            NUKER.id = "NUKER";
+            NUKER.id = MissileIds.Nuke;
             NUKER.speed = 52.5f;
 			NUKER.texture = "NUKER";
 			NUKER.look_at_target = true;
@@ -1490,7 +1490,7 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
             // Reuse the terrain-safe Apocalipsis blast: no craters, radiation
             // or lasting fire, while retaining a real nuclear damage profile.
             ProjectileAsset baselineSSBNWarhead = new ProjectileAsset();
-            baselineSSBNWarhead.id = "modernbox_baseline_ssbn_warhead";
+            baselineSSBNWarhead.id = MissileIds.BaselineSsbn;
             baselineSSBNWarhead.speed = 48f;
             baselineSSBNWarhead.texture = "NUKER";
             baselineSSBNWarhead.look_at_target = true;
@@ -1513,7 +1513,7 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
             AssetManager.projectiles.add(baselineSSBNWarhead);
 
             ProjectileAsset SSBN_CZAR_WARHEAD = new ProjectileAsset();
-            SSBN_CZAR_WARHEAD.id = "SSBN_CZAR_WARHEAD";
+            SSBN_CZAR_WARHEAD.id = MissileIds.Czar;
             SSBN_CZAR_WARHEAD.speed = 42f;
             SSBN_CZAR_WARHEAD.texture = "NUKER";
             SSBN_CZAR_WARHEAD.look_at_target = true;
@@ -1536,8 +1536,8 @@ ProjectileAsset bigsnowball = new ProjectileAsset();
             SSBN_CZAR_WARHEAD.can_be_left_on_ground = false;
             SSBN_CZAR_WARHEAD.can_be_blocked = false;
 			// SalvoSubmarine_* is the SSBN Apocalipsis. Its nuclear salvo retains
-			// normal atomic behavior while the dedicated blast blocks craters,
-			// biome conversion, radiation and post-impact fire.
+			// normal atomic damage while the dedicated blast blocks craters and
+			// biome conversion; NuclearFallout adds only a few superficial marks.
             AssetManager.projectiles.add(SSBN_CZAR_WARHEAD);
 
 
@@ -8219,6 +8219,7 @@ CreateSalvoSubmarine("harden", "missileArtilleryDecision");
 CreateSalvoSubmarine("gaia", "missileArtilleryDecision");
 CreateSalvoSubmarine("horde", "missileArtilleryDecision");
 NavalRoles.Initialize();
+MissileCatalog.NormalizeRegisteredAssets();
 NavalOverviewRegistration.EnsureRegistered();
 ApplyAirVehicleDecisionProfiles();
 string[] unitNames = new string[]
@@ -10252,24 +10253,7 @@ private static bool IsFriendlyMissileTerritory(Kingdom casterKingdom, Vector2 ta
 
 internal static float GetMissileBlastSafetyRadius(string projectileId)
 {
-    if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.OrdinalIgnoreCase))
-        return 24f;
-    if (string.Equals(projectileId, "modernbox_baseline_ssbn_warhead", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(projectileId, "NUKER", StringComparison.OrdinalIgnoreCase))
-        return 20f;
-    if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.OrdinalIgnoreCase))
-        return 34f;
-    if (string.Equals(projectileId, "modernbox_trident_warhead", StringComparison.OrdinalIgnoreCase))
-        return 16f;
-    if (string.Equals(projectileId, "modernbox_ruin_warhead", StringComparison.OrdinalIgnoreCase))
-        return 11f;
-    if (string.Equals(projectileId, "modernbox_neutron_warhead", StringComparison.OrdinalIgnoreCase))
-        return 8f;
-    if (string.Equals(projectileId, "modernbox_arsenal_warhead", StringComparison.OrdinalIgnoreCase))
-        return 6f;
-    if (string.Equals(projectileId, "modernbox_emp_warhead", StringComparison.OrdinalIgnoreCase))
-        return 0f;
-    return 4f;
+    return MissileCatalog.GetBlastSafetyRadius(projectileId);
 }
 
 internal static bool IsStrategicMissileTargetSafe(Kingdom casterKingdom, Vector2 target, float blastRadius)
@@ -10574,7 +10558,7 @@ public static bool MissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile
                         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
                         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
                         startProjectile.y += 0.5f;
-                        if (!TrySpawnReservedSubmarineProjectile(caster, "missileartillery", startProjectile,
+                        if (!TrySpawnReservedSubmarineProjectile(caster, MissileIds.AllianceCruise, startProjectile,
                                 attackVector, attackPos.Value))
                             return false;
                         caster.punchTargetAnimation(attackVector, true, false, 45f);
@@ -10654,7 +10638,7 @@ public static bool HORDEmissileArtilleryEffect(BaseSimObject pTarget, WorldTile 
                         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
                         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
                         startProjectile.y += 0.5f;
-                        if (!TrySpawnReservedSubmarineProjectile(caster, "fireboneartillery", startProjectile,
+                        if (!TrySpawnReservedSubmarineProjectile(caster, MissileIds.HordeCruise, startProjectile,
                                 attackVector, attackPos.Value))
                             return false;
                         caster.punchTargetAnimation(attackVector, true, false, 45f);
@@ -10736,7 +10720,7 @@ public static bool GAIAmissileArtilleryEffect(BaseSimObject pTarget, WorldTile p
                         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
                         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
                         startProjectile.y += 0.5f;
-                        if (!TrySpawnReservedSubmarineProjectile(caster, "plantmissileartillery", startProjectile,
+                        if (!TrySpawnReservedSubmarineProjectile(caster, MissileIds.GaiaCruise, startProjectile,
                                 attackVector, attackPos.Value))
                             return false;
                         caster.punchTargetAnimation(attackVector, true, false, 45f);
@@ -10816,7 +10800,7 @@ public static bool HARDENmissileArtilleryEffect(BaseSimObject pTarget, WorldTile
                         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
                         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
                         startProjectile.y += 0.5f;
-                        if (!TrySpawnReservedSubmarineProjectile(caster, "frostmissileartillery", startProjectile,
+                        if (!TrySpawnReservedSubmarineProjectile(caster, MissileIds.HardenCruise, startProjectile,
                                 attackVector, attackPos.Value))
                             return false;
                         caster.punchTargetAnimation(attackVector, true, false, 45f);
@@ -10911,8 +10895,8 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
                         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
                         startProjectile.y += 0.5f;
 						string projectileId = caster.asset?.id?.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase) == true
-							? "modernbox_baseline_ssbn_warhead"
-							: "NUKER";
+                            ? MissileIds.BaselineSsbn
+                            : MissileIds.Nuke;
                         if (!TrySpawnReservedSubmarineProjectile(caster, projectileId, startProjectile,
                                 attackVector, attackPos.Value))
                             return false;
@@ -11030,7 +11014,7 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, salvoTarget.x, salvoTarget.y, distance);
         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, salvoTarget.x, salvoTarget.y, caster.stats["size"]);
         startProjectile.y += 0.5f;
-        if (!TrySpawnReservedSubmarineProjectile(caster, "SSBN_CZAR_WARHEAD", startProjectile,
+        if (!TrySpawnReservedSubmarineProjectile(caster, MissileIds.Czar, startProjectile,
                 attackVector, salvoTarget))
             continue;
         StatManager.Instance.SpawnUnit();
@@ -11194,8 +11178,15 @@ public static bool AntiBossNuke(BaseSimObject pTarget, WorldTile pTile = null)
             continue;
         if (!caster.kingdom.isEnemy(other.kingdom))
             continue;
-        if (other.stats["health"] >= 10000f &&
-            IsIntercontinentalMissileTargetInRange(caster, other.current_position))
+        WorldTile targetTile = other.current_tile ?? World.world.GetTile(
+            Mathf.RoundToInt(other.current_position.x), Mathf.RoundToInt(other.current_position.y));
+        City targetCity = targetTile?.zone?.city;
+        bool strategicLandTarget = targetTile != null && targetTile.Type != null && targetTile.Type.ground &&
+            !targetTile.Type.ocean && targetCity?.kingdom != null && caster.kingdom.isEnemy(targetCity.kingdom);
+        if (other.stats["health"] >= 10000f && strategicLandTarget &&
+            IsIntercontinentalMissileTargetInRange(caster, other.current_position) &&
+            IsStrategicMissileTargetSafe(caster.kingdom, other.current_position,
+                MissileCatalog.GetBlastSafetyRadius(MissileIds.Nuke)))
             validTargets.Add(other);
     }
 
@@ -11204,7 +11195,8 @@ public static bool AntiBossNuke(BaseSimObject pTarget, WorldTile pTile = null)
 
     Actor target = validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
     if (!IsIntercontinentalMissileTargetInRange(caster, target.current_position) ||
-        !IsMissileTargetSafe(caster.kingdom, target.current_position, 20f))
+        !IsStrategicMissileTargetSafe(caster.kingdom, target.current_position,
+            MissileCatalog.GetBlastSafetyRadius(MissileIds.Nuke)))
         return false;
 
     ownerCity.takeResource("gold", 10);
@@ -11217,7 +11209,7 @@ public static bool AntiBossNuke(BaseSimObject pTarget, WorldTile pTile = null)
     Vector3 startProjectile = Toolbox.getNewPoint(start.x, start.y, end.x, end.y, caster.stats["size"]);
     startProjectile.y += 0.5f;
 
-    World.world.projectiles.spawn(caster, target, "NUKER", startProjectile, attackVector);
+    World.world.projectiles.spawn(caster, target, MissileIds.Nuke, startProjectile, attackVector);
 	StatManager.Instance.SpawnUnit();
     caster.punchTargetAnimation(attackVector, true, false, 45f);
 
@@ -11801,35 +11793,6 @@ public static class Patch_ItemCrafting_ExcludeUnitpotential
             && pActor.equipment.getSlot(type) != null;
     }
 }
-
-/*
-    [HarmonyPatch(typeof(Projectile), "targetReached")]
-    public static class Projectile_TargetReached_Patch
-    {
-        [HarmonyPostfix]
-        public static void Postfix(Projectile __instance)
-        {
-            var type = typeof(Projectile);
-            var posField = type.GetField("_current_position_3d", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var targetField = type.GetField("_vector_target", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (posField == null || targetField == null) return;
-
-            Vector3 pos = (Vector3)posField.GetValue(__instance);
-            Vector2 target = (Vector2)targetField.GetValue(__instance);
-
-            if ((Mathf.Abs(pos.x - target.x) > 0.01f) || (Mathf.Abs(pos.y - target.y) > 0.01f))
-            {
-                pos.x = target.x;
-                pos.y = target.y;
-                posField.SetValue(__instance, pos);
-            }
-        }
-    }
-
-
-*/
-
-
 
         }
         }

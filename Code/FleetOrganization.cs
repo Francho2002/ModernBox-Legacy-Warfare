@@ -446,7 +446,7 @@ namespace ModernBox
         {
             if (defender == null || target == null || !target.isAlive() || defender.current_tile == null ||
                 target.current_tile == null || World.world?.projectiles == null ||
-                AssetManager.projectiles?.get("modernbox_torpedo") == null)
+                AssetManager.projectiles?.get(MissileIds.Torpedo) == null)
                 return false;
 
             Vector3 origin = defender.current_position;
@@ -454,7 +454,7 @@ namespace ModernBox
             float distance = Vector2.Distance(origin, destination);
             Vector3 vector = Toolbox.getNewPoint(origin.x, origin.y, destination.x, destination.y, distance);
             Vector3 start = Toolbox.getNewPoint(origin.x, origin.y, destination.x, destination.y, defender.stats["size"]);
-            World.world.projectiles.spawn(defender, target, "modernbox_torpedo", start, vector);
+            World.world.projectiles.spawn(defender, target, MissileIds.Torpedo, start, vector);
             defender.punchTargetAnimation(vector, true, false, 45f);
             return true;
         }

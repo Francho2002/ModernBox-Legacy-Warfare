@@ -25,43 +25,6 @@ namespace ModernBox
         private const float InterceptorArrivalRadius = 3.5f;
         private const float InterceptorArrivalGraceSeconds = 1.2f;
 
-        private static readonly HashSet<string> InterceptableMissiles = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "missileartillery",
-            "fireboneartillery",
-            "frostmissileartillery",
-            "plantmissileartillery",
-            "NUKER",
-            "modernbox_baseline_ssbn_warhead",
-            "SSBN_CZAR_WARHEAD",
-            "modernbox_torpedo",
-            "modernbox_arsenal_warhead",
-            "modernbox_trident_warhead",
-            "modernbox_neutron_warhead",
-            "modernbox_emp_warhead",
-            "modernbox_hammer_warhead",
-            "modernbox_ruin_warhead"
-        };
-
-        private static readonly HashSet<string> ConventionalMissiles = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "missileartillery",
-            "fireboneartillery",
-            "frostmissileartillery",
-            "plantmissileartillery",
-            "modernbox_torpedo",
-            "modernbox_arsenal_warhead"
-        };
-
-        private static readonly HashSet<string> HeavyConventionalMissiles = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "missileartillery",
-            "fireboneartillery",
-            "frostmissileartillery",
-            "plantmissileartillery",
-            "modernbox_arsenal_warhead"
-        };
-
         private static readonly ConditionalWeakTable<Projectile, ProjectileData> ProjectileStates =
             new ConditionalWeakTable<Projectile, ProjectileData>();
         private static readonly ConditionalWeakTable<Actor, CooldownData> DefenderCooldowns =
@@ -69,14 +32,6 @@ namespace ModernBox
         private static bool _decisionRegistered;
 
         internal static bool Enabled { get; private set; } = true;
-
-        // Strategic missiles keep their normal native flight/render path, but
-        // ordinary actors must not be able to treat an ICBM as a sword-sized
-        // collision target. Dedicated missile interception is handled below.
-        internal static bool IsProtectedMissile(Projectile projectile)
-        {
-            return projectile?.asset != null && InterceptableMissiles.Contains(projectile.asset.id);
-        }
 
         private sealed class ProjectileData
         {
@@ -165,7 +120,7 @@ namespace ModernBox
             Vector3 vector = Toolbox.getNewPoint(origin.x, origin.y, destination.x, destination.y, nearest);
             Vector3 start = Toolbox.getNewPoint(origin.x, origin.y, destination.x, destination.y, defender.stats["size"]);
             start.y += 0.5f;
-            World.world.projectiles.spawn(defender, target, "jetrocketprojectile", start, vector);
+            World.world.projectiles.spawn(defender, target, MissileIds.JetRocket, start, vector);
             defender.punchTargetAnimation(vector, true, false, 45f);
             PutOnCooldown(defender);
             return true;
@@ -173,7 +128,7 @@ namespace ModernBox
 
         internal static bool TryInterceptMissile(Projectile projectile, float elapsed)
         {
-            if (!Enabled || projectile?.asset == null || !InterceptableMissiles.Contains(projectile.asset.id))
+            if (!Enabled || projectile?.asset == null || !MissileCatalog.IsInterceptable(projectile))
                 return false;
 
             ProjectileData state = ProjectileStates.GetOrCreateValue(projectile);
@@ -217,11 +172,7 @@ namespace ModernBox
                 return false;
 
             PutOnCooldown(defender);
-            Vector2 position = projectile.getCurrentPosition();
-            EffectsLibrary.spawnAt("fx_firebomb_explosion", position, 0.4f);
-            MusicBox.playSound("event:/SFX/EXPLOSIONS/ExplosionSmall", position.x, position.y, true, false);
-            projectile.setState(ProjectileState.ToRemove);
-            return true;
+            return MissileLifecycle.Intercept(projectile);
         }
 
         private static bool TryLaunchSubmarineCountermeasure(Actor defender, Projectile hostile,
@@ -284,11 +235,7 @@ namespace ModernBox
             if (distanceToIntercept <= InterceptorArrivalRadius)
             {
                 state.countermeasurePending = false;
-                EffectsLibrary.spawnAt("fx_explosion_middle", state.interceptPoint, 0.45f);
-                MusicBox.playSound("event:/SFX/EXPLOSIONS/ExplosionSmall", state.interceptPoint.x,
-                    state.interceptPoint.y, true, false);
-                hostile.setState(ProjectileState.ToRemove);
-                return true;
+                return MissileLifecycle.Intercept(hostile);
             }
 
             float remainingToTarget = Vector2.Distance(current, hostile.getTargetVector());
@@ -311,7 +258,8 @@ namespace ModernBox
 
         internal static void PlayConventionalImpactSound(Projectile projectile)
         {
-            if (projectile?.asset == null || !ConventionalMissiles.Contains(projectile.asset.id))
+            bool heavy;
+            if (projectile?.asset == null || !MissileCatalog.IsConventionalImpact(projectile, out heavy))
                 return;
 
             ProjectileData state = ProjectileStates.GetOrCreateValue(projectile);
@@ -324,7 +272,7 @@ namespace ModernBox
             // across the entire map and could be mistaken for a nuclear blast.
             // Cruise/land missiles retain WorldBox's native meteorite report;
             // the lighter torpedo keeps its original smaller splash-like impact.
-            string impactSound = HeavyConventionalMissiles.Contains(projectile.asset.id)
+            string impactSound = heavy
                 ? "event:/SFX/EXPLOSIONS/ExplosionMeteorite"
                 : "event:/SFX/EXPLOSIONS/ExplosionSmall";
             Vector2 impactPosition = projectile.getTargetVector();
@@ -423,19 +371,7 @@ namespace ModernBox
 
         private static float GetInterceptChance(Actor defender, string projectileId)
         {
-            float chance;
-            if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.Ordinal))
-                chance = 0.25f;
-            else if (string.Equals(projectileId, "modernbox_baseline_ssbn_warhead", StringComparison.Ordinal))
-                chance = 0.25f;
-            else if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.Ordinal))
-                chance = 0.12f;
-            else if (string.Equals(projectileId, "NUKER", StringComparison.Ordinal))
-                chance = 0.25f;
-            else if (NavalRoles.IsHeavyWarhead(projectileId))
-                chance = 0.30f;
-            else
-                chance = 0.65f;
+            float chance = MissileCatalog.GetBaseInterceptChance(projectileId);
 
             return IsInterceptorSubmarine(defender)
                 ? Mathf.Clamp(chance + 0.15f, 0.20f, 0.82f)
@@ -470,14 +406,6 @@ namespace ModernBox
             NuclearAlertController.Forget(__instance);
         }
 
-        [HarmonyPatch(typeof(Projectile), "targetReached")]
-        [HarmonyPrefix]
-        private static void TargetReachedPrefix(Projectile __instance)
-        {
-            IntegratedAirDefense.PlayConventionalImpactSound(__instance);
-            IntegratedAirDefense.Forget(__instance);
-            NuclearAlertController.Forget(__instance);
-        }
     }
 
     [HarmonyPatch(typeof(Projectile), "canBeCollided")]
@@ -486,7 +414,7 @@ namespace ModernBox
         [HarmonyPrefix]
         private static bool Prefix(Projectile __instance, ref bool __result)
         {
-            if (!IntegratedAirDefense.IsProtectedMissile(__instance))
+            if (!MissileCatalog.IsProtected(__instance))
                 return true;
 
             __result = false;

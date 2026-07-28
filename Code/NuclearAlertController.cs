@@ -28,7 +28,7 @@ namespace ModernBox
 
         internal static void Observe(Projectile projectile, float elapsed)
         {
-            if (!Vehicles.balls || projectile?.asset == null || !IsNuclearWarhead(projectile.asset.id))
+            if (!Vehicles.balls || projectile?.asset == null || !MissileCatalog.IsNuclear(projectile.asset.id))
                 return;
 
             AlertState state = States.GetOrCreateValue(projectile);
@@ -66,17 +66,6 @@ namespace ModernBox
         {
             if (projectile != null)
                 States.Remove(projectile);
-        }
-
-        private static bool IsNuclearWarhead(string projectileId)
-        {
-            return string.Equals(projectileId, "NUKER", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(projectileId, "modernbox_baseline_ssbn_warhead", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(projectileId, "modernbox_trident_warhead", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(projectileId, "modernbox_neutron_warhead", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(projectileId, "modernbox_ruin_warhead", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

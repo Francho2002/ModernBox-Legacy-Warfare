@@ -17,17 +17,6 @@ namespace ModernBox
         // launches without allocating per-projectile marker state.
         private const int MaximumOverviewMarkers = 192;
 
-        private static readonly HashSet<string> ConventionalProjectiles =
-            new HashSet<string>(StringComparer.Ordinal)
-            {
-                "missileartillery",
-                "fireboneartillery",
-                "frostmissileartillery",
-                "plantmissileartillery",
-                "modernbox_torpedo",
-                "modernbox_arsenal_warhead"
-            };
-
         internal static void DrawOverviewMarkers(QuantumSpriteAsset spriteAsset)
         {
             // drawBoatIcons is called for boats_small and boats_big. Draw only in
@@ -90,56 +79,7 @@ namespace ModernBox
         private static bool TryGetMarkerScale(Projectile projectile, out float markerScale)
         {
             markerScale = 0f;
-            string projectileId = projectile?.asset?.id;
-            if (string.IsNullOrEmpty(projectileId))
-                return false;
-
-            if (ConventionalProjectiles.Contains(projectileId))
-            {
-                markerScale = 0.85f;
-                return true;
-            }
-
-            if (string.Equals(projectileId, NavalRoles.InterceptorProjectileId, StringComparison.Ordinal))
-            {
-                // The countermeasure has to remain easy to follow at maximum
-                // zoom, without making a defensive salvo look like a nuclear
-                // launch on the aerial map.
-                markerScale = 0.38f;
-                return true;
-            }
-
-            if (string.Equals(projectileId, "NUKER", StringComparison.Ordinal))
-            {
-                markerScale = 0.50f;
-                return true;
-            }
-
-            if (string.Equals(projectileId, "modernbox_baseline_ssbn_warhead", StringComparison.Ordinal))
-            {
-                markerScale = 0.48f;
-                return true;
-            }
-
-            if (string.Equals(projectileId, "SSBN_CZAR_WARHEAD", StringComparison.Ordinal))
-            {
-                markerScale = 0.50f;
-                return true;
-            }
-
-            if (string.Equals(projectileId, "modernbox_hammer_warhead", StringComparison.Ordinal))
-            {
-                markerScale = 0.60f;
-                return true;
-            }
-
-            if (NavalRoles.IsHeavyWarhead(projectileId))
-            {
-                markerScale = 0.55f;
-                return true;
-            }
-
-            return false;
+            return MissileCatalog.TryGetOverviewMarkerScale(projectile, out markerScale);
         }
     }
 
