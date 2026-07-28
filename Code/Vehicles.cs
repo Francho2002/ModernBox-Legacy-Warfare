@@ -10368,7 +10368,7 @@ private static bool CanLaunchConventionalMissile(Actor caster)
 private static bool TryReserveBaselineSubmarineTarget(Actor caster, Vector2 target, float separation)
 {
     return !IsBaselineSubmarine(caster) ||
-        SubmarineTargetReservations.TryReserve(caster, target, separation);
+        SubmarineTargetReservations.TryReserve(caster, target, separation, NavalRoles.GetTargetReservationLane(caster));
 }
 
 private static bool IsBaselineSubmarine(Actor caster)
@@ -10386,6 +10386,7 @@ private static bool TrySelectBaselineSubmarineTarget(Actor caster, float blastSa
     if (!IsBaselineSubmarine(caster) || caster.kingdom == null)
         return false;
 
+    Vector2? fallback = null;
     List<City> cities = new List<City>();
     using (var enemies = caster.kingdom.getEnemiesKingdoms())
     {
@@ -10427,14 +10428,47 @@ private static bool TrySelectBaselineSubmarineTarget(Actor caster, float blastSa
         foreach (Vector2 candidate in candidates)
         {
             if (!IsIntercontinentalMissileTargetInRange(caster, candidate) ||
-                !IsStrategicMissileTargetSafe(caster.kingdom, candidate, blastSafetyRadius) ||
-                !SubmarineTargetReservations.TryReserve(caster, candidate, reservationSeparation))
+                !IsStrategicMissileTargetSafe(caster.kingdom, candidate, blastSafetyRadius))
+                continue;
+
+            // Keep one legitimate target in reserve. It is used only if the
+            // normal spaced pass was exhausted by other friendly submarines.
+            if (fallback == null)
+                fallback = candidate;
+
+            if (!SubmarineTargetReservations.TryReserve(caster, candidate, reservationSeparation,
+                    NavalRoles.GetTargetReservationLane(caster)))
                 continue;
             target = candidate;
             return true;
         }
     }
+
+    if (fallback != null && SubmarineTargetReservations.TryReserve(caster, fallback.Value,
+            reservationSeparation, NavalRoles.GetTargetReservationLane(caster), true))
+    {
+        target = fallback.Value;
+        return true;
+    }
     return false;
+}
+
+private static bool TrySpawnReservedSubmarineProjectile(Actor caster, string projectileId,
+    Vector3 startProjectile, Vector3 attackVector, Vector2 target)
+{
+    try
+    {
+        World.world.projectiles.spawn(caster, null, projectileId, startProjectile, attackVector);
+        return true;
+    }
+    catch
+    {
+        // A failed native spawn must not leave a phantom target reservation
+        // that silences sibling submarines for the next reservation window.
+        if (IsBaselineSubmarine(caster))
+            SubmarineTargetReservations.Release(caster, target, NavalRoles.GetTargetReservationLane(caster));
+        return false;
+    }
 }
 
 public static bool MissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile = null)
@@ -10486,7 +10520,7 @@ public static bool MissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile
                     bool submarineReservation = false;
                     if (IsBaselineSubmarine(caster))
                     {
-                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 10f, out Vector2 alternative))
+                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 8f, out Vector2 alternative))
                             return false;
                         attackPos = alternative;
                         submarineReservation = true;
@@ -10495,14 +10529,16 @@ public static bool MissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
                         IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
-                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 10f)))
+                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 8f)))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
                         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
                         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
                         startProjectile.y += 0.5f;
-                        World.world.projectiles.spawn(caster, null, "missileartillery", startProjectile, attackVector);
+                        if (!TrySpawnReservedSubmarineProjectile(caster, "missileartillery", startProjectile,
+                                attackVector, attackPos.Value))
+                            return false;
                         caster.punchTargetAnimation(attackVector, true, false, 45f);
                         return true;
                     }
@@ -10563,7 +10599,7 @@ public static bool HORDEmissileArtilleryEffect(BaseSimObject pTarget, WorldTile 
                     bool submarineReservation = false;
                     if (IsBaselineSubmarine(caster))
                     {
-                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 10f, out Vector2 alternative))
+                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 8f, out Vector2 alternative))
                             return false;
                         attackPos = alternative;
                         submarineReservation = true;
@@ -10572,14 +10608,16 @@ public static bool HORDEmissileArtilleryEffect(BaseSimObject pTarget, WorldTile 
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
                         IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
-                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 10f)))
+                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 8f)))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
                         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
                         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
                         startProjectile.y += 0.5f;
-                        World.world.projectiles.spawn(caster, null, "fireboneartillery", startProjectile, attackVector);
+                        if (!TrySpawnReservedSubmarineProjectile(caster, "fireboneartillery", startProjectile,
+                                attackVector, attackPos.Value))
+                            return false;
                         caster.punchTargetAnimation(attackVector, true, false, 45f);
                         return true;
                     }
@@ -10642,7 +10680,7 @@ public static bool GAIAmissileArtilleryEffect(BaseSimObject pTarget, WorldTile p
                     bool submarineReservation = false;
                     if (IsBaselineSubmarine(caster))
                     {
-                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 10f, out Vector2 alternative))
+                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 8f, out Vector2 alternative))
                             return false;
                         attackPos = alternative;
                         submarineReservation = true;
@@ -10651,14 +10689,16 @@ public static bool GAIAmissileArtilleryEffect(BaseSimObject pTarget, WorldTile p
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
                         IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
-                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 10f)))
+                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 8f)))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
                         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
                         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
                         startProjectile.y += 0.5f;
-                        World.world.projectiles.spawn(caster, null, "plantmissileartillery", startProjectile, attackVector);
+                        if (!TrySpawnReservedSubmarineProjectile(caster, "plantmissileartillery", startProjectile,
+                                attackVector, attackPos.Value))
+                            return false;
                         caster.punchTargetAnimation(attackVector, true, false, 45f);
                         return true;
                     }
@@ -10719,7 +10759,7 @@ public static bool HARDENmissileArtilleryEffect(BaseSimObject pTarget, WorldTile
                     bool submarineReservation = false;
                     if (IsBaselineSubmarine(caster))
                     {
-                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 10f, out Vector2 alternative))
+                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 8f, out Vector2 alternative))
                             return false;
                         attackPos = alternative;
                         submarineReservation = true;
@@ -10728,14 +10768,16 @@ public static bool HARDENmissileArtilleryEffect(BaseSimObject pTarget, WorldTile
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
                         IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
-                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 10f)))
+                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 8f)))
                     {
                         Vector3 selfPos = caster.current_position;
                         float dist = Vector2.Distance(selfPos, attackPos.Value);
                         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
                         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
                         startProjectile.y += 0.5f;
-                        World.world.projectiles.spawn(caster, null, "frostmissileartillery", startProjectile, attackVector);
+                        if (!TrySpawnReservedSubmarineProjectile(caster, "frostmissileartillery", startProjectile,
+                                attackVector, attackPos.Value))
+                            return false;
                         caster.punchTargetAnimation(attackVector, true, false, 45f);
                         return true;
                     }
@@ -10808,7 +10850,7 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
                     bool submarineReservation = false;
                     if (IsBaselineSubmarine(caster))
                     {
-                        if (!TrySelectBaselineSubmarineTarget(caster, 20f, 30f, out Vector2 alternative))
+                        if (!TrySelectBaselineSubmarineTarget(caster, 20f, 16f, out Vector2 alternative))
                             return false;
                         attackPos = alternative;
                         submarineReservation = true;
@@ -10817,7 +10859,7 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
                     if (attackPos != null &&
                         IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
                         IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 20f) &&
-                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 30f)))
+                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 16f)))
                     {
                         // Do not charge a launch that the territorial safety
                         // rule rejected while choosing a target.
@@ -10830,7 +10872,9 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
 						string projectileId = caster.asset?.id?.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase) == true
 							? "modernbox_baseline_ssbn_warhead"
 							: "NUKER";
-                        World.world.projectiles.spawn(caster, null, projectileId, startProjectile, attackVector);
+                        if (!TrySpawnReservedSubmarineProjectile(caster, projectileId, startProjectile,
+                                attackVector, attackPos.Value))
+                            return false;
 						StatManager.Instance.SpawnUnit();
                         caster.punchTargetAnimation(attackVector, true, false, 45f);
                         return true;
@@ -10938,16 +10982,22 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
     float primaryDistance = Vector2.Distance(selfPos, salvoTargets[0]);
     Vector3 salvoAnimationVector = Toolbox.getNewPoint(
         selfPos.x, selfPos.y, salvoTargets[0].x, salvoTargets[0].y, primaryDistance);
+    bool launchedAny = false;
     foreach (Vector2 salvoTarget in salvoTargets)
     {
         float distance = Vector2.Distance(selfPos, salvoTarget);
         Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, salvoTarget.x, salvoTarget.y, distance);
         Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, salvoTarget.x, salvoTarget.y, caster.stats["size"]);
         startProjectile.y += 0.5f;
-        World.world.projectiles.spawn(caster, null, "SSBN_CZAR_WARHEAD", startProjectile, attackVector);
+        if (!TrySpawnReservedSubmarineProjectile(caster, "SSBN_CZAR_WARHEAD", startProjectile,
+                attackVector, salvoTarget))
+            continue;
         StatManager.Instance.SpawnUnit();
+        launchedAny = true;
     }
 
+    if (!launchedAny)
+        return false;
     caster.punchTargetAnimation(salvoAnimationVector, true, false, 45f);
     return true;
 }
@@ -10984,7 +11034,8 @@ private static bool TryAddNuclearSalvoTarget(Actor caster, List<Vector2> targets
         if (Vector2.Distance(existing, candidate) < minimumSeparation)
             return false;
     }
-    if (!SubmarineTargetReservations.TryReserve(caster, candidate, minimumSeparation))
+    if (!SubmarineTargetReservations.TryReserve(caster, candidate, minimumSeparation,
+            NavalRoles.GetTargetReservationLane(caster)))
         return false;
     targets.Add(candidate);
     return true;

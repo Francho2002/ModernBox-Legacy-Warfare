@@ -154,6 +154,18 @@ namespace ModernBox
             return false;
         }
 
+        internal static SubmarineTargetLane GetTargetReservationLane(Actor caster)
+        {
+            string actorId = caster?.asset?.id;
+            if (string.IsNullOrEmpty(actorId))
+                return SubmarineTargetLane.Conventional;
+            if (actorId.StartsWith("EmpSubmarine_", StringComparison.OrdinalIgnoreCase))
+                return SubmarineTargetLane.Electronic;
+            if (IsStrategicSubmarine(actorId))
+                return SubmarineTargetLane.Strategic;
+            return SubmarineTargetLane.Conventional;
+        }
+
         internal static string GetRoleLabel(string actorId)
         {
             if (string.IsNullOrEmpty(actorId))
@@ -470,7 +482,7 @@ namespace ModernBox
                 return false;
 
             int count = UnityEngine.Random.Range(6, 11);
-            List<Vector2> targets = GetEnemyTargets(caster, count, 10f, 4f);
+            List<Vector2> targets = GetEnemyTargets(caster, count, 8f, 4f);
             if (targets.Count == 0)
                 return false;
 
@@ -488,7 +500,7 @@ namespace ModernBox
                 return false;
 
             int count = UnityEngine.Random.Range(3, 6);
-            List<Vector2> targets = GetEnemyTargets(caster, count, 24f, 20f);
+            List<Vector2> targets = GetEnemyTargets(caster, count, 16f, 20f);
             if (targets.Count == 0)
                 return false;
 
@@ -501,7 +513,7 @@ namespace ModernBox
             if (!CanLaunchNuclear(caster, 35, false))
                 return false;
 
-            Vector2? target = GetEnemyTargets(caster, 1, 14f, 20f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 10f, 20f).FirstOrNull();
             if (target == null)
                 return false;
 
@@ -514,7 +526,7 @@ namespace ModernBox
             if (!CanLaunchConventional(caster, 30))
                 return false;
 
-            Vector2? target = GetEnemyTargets(caster, 1, 24f, 20f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 12f, 20f).FirstOrNull();
             if (target == null)
                 return false;
 
@@ -527,7 +539,7 @@ namespace ModernBox
             if (!CanLaunchNuclear(caster, 240, true))
                 return false;
 
-            Vector2? target = GetEnemyTargets(caster, 1, 44f, 34f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 24f, 34f).FirstOrNull();
             if (target == null)
                 return false;
 
@@ -540,7 +552,7 @@ namespace ModernBox
             if (!CanLaunchNuclear(caster, 25, false))
                 return false;
 
-            Vector2? target = GetEnemyTargets(caster, 1, 16f, 20f).FirstOrNull();
+            Vector2? target = GetEnemyTargets(caster, 1, 12f, 20f).FirstOrNull();
             if (target == null)
                 return false;
 
@@ -660,8 +672,21 @@ namespace ModernBox
                     return targets;
             }
 
-            // Do not manufacture nearby fallback points: an undersupplied
-            // target set deliberately launches fewer warheads.
+            // If every valid point is already reserved by another submarine,
+            // fall back to real targets only. The local separation check keeps
+            // a MIRV/salvo spread intact; this merely avoids an entire class
+            // going silent during a busy naval battle.
+            if (targets.Count == 0 && reserveTargets)
+            {
+                List<Vector2> fallback = GetEnemyTargets(caster, targetCount, minimumSeparation,
+                    blastSafetyRadius, false);
+                foreach (Vector2 candidate in fallback)
+                {
+                    if (SubmarineTargetReservations.TryReserve(caster, candidate, minimumSeparation,
+                            GetTargetReservationLane(caster), true))
+                        targets.Add(candidate);
+                }
+            }
             return targets;
         }
 
@@ -693,7 +718,8 @@ namespace ModernBox
                 if (Vector2.Distance(target, resolved) < minimumSeparation)
                     return;
             }
-            if (reserveTarget && !SubmarineTargetReservations.TryReserve(caster, resolved, minimumSeparation))
+            if (reserveTarget && !SubmarineTargetReservations.TryReserve(caster, resolved, minimumSeparation,
+                    GetTargetReservationLane(caster)))
                 return;
             targets.Add(resolved);
         }
@@ -732,7 +758,15 @@ namespace ModernBox
             Vector3 vector = Toolbox.getNewPoint(position.x, position.y, target.x, target.y, distance);
             Vector3 start = Toolbox.getNewPoint(position.x, position.y, target.x, target.y, caster.stats["size"]);
             start.y += 0.5f;
-            World.world.projectiles.spawn(caster, null, projectileId, start, vector);
+            try
+            {
+                World.world.projectiles.spawn(caster, null, projectileId, start, vector);
+            }
+            catch
+            {
+                SubmarineTargetReservations.Release(caster, target, GetTargetReservationLane(caster));
+                return false;
+            }
             if (StatManager.Instance != null)
                 StatManager.Instance.SpawnUnit();
             caster.punchTargetAnimation(vector, true, false, 45f);
