@@ -8509,6 +8509,21 @@ private static bool IsVehicleActor(Actor actor)
 	return isVehicle;
 }
 
+private static bool HasLiveModernBoatHomeDock(Actor actor)
+{
+	if (!UnifiedNavalProduction.IsManagedCombatBoat(actor) ||
+		!actor.hasHomeBuilding())
+	{
+		return false;
+	}
+
+	Building homeDock = actor.getHomeBuilding();
+	return homeDock != null && !homeDock.isRekt() && homeDock.current_tile != null &&
+		homeDock.isUsable() && !homeDock.isAbandoned() && !homeDock.isUnderConstruction() &&
+		homeDock.component_docks != null && homeDock.component_docks.isDockGood() &&
+		homeDock.current_tile.zone?.city?.kingdom == actor.kingdom;
+}
+
 private static bool TryGetLandVehicleAmmoProfile(Actor actor, out LandVehicleAmmoProfile profile)
 {
 	profile = null;
@@ -11283,7 +11298,7 @@ public static class Patch_BehFindHouse_ExcludeVehicles
 			return true;
 		}
 
-		if (pActor.hasHouse())
+		if (pActor.hasHouse() && !HasLiveModernBoatHomeDock(pActor))
 		{
 			pActor.clearHomeBuilding();
 		}
@@ -11304,13 +11319,26 @@ public static class Patch_BehBuildingTargetHome_ExcludeVehicles
 			return true;
 		}
 
-		if (pActor.hasHouse())
+		if (pActor.hasHouse() && !HasLiveModernBoatHomeDock(pActor))
 		{
 			pActor.clearHomeBuilding();
 		}
 
 		__result = BehResult.Stop;
 		return false;
+	}
+}
+
+
+// Assembly-CSharp signature verified: void ai.ActorTool.checkHomeDocks(Actor).
+// Keep a ModernBox boat at its assigned live dock; invalid/destroyed/enemy
+// homes continue through the base routine so they can be cleared normally.
+[HarmonyPatch(typeof(ai.ActorTool), "checkHomeDocks")]
+public static class Patch_ActorTool_CheckHomeDocks_PreserveModernBoatDock
+{
+	static bool Prefix(Actor pActor)
+	{
+		return !HasLiveModernBoatHomeDock(pActor);
 	}
 }
 

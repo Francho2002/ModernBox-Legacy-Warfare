@@ -138,6 +138,13 @@ namespace ModernBox
                 asset.id.IndexOf("docks", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
+        internal static bool IsManagedCombatBoat(Actor actor)
+        {
+            string boatType = actor?.asset?.boat_type;
+            return actor?.asset?.is_boat == true && !string.IsNullOrEmpty(boatType) &&
+                CombatBoatTypes.Contains(boatType, StringComparer.OrdinalIgnoreCase);
+        }
+
         private static string[] BuildCombatBoatTypes()
         {
             List<string> types = new List<string>();
@@ -171,11 +178,10 @@ namespace ModernBox
             int kingdomStrategicCap = MilitaryQuotaService.GetKingdomStrategicCap(city?.kingdom);
 
             return ids.Where(id => AssetManager.actor_library.get(id) != null)
-                // A port must be allowed to complete its first varied combat
-                // template. The kingdom-wide strategic ceiling resumes once
-                // that exact dock already has the hull in question.
+                // Strategic submarine capacity is kingdom-wide and strict;
+                // individual docks cannot bypass the ceiling with a template.
                 .Where(id => !NavalRoles.IsStrategicSubmarine(id) ||
-                    kingdomStrategic < kingdomStrategicCap || !DockOwnsVariant(dock, id))
+                    kingdomStrategic < kingdomStrategicCap)
                 // A carrier is a dock's capital ship: exactly one per home
                 // dock, while other hulls may repeat after the template.
                 .Where(id => !IsCarrier(id) || !DockOwnsVariant(dock, id))
@@ -186,29 +192,28 @@ namespace ModernBox
         {
             List<string> pool = GetPool(dock, city);
             string carrierId = "CarrierVessel_" + GetFaction(city);
+            string hunterId = "HunterSubmarine_" + GetFaction(city);
 
-            // Every home dock reserves its first capital ship. An empty dock
-            // may establish itself with one cheap escort; from then on it
-            // spends nothing on other hulls until its carrier is affordable.
-            // GetPool removes the carrier after the dock owns one, preserving
-            // the exact one-carrier-per-dock ceiling.
+            // A port first establishes a cheap hunter submarine, then saves for
+            // its carrier. This prevents the old "destroyers only" deadlock
+            // without letting repeated cheap hulls starve carrier construction.
             if (pool.Contains(carrierId) && !DockOwnsVariant(dock, carrierId))
             {
                 if (city.hasEnoughResourcesFor(GetCost(carrierId)))
                     return carrierId;
 
-                if (!DockHasCombatFleet(dock))
-                {
-                    List<string> starterEscorts = pool
-                        .Where(IsEscortDestroyer)
-                        .Where(id => city.hasEnoughResourcesFor(GetCost(id)))
-                        .ToList();
-                    if (starterEscorts.Count > 0)
-                        return starterEscorts[Randy.randomInt(0, starterEscorts.Count)];
-                }
+                if (pool.Contains(hunterId) && !DockOwnsVariant(dock, hunterId) &&
+                    city.hasEnoughResourcesFor(GetCost(hunterId)))
+                    return hunterId;
 
                 return null;
             }
+
+            // After the carrier gate, every live dock still guarantees its own
+            // non-strategic hunter before filling the remaining fleet template.
+            if (pool.Contains(hunterId) && !DockOwnsVariant(dock, hunterId) &&
+                city.hasEnoughResourcesFor(GetCost(hunterId)))
+                return hunterId;
 
             List<string> affordable = pool
                 .Where(id => city.hasEnoughResourcesFor(GetCost(id)))
@@ -313,19 +318,6 @@ namespace ModernBox
             ActorAsset asset = AssetManager.actor_library.get(assetId);
             string boatType = asset?.boat_type;
             return !string.IsNullOrEmpty(boatType) && dock.countBoatTypes(boatType) > 0;
-        }
-
-        private static bool DockHasCombatFleet(Docks dock)
-        {
-            if (dock == null)
-                return false;
-
-            foreach (string boatType in CombatBoatTypes)
-            {
-                if (dock.countBoatTypes(boatType) > 0)
-                    return true;
-            }
-            return false;
         }
 
         private static string GetFaction(City city)
