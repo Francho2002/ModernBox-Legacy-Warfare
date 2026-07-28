@@ -188,18 +188,31 @@ namespace ModernBox
             string carrierId = "CarrierVessel_" + GetFaction(city);
             string hunterId = "HunterSubmarine_" + GetFaction(city);
 
-            // The carrier remains the first choice whenever this dock can pay
-            // for it. An unaffordable carrier must not block other missing
-            // hulls from being produced.
-            if (pool.Contains(carrierId) && !DockOwnsVariant(dock, carrierId))
+            bool carrierMissing = pool.Contains(carrierId);
+            bool hunterMissing = pool.Contains(hunterId);
+
+            // The carrier always wins when it is affordable. Before acquiring
+            // the hunter, a dock may still establish that cheap escort. Once
+            // the hunter exists, it saves every resource until its carrier can
+            // be completed instead of filling the remaining template early.
+            if (carrierMissing)
             {
                 if (city.hasEnoughResourcesFor(GetCost(carrierId)))
                     return carrierId;
+                if (hunterMissing && city.hasEnoughResourcesFor(GetCost(hunterId)))
+                    return hunterId;
+                return null;
             }
 
-            // Every dock obtains its one non-strategic hunter as soon as its
-            // carrier priority has been evaluated.
-            if (pool.Contains(hunterId) && !DockOwnsVariant(dock, hunterId) &&
+            // City resources are shared. Do not let a dock that already owns
+            // its carrier fill lower-priority template slots while another
+            // valid dock is still getting its Hunter and saving for a carrier.
+            if (!carrierMissing && CityHasDockMissingCarrier(city))
+                return null;
+
+            // Every dock obtains its one non-strategic hunter before entering
+            // the normal finite-template stage.
+            if (hunterMissing &&
                 city.hasEnoughResourcesFor(GetCost(hunterId)))
                 return hunterId;
 
@@ -213,6 +226,17 @@ namespace ModernBox
             // entries. Keep the canonical order deterministic and never
             // select a repeat after all twelve are present.
             return affordable[0];
+        }
+
+        private static bool CityHasDockMissingCarrier(City city)
+        {
+            string carrierId = "CarrierVessel_" + GetFaction(city);
+            foreach (Docks cityDock in GetValidCityDocks(city))
+            {
+                if (!DockOwnsVariant(cityDock, carrierId))
+                    return true;
+            }
+            return false;
         }
 
         private static bool DockOwnsVariant(Docks dock, string assetId)
