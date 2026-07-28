@@ -425,22 +425,22 @@ namespace ModernBox
             // Retained only so an already-saved in-flight Arsenal projectile
             // can still be resolved after upgrading. New Arsenal salvos use
             // the exact faction conventional projectile below.
-            CreateProjectile(ArsenalProjectileId, "missileartillery", "modernbox_arsenal_blast", 6, 74f,
+            CreateProjectile(ArsenalProjectileId, "missileartillery", "modernbox_arsenal_blast", 6, 37f,
                 0.50f, "fx_explosion_meteorite", false, 0.72f);
             // El Tridente emplea una cabeza MIRV propia: más amplia que la
             // nuclear estándar pero por debajo del Martillo, sin cráteres ni
             // bioma radiactivo.
-            CreateProjectile(TridentProjectileId, "NUKER", "modernbox_trident_blast", 16, 86f,
+            CreateProjectile(TridentProjectileId, "NUKER", "modernbox_trident_blast", 16, 43f,
                 0.58f, "fx_explosion_nuke_atomic", true, 1.00f);
-            CreateProjectile(NeutronProjectileId, "NUKER", "modernbox_neutron_blast", 7, 91f,
+            CreateProjectile(NeutronProjectileId, "NUKER", "modernbox_neutron_blast", 7, 45.5f,
                 0.48f, "fx_explosion_nuke_atomic", true, 0.72f);
             // The EMP detonates at altitude as a flash: it does not damage
             // terrain and its disable effect applies only to hostile forces.
-            CreateProjectile(EmpProjectileId, "NUKER", null, 0, 102f,
+            CreateProjectile(EmpProjectileId, "NUKER", null, 0, 51f,
                 0.46f, "fx_explosion_middle", true, 0.80f);
-            CreateProjectile(HammerProjectileId, "NUKER", "modernbox_hammer_blast", 34, 77f,
+            CreateProjectile(HammerProjectileId, "NUKER", "modernbox_hammer_blast", 34, 38.5f,
                 0.72f, "fx_explosion_huge", true, 1.45f);
-            CreateProjectile(RuinProjectileId, "NUKER", "modernbox_ruin_blast", 9, 88f,
+            CreateProjectile(RuinProjectileId, "NUKER", "modernbox_ruin_blast", 9, 44f,
                 0.50f, "fx_explosion_middle", true, 0.90f);
         }
 
