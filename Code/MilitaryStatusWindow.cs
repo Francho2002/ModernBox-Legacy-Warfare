@@ -873,7 +873,7 @@ namespace ModernBox
             List<Building> docks = GetDockBuildings(city);
             int dockCount = docks.Count;
             int currentBoats = CountBoats(city);
-            const string navalCapacityNote = "Puertos sin cupo individual: recursos y ciclos de construcción determinan la flota.";
+            const string navalCapacityNote = "Plantilla por puerto: 12 cascos, incluidos 8 submarinos estratégicos; sin límite global de producción.";
             string faction = GetNavalFaction(city);
             List<ProductionCandidate> candidates = GetNavalCandidates(faction);
 
@@ -890,10 +890,7 @@ namespace ModernBox
             }
 
             result.AppendLine("    Naval: " + dockCount + " puerto(s), " + currentBoats + " embarcación(es) vinculada(s), flota " + Escape(faction) + ".");
-            int kingdomStrategic = MilitaryQuotaService.CountKingdomStrategicAssets(city.kingdom);
             result.AppendLine("      " + navalCapacityNote);
-            int kingdomStrategicCap = MilitaryQuotaService.GetKingdomStrategicCap(city.kingdom);
-            result.AppendLine("      Estratégicos del reino: " + kingdomStrategic + "/" + kingdomStrategicCap + ".");
             if (candidates.Count == 0)
             {
                 result.AppendLine("      Catálogo naval: <color=#FFCC77>faltan assets navales registrados.</color>");
@@ -904,7 +901,7 @@ namespace ModernBox
                 .Where(candidate => city.hasEnoughResourcesFor(candidate.cost))
                 .ToList();
             result.AppendLine("      Catálogo naval: " + DescribeCandidates(candidates) + ".");
-            result.AppendLine("      Los puertos no tienen cupo individual; solo los submarinos estratégicos respetan el límite global del reino.");
+            result.AppendLine("      Cada muelle completa una vez su plantilla y después solo repone el casco faltante.");
 
             if (affordable.Count == 0)
             {
@@ -1049,6 +1046,7 @@ namespace ModernBox
             {
                 "aDestroyer_" + faction,
                 "bDestroyer_" + faction,
+                "CarrierVessel_" + faction,
                 "Submarine_" + faction,
                 "SalvoSubmarine_" + faction
             };
@@ -1071,6 +1069,11 @@ namespace ModernBox
                 {
                     cost = new ConstructionCost(7, 6, 4, 2);
                     label = "7 madera, 6 piedra, 4 metal, 2 oro";
+                }
+                else if (id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase))
+                {
+                    cost = new ConstructionCost(16, 14, 11, 6);
+                    label = "16 madera, 14 piedra, 11 metal, 6 oro";
                 }
                 else if (id.StartsWith("SalvoSubmarine_", StringComparison.OrdinalIgnoreCase))
                 {

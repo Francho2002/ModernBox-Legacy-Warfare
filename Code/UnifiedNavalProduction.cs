@@ -6,9 +6,9 @@ using System.Runtime.CompilerServices;
 namespace ModernBox
 {
     /// <summary>
-    /// Common dock production for all visual eras. Docks have no artificial
-    /// berth quota: costs and normal construction cadence control fleet growth,
-    /// while strategic submarines retain a kingdom-wide stability ceiling.
+    /// Common dock production for all visual eras. Each dock completes one
+    /// finite combat template; costs and normal construction cadence control
+    /// when its missing hulls are acquired or replaced.
     /// </summary>
     internal static class UnifiedNavalProduction
     {
@@ -174,17 +174,11 @@ namespace ModernBox
                 "SalvoSubmarine_" + faction
             };
 
-            int kingdomStrategic = MilitaryQuotaService.CountKingdomStrategicAssets(city?.kingdom);
-            int kingdomStrategicCap = MilitaryQuotaService.GetKingdomStrategicCap(city?.kingdom);
-
             return ids.Where(id => AssetManager.actor_library.get(id) != null)
-                // Strategic submarine capacity is kingdom-wide and strict;
-                // individual docks cannot bypass the ceiling with a template.
-                .Where(id => !NavalRoles.IsStrategicSubmarine(id) ||
-                    kingdomStrategic < kingdomStrategicCap)
-                // A carrier is a dock's capital ship: exactly one per home
-                // dock, while other hulls may repeat after the template.
-                .Where(id => !IsCarrier(id) || !DockOwnsVariant(dock, id))
+                // This is the complete, per-home-dock template. Existing
+                // save-game duplicates are left untouched, but production
+                // never creates a second managed hull for this dock.
+                .Where(id => !DockOwnsVariant(dock, id))
                 .ToList();
         }
 
@@ -194,23 +188,17 @@ namespace ModernBox
             string carrierId = "CarrierVessel_" + GetFaction(city);
             string hunterId = "HunterSubmarine_" + GetFaction(city);
 
-            // A port first establishes a cheap hunter submarine, then saves for
-            // its carrier. This prevents the old "destroyers only" deadlock
-            // without letting repeated cheap hulls starve carrier construction.
+            // The carrier remains the first choice whenever this dock can pay
+            // for it. An unaffordable carrier must not block other missing
+            // hulls from being produced.
             if (pool.Contains(carrierId) && !DockOwnsVariant(dock, carrierId))
             {
                 if (city.hasEnoughResourcesFor(GetCost(carrierId)))
                     return carrierId;
-
-                if (pool.Contains(hunterId) && !DockOwnsVariant(dock, hunterId) &&
-                    city.hasEnoughResourcesFor(GetCost(hunterId)))
-                    return hunterId;
-
-                return null;
             }
 
-            // After the carrier gate, every live dock still guarantees its own
-            // non-strategic hunter before filling the remaining fleet template.
+            // Every dock obtains its one non-strategic hunter as soon as its
+            // carrier priority has been evaluated.
             if (pool.Contains(hunterId) && !DockOwnsVariant(dock, hunterId) &&
                 city.hasEnoughResourcesFor(GetCost(hunterId)))
                 return hunterId;
@@ -221,93 +209,10 @@ namespace ModernBox
             if (affordable.Count == 0)
                 return null;
 
-            List<string> military = affordable.Where(IsMilitary).ToList();
-            List<string> strategic = military.Where(NavalRoles.IsStrategicSubmarine).ToList();
-            List<string> normalMilitary = military.Where(id => !NavalRoles.IsStrategicSubmarine(id)).ToList();
-            List<string> escorts = normalMilitary.Where(IsEscortDestroyer).ToList();
-
-            // Home-dock template: do not use kingdom ownership here. A fleet
-            // based at another port is not a substitute for this dock having
-            // its own example of each hull. Resources remain the normal gate.
-            List<string> missingAtDock = military
-                .Where(id => !DockOwnsVariant(dock, id))
-                .ToList();
-            if (missingAtDock.Count > 0)
-                return missingAtDock[Randy.randomInt(0, missingAtDock.Count)];
-
-            // Put an escort into a young fleet early. It remains a short-range
-            // anti-submarine ship; it never uses the retired bomb-boat attack.
-            List<string> missingEscorts = escorts.Where(id => !KingdomOwnsVariant(city?.kingdom, id)).ToList();
-            if (missingEscorts.Count > 0 && Randy.randomChance(.65f))
-                return missingEscorts[Randy.randomInt(0, missingEscorts.Count)];
-
-            // Before repeating a hull, a kingdom deliberately fills gaps in
-            // its available fleet catalogue. This makes the nuclear/naval arm
-            // useful in play without making any single weapon the only answer.
-            List<string> missingVariants = military
-                .Where(id => !KingdomOwnsVariant(city?.kingdom, id))
-                .ToList();
-            if (missingVariants.Count > 0 && Randy.randomChance(.78f))
-            {
-                List<string> missingStrategic = missingVariants
-                    .Where(NavalRoles.IsStrategicSubmarine)
-                    .ToList();
-                if (missingStrategic.Count > 0 && Randy.randomChance(.70f))
-                {
-                    List<string> measured = missingStrategic
-                        .Where(id => !IsSalvoSubmarine(id) || Randy.randomChance(.40f))
-                        .ToList();
-                    if (measured.Count > 0)
-                        return measured[Randy.randomInt(0, measured.Count)];
-                }
-
-                return missingVariants[Randy.randomInt(0, missingVariants.Count)];
-            }
-
-            if (Randy.randomChance(.70f))
-            {
-                // Strategic assets are available together but do not all become
-                // production candidates at once. The kingdom-wide cap remains
-                // the only fleet-size gate; ports themselves are unrestricted.
-                if (strategic.Count > 0 && Randy.randomChance(.55f))
-                {
-                    List<string> nonApocalypse = strategic
-                        .Where(id => !IsSalvoSubmarine(id) || Randy.randomChance(.30f))
-                        .ToList();
-                    if (nonApocalypse.Count > 0)
-                        return nonApocalypse[Randy.randomInt(0, nonApocalypse.Count)];
-                }
-
-                if (escorts.Count > 0 && Randy.randomChance(.45f))
-                    return escorts[Randy.randomInt(0, escorts.Count)];
-                if (normalMilitary.Count > 0)
-                    return normalMilitary[Randy.randomInt(0, normalMilitary.Count)];
-            }
-
-            if (normalMilitary.Count > 0)
-                return normalMilitary[Randy.randomInt(0, normalMilitary.Count)];
-            if (strategic.Count > 0)
-                return strategic[Randy.randomInt(0, strategic.Count)];
-            return null;
-        }
-
-        private static bool KingdomOwnsVariant(Kingdom kingdom, string assetId)
-        {
-            if (kingdom?.cities == null || string.IsNullOrEmpty(assetId))
-                return false;
-
-            foreach (City city in kingdom.cities)
-            {
-                if (city?.units == null)
-                    continue;
-                foreach (Actor unit in city.units)
-                {
-                    if (unit != null && unit.isAlive() &&
-                        string.Equals(unit.asset?.id, assetId, StringComparison.OrdinalIgnoreCase))
-                        return true;
-                }
-            }
-            return false;
+            // The pool already contains only this dock's missing template
+            // entries. Keep the canonical order deterministic and never
+            // select a repeat after all twelve are present.
+            return affordable[0];
         }
 
         private static bool DockOwnsVariant(Docks dock, string assetId)
@@ -340,11 +245,6 @@ namespace ModernBox
             return !string.IsNullOrEmpty(id) &&
                 (id.StartsWith("aDestroyer_", StringComparison.OrdinalIgnoreCase) ||
                  id.StartsWith("bDestroyer_", StringComparison.OrdinalIgnoreCase));
-        }
-
-        private static bool IsCarrier(string id)
-        {
-            return !string.IsNullOrEmpty(id) && id.StartsWith("CarrierVessel_", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsSalvoSubmarine(string id)
