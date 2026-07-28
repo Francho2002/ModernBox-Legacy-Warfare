@@ -263,8 +263,17 @@ namespace ModernBox
                 AssetManager.items.get(launcher.default_attack) == null)
                 return false;
 
-            cost = GetCost(launcherId, "modern");
+            cost = GetDefensiveLauncherCost(city);
             return city.hasEnoughResourcesFor(cost);
+        }
+
+        private static ConstructionCost GetDefensiveLauncherCost(City city)
+        {
+            // The first launcher is a lighter but still paid legacy-economy
+            // package. Every later launcher retains the full heavy cost.
+            return ModernCapPolicy.CountMissileLaunchers(city) == 0
+                ? new ConstructionCost(7, 6, 2, 2)
+                : new ConstructionCost(7, 6, 4, 2);
         }
 
         private static Candidate SelectDefensiveAirframe(City city)
