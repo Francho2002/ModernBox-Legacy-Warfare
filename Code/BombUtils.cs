@@ -317,23 +317,6 @@ namespace ModernBox
             return true;
         }
 
-        public void action_DickClick(WorldTile pTile, string pPowerID)
-        {
-            SpaceManager.DeleteBomb();
-            foreach (GameObject obj in UnityEngine.Object.FindObjectsOfType<GameObject>())
-            {
-                obj.SetActive(false);
-            }
-
-            GameObject endScreenManager = new GameObject("EndScreenManager");
-            endScreenManager.AddComponent<UniverseDestructionManager>();
-        }
-        public bool action_DickClickOTHER(BaseSimObject pTarget = null, WorldTile pTile = null)
-        {
-
-            return true;
-        }
-
         public void action_TestClick(WorldTile pTile, string pPowerID)
         {
             EffectsLibrary.spawn("fx_nuke_flash", pTile, "test");

@@ -16,16 +16,12 @@ public class StatManager : MonoBehaviour
     public int bombsDropped;
     public int zomboos;
     public int unitsSpawned;
-    public int planetsVisited;
-    public string currentPlanet;
-    public string currentPlanetType;
     public int currentVehicles;
     public string currentEra = "ninguna";
     public string currentEraDescription = "Todavía no hay una apariencia de era activa. Invoca unidades o crea un reino para inicializarla.";
 
     private Text statLabel;
     private Text statLabel2;
-    private Text statLabel3;
     private Image glowingImage;
     private float pulseTime = 0f;
     private Image flashingAdImage;
@@ -67,11 +63,6 @@ public class StatManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
         ApplySavedEraSettings();
-    }
-
-    void Start()
-    {
-        RefreshPlanetStats();
     }
 
     public void ApplySavedEraSettings()
@@ -195,11 +186,6 @@ public class StatManager : MonoBehaviour
         statLabel2 = label;
     }
 
-    public void RegisterStatLabel3(Text label)
-    {
-        statLabel3 = label;
-    }
-
     public void RegisterImage(Image image)
     {
         glowingImage = image;
@@ -211,7 +197,6 @@ public class StatManager : MonoBehaviour
     }
 
     public void DropBomb() => bombsDropped++;
-    public void VisitPlanet() => planetsVisited++;
     public void SpawnUnit() => unitsSpawned++;
 
     public void SetEra(string era)
@@ -272,17 +257,6 @@ public class StatManager : MonoBehaviour
             sb.AppendLine($"<b>Era actual:</b> {GetLocalizedEraName(currentEra)}");
             sb.AppendLine($"<b>Descripción de la era actual:</b> {currentEraDescription}");
             statLabel2.text = sb.ToString();
-        }
-
-        if (shouldRefreshLabels && statLabel3 != null)
-        {
-            RefreshPlanetStats();
-            StringBuilder sb = new StringBuilder();
-            int visitedPlanets = GetVisitedPlanetCount();
-            sb.AppendLine($"<color=#70D4FC><b>Planet</b></color>  <color=#F0F0E0>{currentPlanet}</color>");
-            sb.AppendLine($"<color=#70D4FC><b>Planet Type</b></color>  <color=#A8E08A>{currentPlanetType}</color>");
-            sb.AppendLine($"<color=#70D4FC><b>Planets Visited</b></color>  <color=#F0F0E0>{visitedPlanets}</color>");
-            statLabel3.text = sb.ToString();
         }
 
         if (shouldRefreshLabels)
@@ -376,65 +350,6 @@ public class StatManager : MonoBehaviour
 
         currentVehicles = potentialUnits;
         zomboos = zombieUnits;
-    }
-
-    private void RefreshPlanetStats()
-    {
-        PlanetManager planetManager = PlanetManager.instance;
-        if (planetManager == null)
-        {
-            currentPlanet = "Unknown";
-            currentPlanetType = "Unknown";
-            return;
-        }
-
-        string nextPlanet = SafeGetPlanetName(planetManager);
-        string nextPlanetType = SafeGetPlanetType(planetManager);
-
-        currentPlanet = string.IsNullOrWhiteSpace(nextPlanet) ? "Unknown" : nextPlanet;
-        currentPlanetType = string.IsNullOrWhiteSpace(nextPlanetType) ? "Unknown" : nextPlanetType;
-    }
-
-    private int GetVisitedPlanetCount()
-    {
-        PlanetManager planetManager = PlanetManager.instance;
-        if (planetManager == null)
-        {
-            return planetsVisited;
-        }
-
-        try
-        {
-            return planetManager.getplanettotalcount();
-        }
-        catch
-        {
-            return planetsVisited;
-        }
-    }
-
-    private static string SafeGetPlanetName(PlanetManager planetManager)
-    {
-        try
-        {
-            return planetManager?.GetCurrentPlanet();
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static string SafeGetPlanetType(PlanetManager planetManager)
-    {
-        try
-        {
-            return planetManager?.GetCurrentPlanetType();
-        }
-        catch
-        {
-            return null;
-        }
     }
 
     private string FormatTime(float time)

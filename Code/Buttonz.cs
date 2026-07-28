@@ -43,97 +43,6 @@ namespace ModernBox
             // The hub intentionally contains only game controls. Reports are
             // created lazily when their buttons are pressed.
 
-            // ── Panel background ──────────────────────────────────────────────────────────
-            if (Main.EnableSpaceSystems)
-            {
-            GameObject panelObj = new GameObject("StatPanel3");
-            panelObj.transform.SetParent(tab.transform);
-            panelObj.transform.localPosition = new Vector3(386, -18, 0);
-            panelObj.transform.localScale = Vector3.one;
-
-            Image panelBg = panelObj.AddComponent<Image>();
-            panelBg.color = new Color(0.05f, 0.05f, 0.1f, 0.85f);
-
-            RectTransform panelRect = panelObj.GetComponent<RectTransform>();
-            panelRect.sizeDelta = new Vector2(210, 110);
-            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-
-            // ── Outline / border via a child image ───────────────────────────────────────
-            GameObject borderObj = new GameObject("PanelBorder");
-            borderObj.transform.SetParent(panelObj.transform);
-            borderObj.transform.localPosition = Vector3.zero;
-            borderObj.transform.localScale = Vector3.one;
-
-            Outline panelOutline = panelObj.AddComponent<Outline>();
-            panelOutline.effectColor = new Color(0.4f, 0.8f, 1f, 0.6f);
-            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
-
-            // ── Header label ─────────────────────────────────────────────────────────────
-            GameObject headerObj = new GameObject("StatHeader3");
-            headerObj.transform.SetParent(panelObj.transform);
-            headerObj.transform.localPosition = new Vector3(0, 38, 0);
-            headerObj.transform.localScale = Vector3.one;
-
-            Text headerText = headerObj.AddComponent<Text>();
-            headerText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            headerText.fontSize = 11;
-            headerText.fontStyle = FontStyle.Bold;
-            headerText.alignment = TextAnchor.MiddleCenter;
-            headerText.color = new Color(0.45f, 0.85f, 1f, 1f);   // icy blue
-            headerText.supportRichText = true;
-            headerText.text = "";
-
-            RectTransform headerRect = headerObj.GetComponent<RectTransform>();
-            headerRect.sizeDelta = new Vector2(200, 20);
-            headerRect.anchorMin = new Vector2(0.5f, 0.5f);
-            headerRect.anchorMax = new Vector2(0.5f, 0.5f);
-
-      /*      // ── Divider ───────────────────────────────────────────────────────────────────
-            GameObject divObj = new GameObject("Divider3");
-            divObj.transform.SetParent(panelObj.transform);
-            divObj.transform.localPosition = new Vector3(0, 26, 0);
-            divObj.transform.localScale = Vector3.one;
-
-            Image divImg = divObj.AddComponent<Image>();
-            divImg.color = new Color(0.4f, 0.8f, 1f, 0.3f);
-
-            RectTransform divRect = divObj.GetComponent<RectTransform>();
-            divRect.sizeDelta = new Vector2(190, 1);
-            divRect.anchorMin = new Vector2(0.5f, 0.5f);
-            divRect.anchorMax = new Vector2(0.5f, 0.5f);
-        */
-            // ── Main stat text ────────────────────────────────────────────────────────────
-            GameObject stat3LabelObject = new GameObject("StatLabel3");
-            stat3LabelObject.transform.SetParent(panelObj.transform);
-            stat3LabelObject.transform.localPosition = new Vector3(0, -5, 0);
-            stat3LabelObject.transform.localScale = Vector3.one;
-
-            Text statText3 = stat3LabelObject.AddComponent<Text>();
-            statText3.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            statText3.fontSize = 12;
-            statText3.alignment = TextAnchor.UpperCenter;
-            statText3.color = new Color(1f, 0.95f, 0.8f, 1f);
-            statText3.supportRichText = true;
-
-            // Rich text example — your StatManager can push strings like this:
-            // "<color=#7DD4FC><b>Kills</b></color>  <color=#FFFFFF>42</color>\n
-            //  <color=#7DD4FC><b>Deaths</b></color>  <color=#FF6B6B>7</color>"
-            statText3.text = "<color=#7DD4FC>Loading</color> <color=#AAAAAA>stats...</color>";
-
-            // Shadow for depth
-            Shadow statShadow = stat3LabelObject.AddComponent<Shadow>();
-            statShadow.effectColor = new Color(0f, 0.3f, 0.5f, 0.8f);
-            statShadow.effectDistance = new Vector2(1f, -1f);
-
-            RectTransform textRect3 = stat3LabelObject.GetComponent<RectTransform>();
-            textRect3.sizeDelta = new Vector2(196, 80);
-            textRect3.anchorMin = new Vector2(0.5f, 0.5f);
-            textRect3.anchorMax = new Vector2(0.5f, 0.5f);
-
-            StatManager.Instance.RegisterStatLabel3(statText3);
-            }
-
         new ButtonBuilder("modernbox_military_status")
             .SetSprite(Resources.Load<Sprite>("ui/icons/MIRV"))
             .SetTitle("INFORME: Estado militar")
@@ -1086,15 +995,6 @@ namespace ModernBox
             .SetTransform(tab3.transform)
             .Build();
 
-            new ButtonBuilder("tuuds_button")
-            .SetSprite(Resources.Load<Sprite>("ui/icons/UniversalDestroyer"))
-            .SetTitle("The Unholy Universal Destruction System (TUUDS)")
-            .SetDescription("Destroys everything, Deletes the universe itself. This is not reversible, so use it wisely (or just use it for fun, i dont care)")
-            .SetPosition(16, 1)
-            .SetType(ButtonType.GodPower)
-            .SetTransform(tab3.transform)
-            .Build();
-
         /*    new ButtonBuilder("test_button")
             .SetSprite(Resources.Load<Sprite>("ui/icons/Wut"))
             .SetTitle("Test Bomb")
@@ -1157,93 +1057,10 @@ namespace ModernBox
 
         }
 
-        private void SetupSpace()
-        {
-          if (!Main.EnableSpaceSystems)
-          {
-            return;
-          }
-
-          PowersTab tab = getPowersTab("ModernBoxSpace");
-
-            new ButtonBuilder("galaxy")
-            .SetSprite(Resources.Load<Sprite>("Stars/Bluegiant"))
-            .SetTitle("Starmap")
-            .SetDescription("Visit other planets and stars!")
-            .SetPosition(6, 0)
-            .SetType(ButtonType.Click)
-            .SetTransform(tab.transform)
-            .SetFunction(openStarMap)
-            .Build();
-
-            new ButtonBuilder("beginningtoggle")
-            .SetSprite(Resources.Load<Sprite>("Stars/Phantomstar"))
-            .SetTitle("Persistence")
-            .SetDescription("Persistence makes it so you continue on the planet you were after restarting the game, instead of generating a new world.")
-            .SetPosition(6, 0)
-            .SetType(ButtonType.Toggle)
-            .SetTransform(tab.transform)
-            .SetFunction(BitchBalls_Patch.togglePersistence)
-            .Build();
-
-            if (Main.savedSettings.boolOptions["PersistenceOption"]) {
-                PowerButtons.ToggleButton("beginningtoggle");
-                BitchBalls_Patch.togglePersistence();
-            }
-
-            new ButtonBuilder("customgalaxies")
-            .SetSprite(Resources.Load<Sprite>("Stars/Neutronstar"))
-            .SetTitle("Custom Galaxies")
-            .SetDescription("Manage custom galaxies!")
-            .SetPosition(6, 0)
-            .SetType(ButtonType.Click)
-            .SetTransform(tab.transform)
-            .SetFunction(openCustomGalaxies)
-            .Build();
-
-            new ButtonBuilder("colonize")
-            .SetSprite(Resources.Load<Sprite>("ui/icons/F55"))
-            .SetTitle("Colonize")
-            .SetDescription("Bring Units to other planets!")
-            .SetPosition(6, 0)
-            .SetType(ButtonType.Click)
-            .SetTransform(tab.transform)
-            .SetFunction(comingSoon)
-            .Build();
-
-            new ButtonBuilder("colonizewhat")
-            .SetSprite(Resources.Load<Sprite>("ui/icons/Future"))
-            .SetTitle("Unknown")
-            .SetDescription("To be revealed....")
-            .SetPosition(6, 0)
-            .SetType(ButtonType.Click)
-            .SetTransform(tab.transform)
-            .SetFunction(comingSoon)
-            .Build();
-        }
-        private static void openStarMap() {
-			if (!Main.EnableSpaceSystems) {
-				return;
-			}
-
-			SpaceManager.EnableSpace();
-         	Debug.Log("SpaceBox: openStarMap has been called but the star map ain't actually fucking showing up. (ofc it isn't)");
-		  }
-
-        private static void comingSoon() {
-            WorldTip.showNow("Coming soon. Maybe", true, "top", 3f);
-        }
         private static void openAboutWindow() {
 
 			 Windows.ShowWindow("AboutWindow");
              }
-		  private static void openCustomGalaxies() {
-			if (!Main.EnableSpaceSystems) {
-				return;
-			}
-
-			 Windows.ShowWindow("CustomGalaxiesWindow");
-		  }
              private static void openInfiniteBoxWindow() {
 
                 Application.OpenURL("https://tuxxego.com/infinitebox");

@@ -164,13 +164,6 @@ namespace ModernBox
             .SetBombEffectAction(new WorldAction(BombUtilities.Instance.action_NSAClickOTHER))
             .Build();
 
-        new BombBuilder("tuuds")
-            .SetTexturePath("drops/drop_czarbomba")
-            .SetDropLandAction(new DropsAction(BombUtilities.Instance.action_DickClick))
-            .SetClickPowerAction(new PowerAction(Buttonz.Stuff_Drop))
-            .SetBombEffectAction(new WorldAction(BombUtilities.Instance.action_DickClickOTHER))
-            .Build();
-
             new BombBuilder("test")
             .SetTexturePath("ui/icons/Wut")
             .SetDropLandAction(new DropsAction(BombUtilities.Instance.action_TestClick))

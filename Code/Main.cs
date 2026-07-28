@@ -60,8 +60,6 @@ namespace ModernBox{
         public const string mainPath = "Mods/MX";
         public Buttonz Buttonz = new Buttonz();
         public PlayWavDirectly PlayWavDirectly = new PlayWavDirectly();
-        public SpaceManager SpaceManager;
-        public PlanetGenerator PlanetGenerator;
         public LocalizationManager LocalizationManager;
         public BombUtilities testBombDebugger;
         public Bombs Bombs = new Bombs();
@@ -78,9 +76,6 @@ namespace ModernBox{
         // Compatibility gate: fantasy assets/classes remain loadable for saves, but
         // no ModernBox fantasy systems, God Powers, monsters, or zombies are active.
         internal const bool EnableFantasySystems = false;
-        // Space assets and legacy save data remain untouched, but all space/planet
-        // entry points are disabled for this grounded ModernBox configuration.
-        internal const bool EnableSpaceSystems = false;
         private const string PreferredModernBoxFolderName = "M5TrainsUpdateBeta";
         private bool modernBoxUiInitialized;
 
@@ -118,7 +113,6 @@ namespace ModernBox{
 
             //    PowersTab tab = TabManager.CreateTab("ModernBox", "ModernBox", "Best Mod Ever", Resources.Load<Sprite>("ui/icon"));
 
-                  ModernBoxLogger.Log("[M2] Space Manager set to lazy-load.");
                 // StatManager remains a headless gameplay service for manual
                 // appearance controls; legacy achievements are not initialized.
                 StatManager = gameObject.AddComponent<StatManager>();
@@ -138,23 +132,12 @@ namespace ModernBox{
                 }
         		UnitTracker = gameObject.AddComponent<UnitTracker>();
         		testBombDebugger = gameObject.AddComponent<BombUtilities>();
-                ModernBoxLogger.Log("SpaceBoxModernBox: Pls no lag!");
 
                 if (EnableFantasySystems)
                 {
                     ModernBoxLogger.Log("[MX] Initializing Bombs...");
                     Bombs.Init();
                     ModernBoxLogger.Log("[MX] Bombs loaded!");
-                }
-
-                if (EnableSpaceSystems)
-                {
-                    ModernBoxLogger.Log("[MX] Loading SpaceWindow...");
-                    SpaceWindow.init();
-                    ModernBoxLogger.Log("[MX] SpaceWindow loaded!");
-                    ModernBoxLogger.Log("[MX] Loading CustomGalaxiesWindow...");
-                    CustomGalaxiesWindow.init();
-                    ModernBoxLogger.Log("[MX] CustomGalaxiesWindow loaded!");
                 }
 
                                  Vehicles.init();
@@ -372,12 +355,6 @@ namespace ModernBox{
                         img.sprite = newSprite;
                     }
                 }
-                if (EnableSpaceSystems)
-                {
-                    GameObject planetManagerObject = new GameObject("PlanetManager");
-                    planetManagerObject.AddComponent<PlanetManager>();
-                }
-
                 if (DateTime.UtcNow >= cutoffUtc)
                 {
                     GameObject setupGO2 = new GameObject("Stupid");
