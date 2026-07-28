@@ -311,14 +311,16 @@ namespace ModernBox
                 return;
 
             state.impactSoundPlayed = true;
-            // Coordinates outside the map use WorldBox's non-positional path:
-            // the impact remains audible at maximum zoom without nuclear volume.
-            // Cruise/land missiles use WorldBox's native meteorite report; the
-            // lighter torpedo keeps its original smaller splash-like impact.
+            // Keep the conventional impact local to the real detonation.  The
+            // previous (-1, -1) non-positional route made every impact rumble
+            // across the entire map and could be mistaken for a nuclear blast.
+            // Cruise/land missiles retain WorldBox's native meteorite report;
+            // the lighter torpedo keeps its original smaller splash-like impact.
             string impactSound = HeavyConventionalMissiles.Contains(projectile.asset.id)
                 ? "event:/SFX/EXPLOSIONS/ExplosionMeteorite"
                 : "event:/SFX/EXPLOSIONS/ExplosionSmall";
-            MusicBox.playSound(impactSound, -1f, -1f, true, false);
+            Vector2 impactPosition = projectile.getTargetVector();
+            MusicBox.playSound(impactSound, impactPosition.x, impactPosition.y, true, true);
         }
 
         private static Actor FindMissileDefender(WorldTile missileTile, Kingdom missileKingdom)
