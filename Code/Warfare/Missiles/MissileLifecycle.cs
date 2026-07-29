@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
 using UnityEngine;
@@ -14,28 +13,28 @@ namespace ModernBox
     /// </summary>
     internal static class MissileLifecycle
     {
-        private const float StallSecondsBeforeRecovery = 5.5f;
-        private const float MinimumTimeoutSeconds = 30f;
-        private const float MaximumTimeoutSeconds = 180f;
-        private const float MinimumExpectedFlightMultiplier = 12f;
-
         private static readonly ConditionalWeakTable<Projectile, MissileState> States =
             new ConditionalWeakTable<Projectile, MissileState>();
-        private static readonly FieldInfo CurrentPositionField =
-            AccessTools.Field(typeof(Projectile), "_current_position_3d");
-        private static readonly FieldInfo TargetField =
-            AccessTools.Field(typeof(Projectile), "_vector_target");
+        private static readonly AccessTools.FieldRef<Projectile, Vector3> CurrentPositionRef =
+            TryCreateFieldRef<Vector3>("_current_position_3d");
+        private static readonly AccessTools.FieldRef<Projectile, Vector2> TargetRef =
+            TryCreateFieldRef<Vector2>("_vector_target");
+        private static readonly AccessTools.FieldRef<Projectile, Vector3> VelocityRef =
+            TryCreateFieldRef<Vector3>("_velocity");
 
         private sealed class MissileState
         {
-            internal Vector2 Target;
-            internal float InitialDistance;
-            internal float LastDistance;
-            internal Vector3 LastPosition;
-            internal float Age;
-            internal float StalledSeconds;
+            internal Vector2 RawTarget;
+            internal Vector2 ImpactPoint;
+            internal Vector2 StartPoint;
+            internal float StartHeight;
+            internal float Distance;
+            internal float HorizontalSpeed;
+            internal float Travelled;
+            internal float ArcHeight;
             internal bool HasTarget;
-            internal bool HasSample;
+            internal bool Landed;
+            internal int LandedFrame = -1;
             internal bool ImpactStarted;
             internal bool ImpactCompleted;
             internal bool ImpactSoundPlayed;
@@ -47,25 +46,53 @@ namespace ModernBox
             if (projectile == null)
                 return;
 
-            States.Remove(projectile);
             MissileProfile profile;
             if (!MissileCatalog.TryGet(projectile, out profile))
                 return;
 
             MissileState state = States.GetOrCreateValue(projectile);
-            Vector2 target = projectile.getTargetVector();
-            state.Target = target;
-            state.HasTarget = IsValidWorldTarget(target);
-
+            state.RawTarget = projectile.getTargetVector();
             Vector2 current = projectile.getCurrentPosition();
-            float distance = Vector2.Distance(current, target);
-            state.InitialDistance = IsFinite(distance) ? distance : 0f;
-            state.LastDistance = state.InitialDistance;
-            state.LastPosition = GetCurrentPosition3D(projectile, current);
-            state.HasSample = true;
+            Vector3 current3D = GetCurrentPosition3D(projectile, current);
+            state.StartPoint = current;
+            state.StartHeight = Mathf.Max(0f, current3D.z);
+
+            WorldTile targetTile = ResolveNativeTargetTile(state.RawTarget);
+            state.HasTarget = targetTile != null;
+            state.ImpactPoint = state.HasTarget ? targetTile.pos : state.RawTarget;
+            state.Distance = state.HasTarget
+                ? Vector2.Distance(state.StartPoint, state.ImpactPoint)
+                : 0f;
+
+            Vector3 velocity = GetVelocity(projectile);
+            float capturedHorizontalSpeed = new Vector2(velocity.x, velocity.y).magnitude;
+            if (!IsFinite(capturedHorizontalSpeed) || capturedHorizontalSpeed < 0.1f)
+                capturedHorizontalSpeed = Mathf.Max(1f, projectile.asset.speed * 0.7f);
+            state.HorizontalSpeed = capturedHorizontalSpeed;
+            state.ArcHeight = GetArcHeight(profile, state.Distance);
+
+            // Every consumer, including air defense, now sees the same immutable
+            // tile-centred target that the native build-719 impact will use.
+            if (state.HasTarget)
+                TrySetTarget(projectile, state.ImpactPoint);
         }
 
-        internal static bool Update(Projectile projectile, float elapsed)
+        internal static bool BeforeUpdate(Projectile projectile)
+        {
+            MissileState state;
+            if (projectile == null || !States.TryGetValue(projectile, out state) || !state.Landed)
+                return true;
+
+            // This prefix runs before IAD. A missile pinned to its target is no
+            // longer an airborne interception candidate: keep its final sprite
+            // exact for one frame, then enter the native impact pipeline.
+            TryAlignAtImpact(projectile, state);
+            if (Time.frameCount > state.LandedFrame)
+                CompleteNativeImpact(projectile, state);
+            return false;
+        }
+
+        internal static bool UpdateVelocity(Projectile projectile, float elapsed)
         {
             MissileState state;
             MissileProfile profile;
@@ -76,48 +103,52 @@ namespace ModernBox
             if (state.Terminal)
                 return false;
 
+            if (!state.HasTarget)
+            {
+                Airburst(projectile, projectile.getCurrentPosition());
+                return false;
+            }
+
+            // Keep the complete missile sprite on the exact impact point for one
+            // rendered frame. On the next Unity frame the native targetReached
+            // pipeline performs effect, sound and terraform at that same point.
+            if (state.Landed)
+            {
+                TryAlignAtImpact(projectile, state);
+                if (Time.frameCount > state.LandedFrame)
+                    CompleteNativeImpact(projectile, state);
+                return false;
+            }
+
             float safeElapsed = Mathf.Max(0f, elapsed);
-            state.Age += safeElapsed;
+            state.Travelled = Mathf.Min(state.Distance,
+                state.Travelled + state.HorizontalSpeed * safeElapsed);
+            float progress = state.Distance <= 0.001f
+                ? 1f
+                : Mathf.Clamp01(state.Travelled / state.Distance);
 
-            Vector2 current = projectile.getCurrentPosition();
-            float remainingDistance = Vector2.Distance(current, state.Target);
-            if (!state.HasTarget || !IsFinite(remainingDistance) || !IsFinite(current))
+            Vector3 previous = GetCurrentPosition3D(projectile, state.StartPoint);
+            Vector2 horizontal = Vector2.Lerp(state.StartPoint, state.ImpactPoint, progress);
+            float baseHeight = Mathf.Lerp(state.StartHeight, 0f, progress);
+            float arc = 4f * state.ArcHeight * progress * (1f - progress);
+            Vector3 next = new Vector3(horizontal.x, horizontal.y, Mathf.Max(0f, baseHeight + arc));
+
+            if (!TrySetGuidedPosition(projectile, previous, next, safeElapsed))
             {
-                Airburst(projectile, current);
+                Airburst(projectile, projectile.getCurrentPosition());
                 return false;
             }
 
-            Vector3 current3D = GetCurrentPosition3D(projectile, current);
-            float movedDistance = state.HasSample ? Vector3.Distance(current3D, state.LastPosition) : 0f;
-            bool approachedTarget = remainingDistance + 0.08f < state.LastDistance;
-            if (approachedTarget || movedDistance > 0.02f)
-                state.StalledSeconds = 0f;
-            else if (remainingDistance > 0.35f)
-                state.StalledSeconds += safeElapsed;
-
-            state.LastDistance = remainingDistance;
-            state.LastPosition = current3D;
-            state.HasSample = true;
-
-            float speed = Mathf.Max(1f, projectile.asset.speed);
-            float timeout = Mathf.Clamp(Mathf.Max(MinimumTimeoutSeconds,
-                (state.InitialDistance / speed) * MinimumExpectedFlightMultiplier),
-                MinimumTimeoutSeconds, MaximumTimeoutSeconds);
-
-            // Never delete a valid warhead in flight. A stalled or otherwise
-            // timed-out missile is completed through WorldBox's own impact path
-            // at its immutable launch target, which keeps terrain, effects and
-            // the sprite in agreement.
-            if (state.StalledSeconds >= StallSecondsBeforeRecovery || state.Age >= timeout)
+            if (progress >= 1f)
             {
-                if (profile.Offensive)
-                    ForceNativeImpact(projectile);
-                else
-                    Airburst(projectile, current);
-                return false;
+                state.Landed = true;
+                state.LandedFrame = Time.frameCount;
+                TryAlignAtImpact(projectile, state);
             }
 
-            return true;
+            // The native Projectile.update continues after this skipped
+            // updateVelocity call, preserving scale, trail and light updates.
+            return false;
         }
 
         internal static bool Intercept(Projectile projectile)
@@ -173,6 +204,15 @@ namespace ModernBox
             if (state.ImpactStarted || state.Terminal)
                 return false;
 
+            // A foreign callback must never detonate an offensive missile in
+            // the middle of its deterministic flight. Restore the active state
+            // and let the lifecycle reach its persisted destination normally.
+            if (profile.Offensive && !state.Landed)
+            {
+                projectile.setState(ProjectileState.Active);
+                return false;
+            }
+
             if (!profile.Offensive)
             {
                 state.Terminal = true;
@@ -189,13 +229,18 @@ namespace ModernBox
 
             state.ImpactStarted = true;
             state.Terminal = true;
-            AlignAtCapturedTarget(projectile, state);
+            if (!TryAlignAtImpact(projectile, state))
+            {
+                state.ImpactCompleted = true;
+                Airburst(projectile, projectile.getCurrentPosition());
+                return false;
+            }
 
             // One ordered impact pipeline. The sound is intentionally played
             // here, before native impact, instead of through asset.sound_impact
             // or an independent Harmony patch. That makes the report match the
             // captured blast point and guarantees a single refined sample.
-            PlayImpactSound(projectile, profile, state.Target);
+            PlayImpactSound(projectile, profile, state.ImpactPoint);
             NuclearFallout.RememberImpact(projectile);
             NavalRoles.HandleSpecialWarheadImpact(projectile);
             return true;
@@ -214,24 +259,19 @@ namespace ModernBox
             state.ImpactCompleted = true;
         }
 
-        private static void ForceNativeImpact(Projectile projectile)
+        private static void CompleteNativeImpact(Projectile projectile, MissileState state)
         {
-            MissileState state;
-            if (!States.TryGetValue(projectile, out state))
-            {
-                Airburst(projectile, projectile.getCurrentPosition());
+            if (projectile == null || state == null || state.Terminal)
                 return;
-            }
-
-            if (!state.HasTarget)
-            {
-                Airburst(projectile, projectile.getCurrentPosition());
-                return;
-            }
 
             try
             {
-                AlignAtCapturedTarget(projectile, state);
+                if (!TryAlignAtImpact(projectile, state))
+                {
+                    Airburst(projectile, projectile.getCurrentPosition());
+                    return;
+                }
+
                 // Native updateVelocity normally marks the projectile for
                 // removal before invoking targetReached. Recovery calls the
                 // impact method directly, so it must reproduce that state
@@ -242,10 +282,17 @@ namespace ModernBox
             }
             catch (Exception ex)
             {
-                // A future game build may change targetReached. Do not leave a
-                // frozen projectile in the world if that happens.
-                ModernBoxLogger.Warning("[MissileLifecycle] Native impact recovery failed: " + ex.Message);
-                Airburst(projectile, projectile.getCurrentPosition());
+                // Never retry a native impact that may already have emitted an
+                // effect or changed the world. Exactly-once takes precedence.
+                ModernBoxLogger.Warning("[MissileLifecycle] Native impact failed: " + ex.Message);
+                projectile.setState(ProjectileState.ToRemove);
+                if (!state.ImpactStarted)
+                    Airburst(projectile, projectile.getCurrentPosition());
+                else
+                {
+                    IntegratedAirDefense.Forget(projectile);
+                    NuclearAlertController.Forget(projectile);
+                }
             }
         }
 
@@ -275,15 +322,27 @@ namespace ModernBox
             NuclearAlertController.Forget(projectile);
         }
 
-        private static void AlignAtCapturedTarget(Projectile projectile, MissileState state)
+        private static bool TryAlignAtImpact(Projectile projectile, MissileState state)
         {
-            if (CurrentPositionField == null || TargetField == null || !state.HasTarget)
-                return;
+            if (projectile == null || state == null || CurrentPositionRef == null ||
+                TargetRef == null || VelocityRef == null || !state.HasTarget)
+                return false;
 
-            // z=0 is intentional: native terrain and blast lookups read the
-            // projectile's world position, not its aerial sprite transform.
-            CurrentPositionField.SetValue(projectile, new Vector3(state.Target.x, state.Target.y, 0f));
-            TargetField.SetValue(projectile, state.Target);
+            try
+            {
+                // z=0 is intentional: native effect and terrain lookup now
+                // consume one identical, tile-centred impact point.
+                CurrentPositionRef(projectile) =
+                    new Vector3(state.ImpactPoint.x, state.ImpactPoint.y, 0f);
+                TargetRef(projectile) = state.ImpactPoint;
+                VelocityRef(projectile) = Vector3.zero;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ModernBoxLogger.Warning("[MissileLifecycle] Could not align missile impact: " + ex.Message);
+                return false;
+            }
         }
 
         private static void PlayImpactSound(Projectile projectile, MissileProfile profile, Vector2 position)
@@ -305,12 +364,108 @@ namespace ModernBox
                 profile.ImpactSoundGameViewOnly, false);
         }
 
-        private static bool IsValidWorldTarget(Vector2 target)
+        private static WorldTile ResolveNativeTargetTile(Vector2 target)
         {
             if (!IsFinite(target) || World.world == null)
+                return null;
+
+            // Projectile.getCurrentTilePosition in build 719 uses conv.i4,
+            // which truncates toward zero. Matching it exactly prevents the
+            // visual effect and damageWorld from selecting adjacent tiles.
+            return World.world.GetTile((int)target.x, (int)target.y);
+        }
+
+        private static float GetArcHeight(MissileProfile profile, float distance)
+        {
+            string id = profile?.Id;
+            if (string.Equals(id, MissileIds.Torpedo, StringComparison.OrdinalIgnoreCase))
+                return Mathf.Clamp(distance * 0.015f, 0.20f, 0.65f);
+            if (string.Equals(id, MissileIds.Interceptor, StringComparison.OrdinalIgnoreCase))
+                return Mathf.Clamp(distance * 0.035f, 0.75f, 2.25f);
+            if (string.Equals(id, MissileIds.JetRocket, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(id, MissileIds.JetRocketHorde, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(id, MissileIds.JetRocketHarden, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(id, MissileIds.JetRocketGaia, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(id, MissileIds.BomberRocket, StringComparison.OrdinalIgnoreCase))
+                return Mathf.Clamp(distance * 0.05f, 1.25f, 4.5f);
+            if (profile != null && profile.Nuclear)
+                return Mathf.Clamp(distance * 0.11f, 7f, 18f);
+            return Mathf.Clamp(distance * 0.08f, 3.5f, 11f);
+        }
+
+        private static bool TrySetGuidedPosition(Projectile projectile, Vector3 previous,
+            Vector3 next, float elapsed)
+        {
+            if (projectile == null || CurrentPositionRef == null || VelocityRef == null ||
+                !IsFinite(new Vector2(next.x, next.y)) || !IsFinite(next.z))
                 return false;
 
-            return World.world.GetTile(Mathf.RoundToInt(target.x), Mathf.RoundToInt(target.y)) != null;
+            try
+            {
+                CurrentPositionRef(projectile) = next;
+                Vector3 velocity = elapsed > 0.0001f
+                    ? (next - previous) / elapsed
+                    : Vector3.zero;
+                VelocityRef(projectile) = velocity;
+
+                Vector2 visualDelta = new Vector2(
+                    next.x - previous.x,
+                    (next.y + next.z) - (previous.y + previous.z));
+                if (visualDelta.sqrMagnitude > 0.000001f)
+                {
+                    float angle = Mathf.Atan2(visualDelta.y, visualDelta.x) * Mathf.Rad2Deg;
+                    projectile.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ModernBoxLogger.Warning("[MissileLifecycle] Guided flight failed: " + ex.Message);
+                return false;
+            }
+        }
+
+        private static void TrySetTarget(Projectile projectile, Vector2 target)
+        {
+            if (projectile == null || TargetRef == null)
+                return;
+            try
+            {
+                TargetRef(projectile) = target;
+            }
+            catch
+            {
+                // Flight remains safe because the persisted ImpactPoint is the
+                // authority even if a future build renames this private field.
+            }
+        }
+
+        private static Vector3 GetVelocity(Projectile projectile)
+        {
+            if (projectile == null || VelocityRef == null)
+                return Vector3.zero;
+            try
+            {
+                return VelocityRef(projectile);
+            }
+            catch
+            {
+                return Vector3.zero;
+            }
+        }
+
+        private static AccessTools.FieldRef<Projectile, TField> TryCreateFieldRef<TField>(string fieldName)
+        {
+            try
+            {
+                return AccessTools.FieldRefAccess<Projectile, TField>(fieldName);
+            }
+            catch (Exception ex)
+            {
+                ModernBoxLogger.Warning("[MissileLifecycle] Missing build-719 field " +
+                    fieldName + ": " + ex.Message);
+                return null;
+            }
         }
 
         private static Vector3 GetCurrentPosition3D(Projectile projectile, Vector2 fallback)
@@ -342,7 +497,15 @@ namespace ModernBox
     [HarmonyPatch(typeof(Projectile), "start")]
     internal static class MissileLifecycleStartPatch
     {
+        [HarmonyPrefix]
+        [HarmonyPriority(Priority.First)]
+        private static void Prefix(Projectile __instance)
+        {
+            MissileLifecycle.Forget(__instance);
+        }
+
         [HarmonyPostfix]
+        [HarmonyPriority(Priority.Last)]
         private static void Postfix(Projectile __instance)
         {
             MissileLifecycle.CaptureLaunch(__instance);
@@ -354,9 +517,20 @@ namespace ModernBox
     {
         [HarmonyPrefix]
         [HarmonyPriority(Priority.First)]
+        private static bool Prefix(Projectile __instance)
+        {
+            return MissileLifecycle.BeforeUpdate(__instance);
+        }
+    }
+
+    [HarmonyPatch(typeof(Projectile), "updateVelocity")]
+    internal static class MissileLifecycleVelocityPatch
+    {
+        [HarmonyPrefix]
+        [HarmonyPriority(Priority.First)]
         private static bool Prefix(Projectile __instance, float pElapsed)
         {
-            return MissileLifecycle.Update(__instance, pElapsed);
+            return MissileLifecycle.UpdateVelocity(__instance, pElapsed);
         }
     }
 
