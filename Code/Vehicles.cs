@@ -8222,6 +8222,7 @@ CreateSalvoSubmarine("harden", "missileArtilleryDecision");
 CreateSalvoSubmarine("gaia", "missileArtilleryDecision");
 CreateSalvoSubmarine("horde", "missileArtilleryDecision");
 NavalRoles.Initialize();
+NavalInspectionSafety.NormalizeRegisteredAssets();
 MissileCatalog.NormalizeRegisteredAssets();
 NavalOverviewRegistration.EnsureRegistered();
 ApplyAirVehicleDecisionProfiles();
