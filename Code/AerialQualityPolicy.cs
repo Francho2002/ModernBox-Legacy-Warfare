@@ -6,8 +6,9 @@ namespace ModernBox
 {
     // Build 719 uses the same native low-resolution mode both for the aerial
     // renderer and the interactive Meta layers.  Keep the overview crisp by
-    // default, but hand the three tile-selectable Meta maps back to WorldBox's
-    // own low-resolution path while they are selected.
+    // default, but hand the tile-selectable Meta maps back to WorldBox's own
+    // low-resolution path while they are selected.  Kingdom and Alliance use
+    // this same native path for their interior territorial fills.
     [HarmonyPatch(typeof(QualityChanger), "getZoomRateBoundLow")]
     internal static class AerialQualityPolicy
     {
@@ -22,7 +23,9 @@ namespace ModernBox
 
             return _activeMetaMode.map_mode == MetaType.Culture
                 || _activeMetaMode.map_mode == MetaType.Religion
-                || _activeMetaMode.map_mode == MetaType.Subspecies;
+                || _activeMetaMode.map_mode == MetaType.Subspecies
+                || _activeMetaMode.map_mode == MetaType.Kingdom
+                || _activeMetaMode.map_mode == MetaType.Alliance;
         }
 
         private static void Postfix(ref float __result)
