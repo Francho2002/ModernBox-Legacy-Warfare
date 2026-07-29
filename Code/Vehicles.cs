@@ -4539,7 +4539,10 @@ var demonreaver = AssetManager.actor_library.clone("demonreaver","baseWarUnit");
 
 DecisionAsset warBoatAttackDecision = new DecisionAsset();
 warBoatAttackDecision.id = "warBoatAttackDecision";
-warBoatAttackDecision.priority = NeuroLayer.Layer_1_Low;
+// Transport requests must win over an optional patrol order.  The native
+// boat_transport_check decision keeps its normal higher scheduling layer;
+// this still lets a free warship return to its combat role between crossings.
+warBoatAttackDecision.priority = NeuroLayer.Layer_0_Minimal;
 warBoatAttackDecision.path_icon = "ui/icons/WarBoat";
 warBoatAttackDecision.cooldown = 1;
 warBoatAttackDecision.unique = true;
@@ -8299,6 +8302,8 @@ NavalRoles.RegisterSpawnUnits();
 				// cannon while FleetOrganization supplies anti-submarine torpedoes.
 				SetDefaultAttack("aDestroyer_" + navalFaction, "boat_cannonball");
 				SetDefaultAttack("bDestroyer_" + navalFaction, "boat_cannonball");
+				ConfigureMilitaryTransport("aDestroyer_" + navalFaction);
+				ConfigureMilitaryTransport("bDestroyer_" + navalFaction);
 				ConfigureOperationalCarrier("CarrierVessel_" + navalFaction);
 				NormalizeMissilePlatform("MissileSystem_" + faction);
 				NormalizeMissilePlatform("Submarine_" + navalFaction);
@@ -8332,7 +8337,29 @@ NavalRoles.RegisterSpawnUnits();
 			carrier.has_override_avatar_frames = true;
 			carrier.inspect_avatar_scale = 1.25f;
 			carrier.inspect_avatar_offset_y = 0f;
+			ConfigureMilitaryTransport(carrier);
 			Localization.addLocalization(carrier.name_locale, carrier.name_locale);
+		}
+
+		// WorldBox's native taxi system recognizes a naval transport only when
+		// both this flag and its scheduling decision are present.  Keep it on
+		// the combat hull itself: `skip_fight_logic` remains unchanged, so an
+		// idle destroyer/carrier still performs its normal escort or air role.
+		private static void ConfigureMilitaryTransport(string actorId)
+		{
+			ConfigureMilitaryTransport(AssetManager.actor_library.get(actorId));
+		}
+
+		private static void ConfigureMilitaryTransport(ActorAsset ship)
+		{
+			if (ship == null || !ship.is_boat)
+				return;
+
+			ship.is_boat_transport = true;
+			if (ship.decision_ids == null)
+				ship.decision_ids = new List<string>();
+			if (!ship.decision_ids.Contains("boat_transport_check"))
+				ship.addDecision("boat_transport_check");
 		}
 
 		private static void NormalizeMissilePlatform(string actorId)
