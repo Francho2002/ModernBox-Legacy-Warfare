@@ -23,6 +23,7 @@ namespace ModernBox
         private const int MaxJoinsPerWarCycle = 2;
         private const int MaxDefenderCommitmentReviewsPerCleanup = 3;
         private const int MaximumActiveWarsFromUltimatums = 6;
+        private const float MissileCeasefirePairCooldownSeconds = 25f;
 
         // MapBox persists between some loads; map_stats identifies the loaded map.
         private static MapBox cachedWorld;
@@ -30,6 +31,7 @@ namespace ModernBox
         private static readonly Dictionary<long, CountryState> states = new Dictionary<long, CountryState>();
         private static readonly Queue<DefenderJoin> defenderJoins = new Queue<DefenderJoin>();
         private static readonly HashSet<string> queuedJoinKeys = new HashSet<string>();
+        private static readonly Dictionary<string, float> missileCeasefirePairChecks = new Dictionary<string, float>();
         private static bool defenderJoinsHydrated;
         private static int rosterCursor;
         private static int economyCursor;
@@ -103,6 +105,7 @@ namespace ModernBox
         private void Awake()
         {
             ResetForWorld();
+            MissileDoctrine.CivilianFallbackAuthorization = AuthorizeCivilianMissileFallback;
             ModernBoxLogger.Log("[MX.Diplomacy] Sistema diplomático moderno activo.");
         }
 
@@ -160,6 +163,7 @@ namespace ModernBox
             states.Clear();
             defenderJoins.Clear();
             queuedJoinKeys.Clear();
+            missileCeasefirePairChecks.Clear();
             defenderJoinsHydrated = false;
             rosterCursor = 0;
             economyCursor = crisisCursor = 0;
@@ -181,6 +185,7 @@ namespace ModernBox
             states.Clear();
             defenderJoins.Clear();
             queuedJoinKeys.Clear();
+            missileCeasefirePairChecks.Clear();
             defenderJoinsHydrated = false;
             defenderCommitmentCursor = 0;
         }
@@ -190,6 +195,74 @@ namespace ModernBox
             if (World.world?.kingdoms == null)
                 return new List<Kingdom>();
             return World.world.kingdoms.Where(k => k != null && k.isCiv()).OrderBy(k => k.id).ToList();
+        }
+
+        // MissileDoctrine calls this only after finding no live military enemy
+        // targets. It may stop a balanced bilateral war before a launcher can
+        // fall back to civilian infrastructure.
+        private static bool AuthorizeCivilianMissileFallback(Actor caster)
+        {
+            Kingdom casterKingdom = caster?.kingdom;
+            if (casterKingdom == null || World.world?.wars == null)
+                return true;
+
+            using (var enemies = casterKingdom.getEnemiesKingdoms())
+            {
+                foreach (Kingdom enemy in enemies)
+                {
+                    if (enemy == null || !casterKingdom.isInWarWith(enemy))
+                        continue;
+
+                    War war = World.world.wars.getWar(casterKingdom, enemy, false);
+                    if (war == null || war.hasEnded())
+                        continue;
+
+                    List<Kingdom> participants = World.world.kingdoms
+                        .Where(kingdom => kingdom != null && war.hasKingdom(kingdom)).ToList();
+                    if (participants.Count != 2 || !participants.Contains(casterKingdom) ||
+                        !participants.Contains(enemy) ||
+                        war.isDefender(casterKingdom) == war.isDefender(enemy))
+                        continue;
+
+                    string pairKey = Key(casterKingdom.id, enemy.id);
+                    float now = Time.time;
+                    if (missileCeasefirePairChecks.TryGetValue(pairKey, out float nextCheck) && now < nextCheck)
+                        continue;
+                    missileCeasefirePairChecks[pairKey] = now + MissileCeasefirePairCooldownSeconds;
+
+                    float casterStrength = MissileCeasefireStrength(casterKingdom);
+                    float enemyStrength = MissileCeasefireStrength(enemy);
+                    float parity = Mathf.Min(casterStrength, enemyStrength) /
+                        Mathf.Max(1f, Mathf.Max(casterStrength, enemyStrength));
+                    if (parity < 0.75f)
+                        continue;
+
+                    try
+                    {
+                        World.world.wars.endWar(war, WarWinner.Peace);
+                        Ledger(casterKingdom, "Alto el fuego automático: paz bilateral por paridad de fuerzas con " + Name(enemy) + ".");
+                        Ledger(enemy, "Alto el fuego automático: paz bilateral por paridad de fuerzas con " + Name(casterKingdom) + ".");
+                        Save(casterKingdom);
+                        Save(enemy);
+                        ModernBoxLogger.Log("[MX.Diplomacy] Alto el fuego bilateral: " +
+                            casterKingdom.id + " y " + enemy.id + ".");
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        ModernBoxLogger.Warning("[MX.Diplomacy] Alto el fuego no aplicado: " + ex.Message);
+                    }
+                }
+            }
+            return true;
+        }
+
+        private static float MissileCeasefireStrength(Kingdom kingdom)
+        {
+            int cities = kingdom?.cities == null ? 0 : kingdom.cities.Count(city => city != null && city.isAlive());
+            int warriors = kingdom == null ? 0 : Math.Max(0, kingdom.countTotalWarriors());
+            float power = kingdom == null ? 0f : Mathf.Max(0f, kingdom.power);
+            return Mathf.Max(1f, power + warriors * 2f + cities * 30f);
         }
 
         private static CountryState State(Kingdom kingdom)
