@@ -10364,35 +10364,24 @@ private static bool IsGroundMissileTargetOnLand(Actor caster, Vector2 target)
         !targetTile.Type.ocean && !targetTile.Type.liquid;
 }
 
+// Centralized launcher gate used by MissileDoctrine. Ground MissileSystem
+// platforms retain their land-only constraint; naval launchers may strike a
+// live military actor at sea as long as the common safety/range rules allow it.
+internal static bool IsMissileDoctrineTargetLaunchable(Actor caster, Vector2 target, float blastSafetyRadius)
+{
+    return caster != null && caster.kingdom != null &&
+        IsIntercontinentalMissileTargetInRange(caster, target) &&
+        IsGroundMissileTargetOnLand(caster, target) &&
+        IsMissileTargetSafe(caster.kingdom, target, blastSafetyRadius);
+}
+
 private static bool IsValidMissilePlatformDirectTarget(Actor caster, BaseSimObject target)
 {
     if (caster == null || caster.kingdom == null || target == null ||
-        !IsIntercontinentalMissileTargetInRange(caster, target.current_position) ||
-        !IsMissileTargetSafe(caster.kingdom, target.current_position, GetMissilePlatformBlastSafetyRadius(caster)))
+        !MissileDoctrine.IsLiveEnemyMilitaryTarget(caster, target) ||
+        !IsMissileDoctrineTargetLaunchable(caster, target.current_position, GetMissilePlatformBlastSafetyRadius(caster)))
         return false;
-
-    // Land launchers are strategic artillery only. Never use their native
-    // direct-fire route against a landing force or any target on home soil:
-    // that fight belongs to soldiers, tanks and conventional artillery.
-    if (IsGroundMissileLauncher(caster))
-    {
-        if (!IsGroundMissileTargetOnLand(caster, target.current_position))
-            return false;
-        return IsStrategicMissileTargetSafe(caster.kingdom, target.current_position, 4f);
-    }
-
-    WorldTile tile = target.current_tile;
-    City territoryCity = tile?.zone?.city;
-    if (territoryCity != null)
-        return caster.kingdom.isEnemy(territoryCity.kingdom);
-
-    // Outside a kingdom zone, missile platforms only pursue explicit naval or
-    // tornado threats; they do not bombard neutral/friendly shore skirmishes.
-    Actor targetActor = target.isActor() ? target.a : null;
-    string targetId = targetActor?.asset?.id;
-    return targetActor != null &&
-        ((targetActor.asset != null && targetActor.asset.is_boat) || targetActor.hasTrait("boat") ||
-         (!string.IsNullOrEmpty(targetId) && targetId.IndexOf("tornado", StringComparison.OrdinalIgnoreCase) >= 0));
+    return true;
 }
 
 private static float GetMissilePlatformBlastSafetyRadius(Actor actor)
@@ -10458,61 +10447,20 @@ private static bool TrySelectBaselineSubmarineTarget(Actor caster, float blastSa
         return false;
 
     Vector2? fallback = null;
-    List<City> cities = new List<City>();
-    using (var enemies = caster.kingdom.getEnemiesKingdoms())
+    List<Vector2> candidates = new List<Vector2>();
+    MissileDoctrine.GetTargetCandidates(caster, blastSafetyRadius, candidates, 64);
+    foreach (Vector2 candidate in candidates)
     {
-        foreach (Kingdom enemyKingdom in enemies)
-        {
-            if (enemyKingdom?.cities == null)
-                continue;
-            foreach (City city in enemyKingdom.cities)
-            {
-                if (city != null && city.isAlive())
-                    cities.Add(city);
-            }
-        }
-    }
+        // Keep one legitimate target in reserve. It is used only if the
+        // normal spaced pass was exhausted by other friendly submarines.
+        if (fallback == null)
+            fallback = candidate;
 
-    foreach (City city in cities.OrderBy(_ => UnityEngine.Random.value))
-    {
-        List<Vector2> candidates = new List<Vector2>();
-        if (city.buildings != null)
-        {
-            int buildingCount = city.buildings.Count;
-            int buildingStart = buildingCount > 0 ? UnityEngine.Random.Range(0, buildingCount) : 0;
-            int buildingChecks = Mathf.Min(buildingCount, 8);
-            for (int index = 0; index < buildingChecks; index++)
-            {
-                Building building = city.buildings[(buildingStart + index) % buildingCount];
-                if (building?.current_tile != null)
-                    candidates.Add(building.current_tile.pos);
-            }
-        }
-        if (city.hasLeader() && city.leader != null && city.leader.isAlive())
-            candidates.Add(city.leader.current_position);
-        if (city.kingdom?.king != null && city.kingdom.king.isAlive())
-            candidates.Add(city.kingdom.king.current_position);
-        WorldTile cityTile = city.getTile();
-        if (cityTile != null)
-            candidates.Add(cityTile.pos);
-
-        foreach (Vector2 candidate in candidates)
-        {
-            if (!IsIntercontinentalMissileTargetInRange(caster, candidate) ||
-                !IsStrategicMissileTargetSafe(caster.kingdom, candidate, blastSafetyRadius))
-                continue;
-
-            // Keep one legitimate target in reserve. It is used only if the
-            // normal spaced pass was exhausted by other friendly submarines.
-            if (fallback == null)
-                fallback = candidate;
-
-            if (!SubmarineTargetReservations.TryReserve(caster, candidate, reservationSeparation,
-                    NavalRoles.GetTargetReservationLane(caster)))
-                continue;
-            target = candidate;
-            return true;
-        }
+        if (!SubmarineTargetReservations.TryReserve(caster, candidate, reservationSeparation,
+                NavalRoles.GetTargetReservationLane(caster)))
+            continue;
+        target = candidate;
+        return true;
     }
 
     if (fallback != null && SubmarineTargetReservations.TryReserve(caster, fallback.Value,
@@ -10542,340 +10490,101 @@ private static bool TrySpawnReservedSubmarineProjectile(Actor caster, string pro
     }
 }
 
-public static bool MissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile = null)
+private static bool LaunchCruiseMissileEffect(Actor caster, string projectileId)
 {
-    if (pTarget == null || !pTarget.isActor())
-        return false;
-
-    Actor caster = pTarget.a;
     if (!CanLaunchConventionalMissile(caster))
         return false;
 
-    using (var enemies = caster.kingdom.getEnemiesKingdoms())
+    Vector2 attackPos;
+    bool submarineReservation = false;
+    if (IsBaselineSubmarine(caster))
     {
-        foreach (var enemyKingdom in enemies)
-        {
-            if (enemyKingdom.hasKing() && enemyKingdom.cities.Count > 0)
-            {
-                var targetCity = enemyKingdom.cities.GetRandom();
-                if (targetCity != null)
-                {
-
-                    float roll = UnityEngine.Random.value;
-                    Vector2? attackPos = null;
-
-                    if (roll < 0.33f && targetCity.buildings.Count > 0)
-                    {
-                        var building = targetCity.buildings.GetRandom();
-                        if (building != null && building.current_tile != null)
-                            attackPos = building.current_tile.pos;
-                    }
-
-                    else if (roll < 0.66f && targetCity.hasLeader() && targetCity.leader.isAlive())
-                    {
-                        attackPos = targetCity.leader.current_position;
-                    }
-
-                    else if (enemyKingdom.hasKing() && enemyKingdom.king.isAlive())
-                    {
-                        attackPos = enemyKingdom.king.current_position;
-                    }
-
-                    if (attackPos == null)
-                    {
-                        var targetTile = targetCity.getTile();
-                        if (targetTile != null)
-                            attackPos = targetTile.pos;
-                    }
-
-                    bool submarineReservation = false;
-                    if (IsBaselineSubmarine(caster))
-                    {
-                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 8f, out Vector2 alternative))
-                            return false;
-                        attackPos = alternative;
-                        submarineReservation = true;
-                    }
-
-                    if (attackPos != null &&
-                        IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
-                        IsGroundMissileTargetOnLand(caster, attackPos.Value) &&
-                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
-                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 8f)))
-                    {
-                        Vector3 selfPos = caster.current_position;
-                        float dist = Vector2.Distance(selfPos, attackPos.Value);
-                        Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
-                        Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
-                        startProjectile.y += 0.5f;
-                        if (!TrySpawnReservedSubmarineProjectile(caster, MissileIds.AllianceCruise, startProjectile,
-                                attackVector, attackPos.Value))
-                            return false;
-                        caster.punchTargetAnimation(attackVector, true, false, 45f);
-                        return true;
-                    }
-                }
-            }
-        }
+        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 8f, out attackPos))
+            return false;
+        submarineReservation = true;
     }
-    return false;
+    else if (!MissileDoctrine.TrySelectTarget(caster, 4f, out attackPos))
+    {
+        return false;
+    }
+
+    if (!IsMissileDoctrineTargetLaunchable(caster, attackPos, 4f) ||
+        (!submarineReservation && !TryReserveBaselineSubmarineTarget(caster, attackPos, 8f)))
+        return false;
+
+    Vector3 selfPos = caster.current_position;
+    float dist = Vector2.Distance(selfPos, attackPos);
+    Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.x, attackPos.y, dist);
+    Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.x, attackPos.y, caster.stats["size"]);
+    startProjectile.y += 0.5f;
+    if (!TrySpawnReservedSubmarineProjectile(caster, projectileId, startProjectile, attackVector, attackPos))
+        return false;
+    caster.punchTargetAnimation(attackVector, true, false, 45f);
+    return true;
 }
 
+public static bool MissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile = null)
+{
+    return pTarget != null && pTarget.isActor() &&
+        LaunchCruiseMissileEffect(pTarget.a, MissileIds.AllianceCruise);
+}
 
 public static bool HORDEmissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile = null)
 {
-    if (pTarget == null || !pTarget.isActor())
-        return false;
-
-    Actor caster = pTarget.a;
-    if (!CanLaunchConventionalMissile(caster))
-        return false;
-
-    using (var enemies = caster.kingdom.getEnemiesKingdoms())
-    {
-        foreach (var enemyKingdom in enemies)
-        {
-            if (enemyKingdom.hasKing() && enemyKingdom.cities.Count > 0)
-            {
-                var targetCity = enemyKingdom.cities.GetRandom();
-                if (targetCity != null)
-                {
-
-                    float roll = UnityEngine.Random.value;
-                    Vector2? attackPos = null;
-
-                    if (roll < 0.33f && targetCity.buildings.Count > 0)
-                    {
-                        var building = targetCity.buildings.GetRandom();
-                        if (building != null && building.current_tile != null)
-                            attackPos = building.current_tile.pos;
-                    }
-
-                    else if (roll < 0.66f && targetCity.hasLeader() && targetCity.leader.isAlive())
-                    {
-                        attackPos = targetCity.leader.current_position;
-                    }
-
-                    else if (enemyKingdom.hasKing() && enemyKingdom.king.isAlive())
-                    {
-                        attackPos = enemyKingdom.king.current_position;
-                    }
-
-                    if (attackPos == null)
-                    {
-                        var targetTile = targetCity.getTile();
-                        if (targetTile != null)
-                            attackPos = targetTile.pos;
-                    }
-
-                    bool submarineReservation = false;
-                    if (IsBaselineSubmarine(caster))
-                    {
-                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 8f, out Vector2 alternative))
-                            return false;
-                        attackPos = alternative;
-                        submarineReservation = true;
-                    }
-
-                    if (attackPos != null &&
-                        IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
-                        IsGroundMissileTargetOnLand(caster, attackPos.Value) &&
-                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
-                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 8f)))
-                    {
-                        Vector3 selfPos = caster.current_position;
-                        float dist = Vector2.Distance(selfPos, attackPos.Value);
-                        Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
-                        Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
-                        startProjectile.y += 0.5f;
-                        if (!TrySpawnReservedSubmarineProjectile(caster, MissileIds.HordeCruise, startProjectile,
-                                attackVector, attackPos.Value))
-                            return false;
-                        caster.punchTargetAnimation(attackVector, true, false, 45f);
-                        return true;
-                    }
-                }
-            }
-        }
-    }
-    return false;
+    return pTarget != null && pTarget.isActor() &&
+        LaunchCruiseMissileEffect(pTarget.a, MissileIds.HordeCruise);
 }
-
-
-
 
 public static bool GAIAmissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile = null)
 {
-    if (pTarget == null || !pTarget.isActor())
-        return false;
-
-    Actor caster = pTarget.a;
-    if (!CanLaunchConventionalMissile(caster))
-        return false;
-
-    using (var enemies = caster.kingdom.getEnemiesKingdoms())
-    {
-        foreach (var enemyKingdom in enemies)
-        {
-            if (enemyKingdom.hasKing() && enemyKingdom.cities.Count > 0)
-            {
-                var targetCity = enemyKingdom.cities.GetRandom();
-                if (targetCity != null)
-                {
-
-                    float roll = UnityEngine.Random.value;
-                    Vector2? attackPos = null;
-
-                    if (roll < 0.33f && targetCity.buildings.Count > 0)
-                    {
-                        var building = targetCity.buildings.GetRandom();
-                        if (building != null && building.current_tile != null)
-                            attackPos = building.current_tile.pos;
-                    }
-
-                    else if (roll < 0.66f && targetCity.hasLeader() && targetCity.leader.isAlive())
-                    {
-                        attackPos = targetCity.leader.current_position;
-                    }
-
-                    else if (enemyKingdom.hasKing() && enemyKingdom.king.isAlive())
-                    {
-                        attackPos = enemyKingdom.king.current_position;
-                    }
-
-                    if (attackPos == null)
-                    {
-                        var targetTile = targetCity.getTile();
-                        if (targetTile != null)
-                            attackPos = targetTile.pos;
-                    }
-
-                    bool submarineReservation = false;
-                    if (IsBaselineSubmarine(caster))
-                    {
-                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 8f, out Vector2 alternative))
-                            return false;
-                        attackPos = alternative;
-                        submarineReservation = true;
-                    }
-
-                    if (attackPos != null &&
-                        IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
-                        IsGroundMissileTargetOnLand(caster, attackPos.Value) &&
-                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
-                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 8f)))
-                    {
-                        Vector3 selfPos = caster.current_position;
-                        float dist = Vector2.Distance(selfPos, attackPos.Value);
-                        Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
-                        Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
-                        startProjectile.y += 0.5f;
-                        if (!TrySpawnReservedSubmarineProjectile(caster, MissileIds.GaiaCruise, startProjectile,
-                                attackVector, attackPos.Value))
-                            return false;
-                        caster.punchTargetAnimation(attackVector, true, false, 45f);
-                        return true;
-                    }
-                }
-            }
-        }
-    }
-    return false;
+    return pTarget != null && pTarget.isActor() &&
+        LaunchCruiseMissileEffect(pTarget.a, MissileIds.GaiaCruise);
 }
-
 
 public static bool HARDENmissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile = null)
 {
-    if (pTarget == null || !pTarget.isActor())
-        return false;
-
-    Actor caster = pTarget.a;
-    if (!CanLaunchConventionalMissile(caster))
-        return false;
-
-    using (var enemies = caster.kingdom.getEnemiesKingdoms())
-    {
-        foreach (var enemyKingdom in enemies)
-        {
-            if (enemyKingdom.hasKing() && enemyKingdom.cities.Count > 0)
-            {
-                var targetCity = enemyKingdom.cities.GetRandom();
-                if (targetCity != null)
-                {
-
-                    float roll = UnityEngine.Random.value;
-                    Vector2? attackPos = null;
-
-                    if (roll < 0.33f && targetCity.buildings.Count > 0)
-                    {
-                        var building = targetCity.buildings.GetRandom();
-                        if (building != null && building.current_tile != null)
-                            attackPos = building.current_tile.pos;
-                    }
-
-                    else if (roll < 0.66f && targetCity.hasLeader() && targetCity.leader.isAlive())
-                    {
-                        attackPos = targetCity.leader.current_position;
-                    }
-
-                    else if (enemyKingdom.hasKing() && enemyKingdom.king.isAlive())
-                    {
-                        attackPos = enemyKingdom.king.current_position;
-                    }
-
-                    if (attackPos == null)
-                    {
-                        var targetTile = targetCity.getTile();
-                        if (targetTile != null)
-                            attackPos = targetTile.pos;
-                    }
-
-                    bool submarineReservation = false;
-                    if (IsBaselineSubmarine(caster))
-                    {
-                        if (!TrySelectBaselineSubmarineTarget(caster, 4f, 8f, out Vector2 alternative))
-                            return false;
-                        attackPos = alternative;
-                        submarineReservation = true;
-                    }
-
-                    if (attackPos != null &&
-                        IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
-                        IsGroundMissileTargetOnLand(caster, attackPos.Value) &&
-                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 4f) &&
-                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 8f)))
-                    {
-                        Vector3 selfPos = caster.current_position;
-                        float dist = Vector2.Distance(selfPos, attackPos.Value);
-                        Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
-                        Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
-                        startProjectile.y += 0.5f;
-                        if (!TrySpawnReservedSubmarineProjectile(caster, MissileIds.HardenCruise, startProjectile,
-                                attackVector, attackPos.Value))
-                            return false;
-                        caster.punchTargetAnimation(attackVector, true, false, 45f);
-                        return true;
-                    }
-                }
-            }
-        }
-    }
-    return false;
+    return pTarget != null && pTarget.isActor() &&
+        LaunchCruiseMissileEffect(pTarget.a, MissileIds.HardenCruise);
 }
 
+private static bool LaunchNuclearMissileDoctrineEffect(Actor caster, City ownerCity)
+{
+    Vector2 attackPos;
+    bool submarineReservation = false;
+    if (IsBaselineSubmarine(caster))
+    {
+        if (!TrySelectBaselineSubmarineTarget(caster, 20f, 16f, out attackPos))
+            return false;
+        submarineReservation = true;
+    }
+    else if (!MissileDoctrine.TrySelectTarget(caster, 20f, out attackPos))
+    {
+        return false;
+    }
 
+    if (!IsMissileDoctrineTargetLaunchable(caster, attackPos, 20f) ||
+        (!submarineReservation && !TryReserveBaselineSubmarineTarget(caster, attackPos, 16f)))
+        return false;
 
-
+    ownerCity.takeResource("gold", 50);
+    Vector3 selfPos = caster.current_position;
+    float dist = Vector2.Distance(selfPos, attackPos);
+    Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.x, attackPos.y, dist);
+    Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.x, attackPos.y, caster.stats["size"]);
+    startProjectile.y += 0.5f;
+    string projectileId = caster.asset?.id?.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase) == true
+        ? MissileIds.BaselineSsbn
+        : MissileIds.Nuke;
+    if (!TrySpawnReservedSubmarineProjectile(caster, projectileId, startProjectile, attackVector, attackPos))
+        return false;
+    StatManager.Instance.SpawnUnit();
+    caster.punchTargetAnimation(attackVector, true, false, 45f);
+    return true;
+}
 
 public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTile pTile = null)
 {
-	if (!nukesEnabled)
-	{
-	//	ModernBoxLogger.Log("Nukes disabled.");
-		return false;
-	}
-
-    if (pTarget == null || !pTarget.isActor())
+    if (!nukesEnabled || pTarget == null || !pTarget.isActor())
         return false;
 
     Actor caster = pTarget.a;
@@ -10883,84 +10592,9 @@ public static bool NuclearMissileArtilleryEffect(BaseSimObject pTarget, WorldTil
         return false;
 
     City ownerCity = caster.city;
-    if (ownerCity == null || ownerCity.amount_gold < 50)
-        return false;
-
-    using (var enemies = caster.kingdom.getEnemiesKingdoms())
-    {
-        foreach (var enemyKingdom in enemies)
-        {
-            if (enemyKingdom.hasKing() && enemyKingdom.cities.Count > 0)
-            {
-                var targetCity = enemyKingdom.cities.GetRandom();
-                if (targetCity != null)
-                {
-                    float roll = UnityEngine.Random.value;
-                    Vector2? attackPos = null;
-
-                    if (roll < 0.33f && targetCity.buildings.Count > 0)
-                    {
-                        var building = targetCity.buildings.GetRandom();
-                        if (building != null && building.current_tile != null)
-                            attackPos = building.current_tile.pos;
-                    }
-
-                    else if (roll < 0.66f && targetCity.hasLeader() && targetCity.leader.isAlive())
-                    {
-                        attackPos = targetCity.leader.current_position;
-                    }
-
-                    else if (enemyKingdom.hasKing() && enemyKingdom.king.isAlive())
-                    {
-                        attackPos = enemyKingdom.king.current_position;
-                    }
-
-                    if (attackPos == null)
-                    {
-                        var targetTile = targetCity.getTile();
-                        if (targetTile != null)
-                            attackPos = targetTile.pos;
-                    }
-
-                    bool submarineReservation = false;
-                    if (IsBaselineSubmarine(caster))
-                    {
-                        if (!TrySelectBaselineSubmarineTarget(caster, 20f, 16f, out Vector2 alternative))
-                            return false;
-                        attackPos = alternative;
-                        submarineReservation = true;
-                    }
-
-                    if (attackPos != null &&
-                        IsIntercontinentalMissileTargetInRange(caster, attackPos.Value) &&
-                        IsStrategicMissileTargetSafe(caster.kingdom, attackPos.Value, 20f) &&
-                        (submarineReservation || TryReserveBaselineSubmarineTarget(caster, attackPos.Value, 16f)))
-                    {
-                        // Do not charge a launch that the territorial safety
-                        // rule rejected while choosing a target.
-                        ownerCity.takeResource("gold", 50);
-                        Vector3 selfPos = caster.current_position;
-                        float dist = Vector2.Distance(selfPos, attackPos.Value);
-                        Vector3 attackVector = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, dist);
-                        Vector3 startProjectile = Toolbox.getNewPoint(selfPos.x, selfPos.y, attackPos.Value.x, attackPos.Value.y, caster.stats["size"]);
-                        startProjectile.y += 0.5f;
-						string projectileId = caster.asset?.id?.StartsWith("Submarine_", StringComparison.OrdinalIgnoreCase) == true
-                            ? MissileIds.BaselineSsbn
-                            : MissileIds.Nuke;
-                        if (!TrySpawnReservedSubmarineProjectile(caster, projectileId, startProjectile,
-                                attackVector, attackPos.Value))
-                            return false;
-						StatManager.Instance.SpawnUnit();
-                        caster.punchTargetAnimation(attackVector, true, false, 45f);
-                        return true;
-                    }
-                }
-            }
-        }
-    }
-    return false;
+    return ownerCity != null && ownerCity.amount_gold >= 50 &&
+        LaunchNuclearMissileDoctrineEffect(caster, ownerCity);
 }
-
 public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = null)
 {
     if (!nukesEnabled || pTarget == null || !pTarget.isActor())
@@ -10981,74 +10615,15 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
 
     int salvoCount = UnityEngine.Random.Range(4, 7);
     const float minimumTargetSeparation = 36f;
-    List<City> enemyCities = new List<City>();
-    using (var enemies = caster.kingdom.getEnemiesKingdoms())
-    {
-        foreach (var enemyKingdom in enemies)
-        {
-            if (enemyKingdom == null || enemyKingdom.cities == null)
-                continue;
-
-            foreach (City city in enemyKingdom.cities)
-            {
-                if (city != null)
-                    enemyCities.Add(city);
-            }
-        }
-    }
-
-    enemyCities = enemyCities.OrderBy(_ => UnityEngine.Random.value).ToList();
+    List<Vector2> doctrineCandidates = new List<Vector2>();
+    MissileDoctrine.GetTargetCandidates(caster, 24f, doctrineCandidates, 64);
     List<Vector2> salvoTargets = new List<Vector2>();
-    // First pass: one strategic point per distinct enemy city.
-    foreach (City city in enemyCities)
+    foreach (Vector2 candidate in doctrineCandidates)
     {
-        Vector2? target = GetNuclearSalvoCityTarget(city);
-        if (target != null)
-            TryAddNuclearSalvoTarget(caster, salvoTargets, target.Value, minimumTargetSeparation);
+        TryAddNuclearSalvoTarget(caster, salvoTargets, candidate, minimumTargetSeparation);
         if (salvoTargets.Count == salvoCount)
             break;
     }
-
-    // Second pass: spread remaining warheads across other real buildings,
-    // leaders, kings and city centers. A shortage simply fires fewer warheads.
-    if (salvoTargets.Count < salvoCount)
-    {
-        foreach (City city in enemyCities)
-        {
-            if (city.buildings != null)
-            {
-                foreach (Building building in city.buildings)
-                {
-                    if (building?.current_tile != null)
-                        TryAddNuclearSalvoTarget(caster, salvoTargets, building.current_tile.pos, minimumTargetSeparation);
-                    if (salvoTargets.Count == salvoCount)
-                        break;
-                }
-            }
-            if (salvoTargets.Count == salvoCount)
-                break;
-
-            if (city.hasLeader() && city.leader.isAlive())
-                TryAddNuclearSalvoTarget(caster, salvoTargets, city.leader.current_position, minimumTargetSeparation);
-            if (salvoTargets.Count == salvoCount)
-                break;
-
-            if (city.kingdom?.king != null && city.kingdom.king.isAlive())
-                TryAddNuclearSalvoTarget(caster, salvoTargets, city.kingdom.king.current_position, minimumTargetSeparation);
-            if (salvoTargets.Count == salvoCount)
-                break;
-
-            WorldTile cityTile = city.getTile();
-            if (cityTile != null)
-                TryAddNuclearSalvoTarget(caster, salvoTargets, cityTile.pos, minimumTargetSeparation);
-            if (salvoTargets.Count == salvoCount)
-                break;
-        }
-    }
-
-    salvoTargets.RemoveAll(target =>
-        !IsIntercontinentalMissileTargetInRange(caster, target) ||
-        !IsStrategicMissileTargetSafe(caster.kingdom, target, 24f));
     if (salvoTargets.Count == 0)
         return false;
 
@@ -11077,31 +10652,10 @@ public static bool NuclearSalvoEffect(BaseSimObject pTarget, WorldTile pTile = n
     return true;
 }
 
-private static Vector2? GetNuclearSalvoCityTarget(City city)
-{
-    if (city == null)
-        return null;
-
-    if (city.buildings != null && city.buildings.Count > 0)
-    {
-        Building building = city.buildings.GetRandom();
-        if (building?.current_tile != null)
-            return building.current_tile.pos;
-    }
-    if (city.hasLeader() && city.leader.isAlive())
-        return city.leader.current_position;
-    if (city.kingdom?.king != null && city.kingdom.king.isAlive())
-        return city.kingdom.king.current_position;
-
-    WorldTile cityTile = city.getTile();
-    return cityTile == null ? (Vector2?)null : cityTile.pos;
-}
-
 private static bool TryAddNuclearSalvoTarget(Actor caster, List<Vector2> targets, Vector2 candidate, float minimumSeparation)
 {
     if (!TryResolveWorldTarget(candidate, out candidate) ||
-        !IsIntercontinentalMissileTargetInRange(caster, candidate) ||
-        !IsStrategicMissileTargetSafe(caster?.kingdom, candidate, 24f))
+        !IsMissileDoctrineTargetLaunchable(caster, candidate, 24f))
         return false;
 
     foreach (Vector2 existing in targets)

@@ -642,49 +642,12 @@ namespace ModernBox
             if (caster == null || caster.kingdom == null || !caster.kingdom.hasEnemies())
                 return targets;
 
-            List<City> enemyCities = new List<City>();
-            using (var enemies = caster.kingdom.getEnemiesKingdoms())
+            List<Vector2> candidates = new List<Vector2>();
+            MissileDoctrine.GetTargetCandidates(caster, blastSafetyRadius, candidates,
+                Mathf.Max(16, targetCount * 8));
+            foreach (Vector2 candidate in candidates)
             {
-                foreach (Kingdom enemyKingdom in enemies)
-                {
-                    if (enemyKingdom?.cities == null)
-                        continue;
-                    foreach (City city in enemyKingdom.cities)
-                    {
-                        if (city != null && city.isAlive())
-                            enemyCities.Add(city);
-                    }
-                }
-            }
-
-            foreach (City city in enemyCities)
-            {
-                TryAddTarget(caster, targets, GetCityPriorityTarget(city), minimumSeparation, blastSafetyRadius, reserveTargets);
-                if (targets.Count >= targetCount)
-                    return targets;
-            }
-
-            foreach (City city in enemyCities)
-            {
-                if (city.buildings != null)
-                {
-                    foreach (Building building in city.buildings)
-                    {
-                        if (building?.current_tile != null)
-                            TryAddTarget(caster, targets, building.current_tile.pos, minimumSeparation, blastSafetyRadius, reserveTargets);
-                        if (targets.Count >= targetCount)
-                            return targets;
-                    }
-                }
-
-                if (city.hasLeader() && city.leader != null && city.leader.isAlive())
-                    TryAddTarget(caster, targets, city.leader.current_position, minimumSeparation, blastSafetyRadius, reserveTargets);
-                if (targets.Count >= targetCount)
-                    return targets;
-
-                WorldTile tile = city.getTile();
-                if (tile != null)
-                    TryAddTarget(caster, targets, tile.pos, minimumSeparation, blastSafetyRadius, reserveTargets);
+                TryAddTarget(caster, targets, candidate, minimumSeparation, blastSafetyRadius, reserveTargets);
                 if (targets.Count >= targetCount)
                     return targets;
             }
@@ -695,40 +658,29 @@ namespace ModernBox
             // going silent during a busy naval battle.
             if (targets.Count == 0 && reserveTargets)
             {
-                List<Vector2> fallback = GetEnemyTargets(caster, targetCount, minimumSeparation,
-                    blastSafetyRadius, false);
-                foreach (Vector2 candidate in fallback)
+                foreach (Vector2 candidate in candidates)
                 {
-                    if (SubmarineTargetReservations.TryReserve(caster, candidate, minimumSeparation,
+                    int before = targets.Count;
+                    TryAddTarget(caster, targets, candidate, minimumSeparation, blastSafetyRadius, false);
+                    if (targets.Count == before)
+                        continue;
+                    Vector2 fallback = targets[targets.Count - 1];
+                    targets.RemoveAt(targets.Count - 1);
+                    if (SubmarineTargetReservations.TryReserve(caster, fallback, minimumSeparation,
                             GetTargetReservationLane(caster), true))
-                        targets.Add(candidate);
+                        targets.Add(fallback);
+                    if (targets.Count >= targetCount)
+                        break;
                 }
             }
             return targets;
-        }
-
-        private static Vector2? GetCityPriorityTarget(City city)
-        {
-            if (city == null)
-                return null;
-            if (city.buildings != null && city.buildings.Count > 0)
-            {
-                Building building = city.buildings.GetRandom();
-                if (building?.current_tile != null)
-                    return building.current_tile.pos;
-            }
-            if (city.hasLeader() && city.leader != null && city.leader.isAlive())
-                return city.leader.current_position;
-            WorldTile tile = city.getTile();
-            return tile == null ? (Vector2?)null : tile.pos;
         }
 
         private static void TryAddTarget(Actor caster, List<Vector2> targets, Vector2? candidate,
             float minimumSeparation, float blastSafetyRadius, bool reserveTarget)
         {
             if (candidate == null || !Vehicles.TryResolveWorldTarget(candidate.Value, out Vector2 resolved) ||
-                !Vehicles.IsIntercontinentalMissileTargetInRange(caster, resolved) ||
-                !Vehicles.IsStrategicMissileTargetSafe(caster?.kingdom, resolved, blastSafetyRadius))
+                !Vehicles.IsMissileDoctrineTargetLaunchable(caster, resolved, blastSafetyRadius))
                 return;
             foreach (Vector2 target in targets)
             {
@@ -763,8 +715,9 @@ namespace ModernBox
                 return false;
 
             float blastSafetyRadius = Vehicles.GetMissileBlastSafetyRadius(projectileId);
+            bool allowMilitarySeaTarget = allowExplicitSeaThreat || !closeRangeTorpedo;
             if (!Vehicles.IsMissileTargetSafe(caster.kingdom, target, blastSafetyRadius) ||
-                !IsValidLaunchTerritory(caster, target, allowExplicitSeaThreat))
+                !IsValidLaunchTerritory(caster, target, allowMilitarySeaTarget))
                 return false;
 
             Vector3 position = caster.current_position;
@@ -800,23 +753,8 @@ namespace ModernBox
             if (territoryCity?.kingdom != null)
                 return caster.kingdom.isEnemy(territoryCity.kingdom);
 
-            if (!allowExplicitSeaThreat || World.world?.units == null)
-                return false;
-
-            foreach (Actor other in World.world.units)
-            {
-                if (other == null || !other.isAlive() || other.kingdom == null ||
-                    !caster.kingdom.isEnemy(other.kingdom) ||
-                    Vector2.Distance(other.current_position, target) > 5f)
-                    continue;
-
-                string actorId = other.asset?.id;
-                if ((other.asset != null && other.asset.is_boat) || other.hasTrait("boat") ||
-                    (!string.IsNullOrEmpty(actorId) && actorId.IndexOf("tornado", StringComparison.OrdinalIgnoreCase) >= 0))
-                    return true;
-            }
-
-            return false;
+            return allowExplicitSeaThreat &&
+                MissileDoctrine.HasLiveEnemyMilitaryTargetNear(caster, target, 5f);
         }
 
         internal static void HandleSpecialWarheadImpact(Projectile projectile)
