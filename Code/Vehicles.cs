@@ -8374,6 +8374,28 @@ NavalRoles.RegisterSpawnUnits();
 			actorAsset.decision_ids.Remove("HORDEmissileArtilleryDecision");
 			actorAsset.decision_ids.Remove("HARDENmissileArtilleryDecision");
 			actorAsset.decision_ids.Remove("GAIAmissileArtilleryDecision");
+			if (actorId.StartsWith("MissileSystem_", StringComparison.OrdinalIgnoreCase))
+			{
+				// MissileSystem_* inherits baseWarUnit's army decisions when cloned.
+				// Those decisions let the launcher join or lead a formation, which in
+				// turn makes ordinary soldiers rally around a stationary artillery
+				// platform. Keep its own random positioning and missile decision, but
+				// remove every army-leader, follower and transport entry point.
+				string[] coordinationDecisions =
+				{
+					"warrior_try_join_army_group",
+					"city_walking_to_danger_zone",
+					"warrior_army_captain_idle_walking_city",
+					"warrior_army_captain_waiting",
+					"warrior_army_leader_move_random",
+					"warrior_army_leader_move_to_attack_target",
+					"warrior_army_follow_leader",
+					"check_warrior_transport",
+					"swim_to_island"
+				};
+				foreach (string decisionId in coordinationDecisions)
+					actorAsset.decision_ids.Remove(decisionId);
+			}
 			if (!actorAsset.decision_ids.Contains("missileArtilleryDecision"))
 				actorAsset.addDecision("missileArtilleryDecision");
 		}
