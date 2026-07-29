@@ -4539,10 +4539,10 @@ var demonreaver = AssetManager.actor_library.clone("demonreaver","baseWarUnit");
 
 DecisionAsset warBoatAttackDecision = new DecisionAsset();
 warBoatAttackDecision.id = "warBoatAttackDecision";
-// Transport requests must win over an optional patrol order.  The native
-// boat_transport_check decision keeps its normal higher scheduling layer;
-// this still lets a free warship return to its combat role between crossings.
-warBoatAttackDecision.priority = NeuroLayer.Layer_0_Minimal;
+// The transport dispatcher explicitly transfers a hull to WorldBox's native
+// taxi task when an invasion is pending.  Keep the regular war role at its
+// original low layer for every other moment.
+warBoatAttackDecision.priority = NeuroLayer.Layer_1_Low;
 warBoatAttackDecision.path_icon = "ui/icons/WarBoat";
 warBoatAttackDecision.cooldown = 1;
 warBoatAttackDecision.unique = true;
