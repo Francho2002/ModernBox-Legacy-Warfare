@@ -124,6 +124,7 @@ namespace ModernBox{
                 gameObject.AddComponent<CarrierAirWingController>();
                 gameObject.AddComponent<NavalOverviewRegistrationController>();
                 gameObject.AddComponent<GroundMissileProductionController>();
+                gameObject.AddComponent<NavalProductionController>();
                 gameObject.AddComponent<CivilMilitaryCommissionController>();
                 gameObject.AddComponent<ModernDiplomacyController>();
                 gameObject.AddComponent<ForbiddenKnowledgeKeeper>();
